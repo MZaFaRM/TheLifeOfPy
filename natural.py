@@ -1,5 +1,6 @@
 import os
 import random
+import time
 from creatures import Carnivore, Herbivore, Plant, Terms
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -11,34 +12,37 @@ import numpy as np
 class NatureEnv(Env):
     ANIMALS = []
     PLANTS = []
+    DEAD_ANIMALS = []
     COMMUNICATION_BUFFER = {}
 
-    def __init__(self, carnivores: int, herbivores: int, plants: int) -> None:
+    def __init__(
+        self,
+        carnivores: int,
+        herbivores: int,
+        plants: int,
+        carnivore_model_path: str = None,
+        herbivore_model_path: str = None,
+    ) -> None:
         self.population_carnivores = carnivores
         self.population_herbivores = herbivores
         self.population_plants = plants
 
-        for i in range(carnivores):
-            self.create_animal(Terms.CARNIVORE, f"Carnivore {i}")
-        for i in range(herbivores):
-            self.create_animal(Terms.HERBIVORE, f"Herbivore {i}")
-        for i in range(plants):
-            self.create_animal(Terms.PLANT, f"Plant {i}")
+        self.carnivore_model_path = carnivore_model_path
+        self.herbivore_model_path = herbivore_model_path
 
         self.observation_space = Discrete(5)
         self.action_space = Discrete(5)
 
-    def assign_model(self, carnivore_model_path=None, herbivore_model_path=None):
+    def assign_model(self):
         for animal in self.ANIMALS:
-            check_env(animal)
             if isinstance(animal, Carnivore):
-                if carnivore_model_path:
-                    animal.model = PPO.load(carnivore_model_path, env=animal)
+                if self.carnivore_model_path:
+                    animal.model = PPO.load(self.carnivore_model_path, env=animal)
                 else:
                     animal.model = PPO("MlpPolicy", env=animal)
             elif isinstance(animal, Herbivore):
-                if herbivore_model_path:
-                    animal.model = PPO.load(herbivore_model_path, env=animal)
+                if self.herbivore_model_path:
+                    animal.model = PPO.load(self.herbivore_model_path, env=animal)
                 else:
                     animal.model = PPO("MlpPolicy", env=animal)
 
@@ -56,13 +60,35 @@ class NatureEnv(Env):
         self.PLANTS.append(Plant(name))
 
     def step(self, obs):
-        observations, rewards, dones, truncations, infos = zip(
-            *[animal.step(animal.model.predict(obs)[0]) for animal in self.ANIMALS]
-        )
+        observations = []
+        rewards = []
+        terminations = []
+        truncations = []
+        infos = []
+
+        n = len(self.ANIMALS)
+        i = 0
+
+        while i < n:
+            action, _ = self.ANIMALS[i].model.predict(obs[i])
+            observation, reward, done, truncated, info = self.ANIMALS[i].step(action)
+
+            observations.append(observation)
+            rewards.append(reward)
+            terminations.append(done)
+            truncations.append(truncated)
+            infos.append(info)
+
+            if done or truncated:
+                self.DEAD_ANIMALS.append(self.ANIMALS.pop(i))
+                n -= 1
+            else:
+                i += 1
+
         return (
             np.array(observations),
             np.array(rewards),
-            np.array(dones),
+            np.array(terminations),
             np.array(truncations),
             infos,
         )
@@ -81,32 +107,31 @@ class NatureEnv(Env):
         for i in range(self.population_plants):
             self.create_animal(Terms.PLANT, f"Plant {i}")
 
-        observations = [animal.get_observation() for animal in self.ANIMALS] + [
-            plant.get_observation() for plant in self.PLANTS
-        ]
+        observations = [animal.get_observation() for animal in self.ANIMALS]
+
+        self.assign_model()
 
         return (np.array(observations), {})
 
 
-env = NatureEnv(1, 1, 1)
-env.assign_model(
+env = NatureEnv(
+    carnivores=1,
+    herbivores=1,
+    plants=1,
     # carnivore_model_path=os.path.join("models", "carnivores"),
     # herbivore_model_path=os.path.join("models", "herbivores"),
 )
 
 done = False
 score = 0
-obs, info = env.reset()
+obs, infos = env.reset()
 # print(evaluate_policy(model, env, n_eval_episodes=100, deterministic=True))
 
-done = False
-score = 0
-obs, info = env.reset()
+for i in range(1):
+    while not done:
+        obs, rewards, terminations, truncations, infos = env.step(obs)
+        if all(truncations) or all(terminations):
+            done = True
 
-dones = [True]
-
-for i in range(5):
-    while any(dones):
-        obs, reward, terminated, truncated, info = env.step(obs)
         env.render()
-    obs, info = env.reset()
+    obs, infos = env.reset()

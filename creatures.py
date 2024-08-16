@@ -1,6 +1,7 @@
 import enum
 from gymnasium.spaces import Discrete
 from gymnasium import Env
+from uuid import uuid4
 
 
 class Terms(enum.Enum):
@@ -12,10 +13,8 @@ class Terms(enum.Enum):
 
 
 class Animal(Env):
-    def __init__(
-        self, _id, name="Animal", parents=None, comms=None
-    ) -> None:
-        self.id = _id
+    def __init__(self, name="Animal", parents=None, comms=None) -> None:
+        self.id = uuid4()
         print("Animal created named:", name)
         self.name = name
         self.satiation = 5
@@ -86,9 +85,7 @@ class Animal(Env):
 
         elif action == 4:
             self.rest -= 1
-            self.comms[Terms.MATING_CALL] = self.comms.get(
-                Terms.MATING_CALL, []
-            ).append(self.id)
+            # self.comms[Terms.MATING_CALL] = self.comms.get(Terms.MATING_CALL, [])
 
             reward += 5
 
@@ -98,17 +95,20 @@ class Animal(Env):
             self.satiation = max(0, self.satiation - 1)
 
         if self.rest == 0:
+            self.rest = 11
             self.sleep()
             reward -= 10
 
         if self.satiation == 0:
             self.alive = False
             reward -= 20
+            self.die(reason="Hunger")
 
         if self.life_span <= 0:
             self.alive = False
-
-        return self.get_observation(), reward, self.alive, self.life_span >= 0, {}
+            self.die(reason="Old Age")
+        # observation, reward, done, truncated, info
+        return self.get_observation(), reward, not self.alive, self.life_span <= 0, {}
 
     def render(self):
         if self.action == 0:
@@ -142,6 +142,9 @@ class Animal(Env):
 
     def reproduce(self):
         print(f"{self.name} is reproducing")
+
+    def die(self, reason: str = "Unknown"):
+        print(f"{self.name} is dead. Reason: {reason}")
 
     def walk(self, position):
         print(f"{self.name} is walking to position {position}")
