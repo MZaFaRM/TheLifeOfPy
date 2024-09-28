@@ -30,10 +30,14 @@ class Animal(Env):
         self.alive = True
         self.sleeping = False
 
+        self.sleep_progress = 0
+        self.max_sleep_progress = 3
+
         self.action_space = Discrete(5)
         self.observation_space = Discrete(5)
 
         self.life_span = 100
+        self.time_alive = 0
 
         if parents is not None:
             self.parents = parents
@@ -47,51 +51,51 @@ class Animal(Env):
         return self.name
 
     def step(self, action):
-        self.life_span -= 1
+        self.time_alive += 1
         self.action = action
         reward = 0
 
-        # - Eat Food
-        # - Collect Food
-        # - Sleep
-        # - Do nothing
-        # - Reproduce
+        if not self.sleeping:
+            # - Eat Food
+            # - Sleep
+            # - Do nothing
+            # - Reproduce
 
-        # if action successfully executed
-        if action == 0:
-            if self.satiation >= self.max_satiation:
-                reward -= 1
-            else:
-                self.satiation = 6
+            # if action successfully executed
+            if action == 0:
+                if self.satiation >= self.max_satiation:
+                    reward -= 1
+                else:
+                    self.satiation = 6
+                    reward += 5
+
+            elif action == 1:
+                if self.rest >= self.max_rest:
+                    reward -= 1
+                else:
+                    self.rest = 11
+                    reward += 5
+
+            elif action == 2:
+                self.rest += 2
+                reward += 0
+
+            elif action == 3:
+                self.rest -= 1
+                # self.comms[Terms.MATING_CALL] = self.comms.get(Terms.MATING_CALL, [])
+
                 reward += 5
 
-        elif action == 1:
-            if self.capacity > 0:
-                self.capacity -= 1
-                reward += 5
-            else:
-                reward -= 1
+            self.rest = max(0, self.rest - 1)
 
-        elif action == 2:
-            if self.rest >= self.max_rest:
-                reward -= 1
-            else:
-                self.rest = 11
+        else:
+            self.sleep_progress += 1
+            if self.sleep_progress >= self.max_sleep_progress:
+                self.sleeping = False
+                self.sleep_progress = 0
                 reward += 5
 
-        elif action == 3:
-            self.rest += 2
-            reward += 0
-
-        elif action == 4:
-            self.rest -= 1
-            # self.comms[Terms.MATING_CALL] = self.comms.get(Terms.MATING_CALL, [])
-
-            reward += 5
-
-        self.rest = max(0, self.rest - 1)
-
-        if self.life_span % 3 == 0:
+        if self.time_alive % 3 == 0:
             self.satiation = max(0, self.satiation - 1)
 
         if self.rest == 0:
@@ -104,22 +108,21 @@ class Animal(Env):
             reward -= 20
             self.die(reason="Hunger")
 
-        if self.life_span <= 0:
+        if self.time_alive >= self.life_span:
             self.alive = False
             self.die(reason="Old Age")
+
         # observation, reward, done, truncated, info
-        return self.get_observation(), reward, not self.alive, self.life_span <= 0, {}
+        return self.get_observation(), reward, not self.alive, self.time_alive <= 0, {}
 
     def render(self):
         if self.action == 0:
             self.eat()
         elif self.action == 1:
-            self.collect_food()
-        elif self.action == 2:
             self.sleep()
-        elif self.action == 3:
+        elif self.action == 2:
             self.do_nothing()
-        elif self.action == 4:
+        elif self.action == 3:
             self.reproduce()
 
     def get_observation(self):
@@ -129,65 +132,35 @@ class Animal(Env):
         return 4, {}
 
     def eat(self):
-        print(f"{self.name} is eating")
+        print(self.time_alive, f"{self.name} is eating")
 
     def collect_food(self):
-        print(f"{self.name} is collecting food")
+        print(self.time_alive, f"{self.name} is collecting food")
 
     def sleep(self):
-        print(f"{self.name} is sleeping")
+        self.sleeping = True
+        self.sleep_progress = 0
+        print(self.time_alive, f"{self.name} is sleeping")
 
     def do_nothing(self):
-        print(f"{self.name} is doing nothing")
+        print(self.time_alive, f"{self.name} is doing nothing")
 
     def reproduce(self):
-        print(f"{self.name} is reproducing")
+        print(self.time_alive, f"{self.name} is reproducing")
 
     def die(self, reason: str = "Unknown"):
-        print(f"{self.name} is dead. Reason: {reason}")
+        print(self.time_alive, f"{self.name} is dead. Reason: {reason}")
 
     def walk(self, position):
-        print(f"{self.name} is walking to position {position}")
+        print(self.time_alive, f"{self.name} is walking to position {position}")
 
 
 class Herbivore(Animal):
-    def eat(self):
-        print(f"{self.name} is eating")
-
-    def collect_food(self):
-        print(f"{self.name} is collecting food")
-
-    def sleep(self):
-        print(f"{self.name} is sleeping")
-
-    def do_nothing(self):
-        print(f"{self.name} is doing nothing")
-
-    def reproduce(self):
-        print(f"{self.name} is reproducing")
-
-    def walk(self, position):
-        print(f"{self.name} is walking to position {position}")
+    pass
 
 
 class Carnivore(Animal):
-    def eat(self):
-        print(f"{self.name} is eating")
-
-    def collect_food(self):
-        print(f"{self.name} is collecting food")
-
-    def sleep(self):
-        print(f"{self.name} is sleeping")
-
-    def do_nothing(self):
-        print(f"{self.name} is doing nothing")
-
-    def reproduce(self):
-        print(f"{self.name} is reproducing")
-
-    def walk(self, position):
-        print(f"{self.name} is walking to position {position}")
+    pass
 
 
 class Plant:

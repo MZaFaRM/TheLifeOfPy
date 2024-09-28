@@ -7,6 +7,7 @@ from stable_baselines3.common.env_checker import check_env
 from gymnasium import Env
 from gymnasium.spaces import Box, Discrete
 import numpy as np
+import pygame
 
 
 class NatureEnv(Env):
@@ -115,7 +116,7 @@ class NatureEnv(Env):
 
 
 env = NatureEnv(
-    carnivores=1,
+    carnivores=0,
     herbivores=1,
     plants=1,
     # carnivore_model_path=os.path.join("models", "carnivores"),
