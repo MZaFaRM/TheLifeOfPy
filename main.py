@@ -3,26 +3,58 @@ from pygame.sprite import Sprite
 from gym.spaces import MultiDiscrete
 import random
 import numpy as np
-from noise import pnoise1 as noise
+from noise import pnoise1
+import helper
 
 
 class Organism(Sprite):
-    def __init__(self, env, screen, radius=5) -> None:
+    def __init__(
+        self,
+        env,
+        screen,
+        radius=15,
+        border_thickness=2,
+    ) -> None:
         self.screen = screen
         self.env = env
-        self.image = pygame.Surface((2 * radius, 2 * radius), pygame.SRCALPHA)
-        pygame.draw.circle(self.image, (0, 0, 0, 2.5), (radius, radius), radius)
+
+        # Set initial position to the center of the screen
+        position = (screen.get_width() // 2, screen.get_height() // 2)
+
+        self.image = pygame.Surface(
+            ((2 * radius) + 5, (2 * radius) + 5), pygame.SRCALPHA
+        )
         self.rect = self.image.get_rect()
-        self.rect.center = (400, 300)
+
+        # Draw the border and filled circles
+        pygame.draw.circle(
+            self.image, (0, 0, 0, 255), self.rect.center, radius + border_thickness
+        )
+        pygame.draw.circle(self.image, (125, 125, 125, 255), self.rect.center, radius)
+
+        self.rect.center = (
+            position  # Set the center of the rect to the calculated position
+        )
+        
+        self.maximum = 0
+        self.minimum = 0
+
+        self.tx = 0
+        self.ty = 10000
 
     def step(self):
-        np.random.normal(0, 1)
-        if random.random() < 0.01:
-            self.rect.x += random.randint(-100, 100)
-            self.rect.y += random.randint(-100, 100)
-        else:
-            self.rect.x += random.randint(-1, 1)
-            self.rect.y += random.randint(-1, 1)
+        self.rect.centerx = helper.map_value(
+            pnoise1(self.tx), -1, 1, 0, self.screen.get_width()
+        )
+        self.rect.centery = helper.map_value(
+            pnoise1(self.ty), -1, 1, 0, self.screen.get_height()
+        )
+        # self.maximum = max(self.maximum, pnoise1(self.tx))
+        # self.minimum = min(self.minimum, pnoise1(self.tx))
+        # print(self.maximum, self.minimum)
+
+        self.tx += 0.01
+        self.ty += 0.01
 
         reward = 0
 
@@ -96,6 +128,7 @@ class Nature:
 env = Nature()
 done = False
 truncated = False
+env.render()
 
 while not done:
     action = env.action_space.sample()
