@@ -3,7 +3,7 @@ from pygame.sprite import Sprite
 from gym.spaces import MultiDiscrete
 import random
 import numpy as np
-from noise import pnoise1
+from noise import pnoise2
 import helper
 
 
@@ -35,7 +35,7 @@ class Organism(Sprite):
         self.rect.center = (
             position  # Set the center of the rect to the calculated position
         )
-        
+
         self.maximum = 0
         self.minimum = 0
 
@@ -43,12 +43,13 @@ class Organism(Sprite):
         self.ty = 10000
 
     def step(self):
-        self.rect.centerx = helper.map_value(
-            pnoise1(self.tx), -1, 1, 0, self.screen.get_width()
-        )
-        self.rect.centery = helper.map_value(
-            pnoise1(self.ty), -1, 1, 0, self.screen.get_height()
-        )
+        test = pnoise2(self.tx, self.ty)
+        # self.rect.centerx = helper.map_value(
+        #     pnoise2(self.tx), -1, 1, 0, self.screen.get_width()
+        # )
+        # self.rect.centery = helper.map_value(
+        #     pnoise2(self.ty), -1, 1, 0, self.screen.get_height()
+        # )
         # self.maximum = max(self.maximum, pnoise1(self.tx))
         # self.minimum = min(self.minimum, pnoise1(self.tx))
         # print(self.maximum, self.minimum)
@@ -76,13 +77,11 @@ class Organism(Sprite):
         #     (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         # )
         self.screen.blit(self.image, self.rect)
-        pygame.display.update()
 
 
 class Nature:
     def __init__(self):
-        self.screen = pygame.display.set_mode((800, 600))
-        self.screen.fill((255, 255, 255))
+        self.screen = pygame.display.set_mode((1600, 800))
         pygame.display.set_caption("Walker")
 
         self.action_space = MultiDiscrete([3, 3])
@@ -95,12 +94,40 @@ class Nature:
         self.truncation = 1_000_000
         self.time = 0
 
+        self.screen_width = self.screen.get_width()
+        self.screen_height = self.screen.get_height()
+        self.generate_terrain_map()
+
     def reset(self):
+        self.generate_terrain_map()
         self.creature = Organism(self, screen=self.screen)
         self.done = False
         self.truncated = False
         self.time = 0
         return None
+
+    def generate_terrain_map(self):
+        # Generate the noise-based grass map
+        grass_ratio, sky_ratio = 0.4, 0.6
+        grass = pygame.Surface((self.screen_width, self.screen_height * grass_ratio))
+        helper.create_gradient(grass, (207, 201, 38), (46, 207, 38))
+        self.screen.blit(
+            grass,
+            (
+                (self.screen_width - grass.get_width()) // 2,
+                self.screen_height - grass.get_height(),
+            ),
+        )
+
+        sky = pygame.Surface((self.screen_width, self.screen_height * sky_ratio))
+        helper.create_gradient(sky, (87, 103, 165), (140, 143, 180))
+        self.screen.blit(
+            sky,
+            (
+                (self.screen_width - sky.get_width()) // 2,
+                0,
+            ),
+        )
 
     def step(self):
         self.creature.step()
@@ -120,6 +147,7 @@ class Nature:
 
     def render(self):
         self.creature.render()
+        pygame.display.update()
 
     def get_observation(self):
         return None
