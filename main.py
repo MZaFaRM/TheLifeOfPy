@@ -1,3 +1,4 @@
+import time
 import pygame
 from pygame.sprite import Sprite
 from gym.spaces import MultiDiscrete
@@ -20,6 +21,9 @@ class Creature(Sprite):
         self.hunger = 2
         self.dead = False
 
+        self.done = False
+        self.color = color
+
         # Create a transparent surface for the creature
         surface_size = (2 * radius) + 4  # Total size of the surface
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
@@ -31,35 +35,85 @@ class Creature(Sprite):
         self.center = (surface_size // 2, surface_size // 2)
 
         # Draw the outer black circle and inner colored circle at the center
-        pygame.draw.circle(self.image, (0, 0, 0), self.center, radius + 2)
-        pygame.draw.circle(self.image, color, self.center, radius)
+        self.draw_self(radius, color)
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = self.original_position
 
+    def draw_self(self, radius, color, border_thickness=2, border_color=(0, 0, 0)):
+        pygame.draw.circle(
+            self.image,
+            border_color,
+            self.center,
+            radius + border_thickness,
+        )
+        pygame.draw.circle(
+            self.image,
+            color,
+            self.center,
+            radius,
+        )
+
     def reset(self):
         self.hunger = 2
+        self.done = False
         self.original_position = helper.get_edge_position(self.radius, self.screen)
         self.rect.center = self.original_position
 
     def step(self):
-        if not self.dead:
-            if self.hunger <= 0:
-                self.move_towards(self.original_position)
-            elif env.touching_food(self.rect.center):
-                self.eat()
-            else:
-                target = env.nearest_food(self.rect.center)
-                if target is not None:
-                    self.move_towards(target)
+        if not (self.dead or self.done):
+            if self.hunger > 0:
+                food_available = env.nearest_food(self.rect.center)
+                if food_available:
+                    if env.touching_food(self.rect.center):
+                        self.eat()
+                    else:
+                        self.move_towards(food_available)
+
                 else:
-                    self.die()
+                    if self.hunger == 1:
+                        self.move_towards(self.original_position)
+                    else:
+                        self.die()
+            else:
+                self.move_towards(self.original_position)
+
+            if self.rect.center == self.original_position:
+                self.progress()
+
+    def reset(self):
+        self.hunger = 2
+        self.done = False
+        self.original_position = helper.get_edge_position(self.radius, self.screen)
+        self.rect.center = self.original_position
+        self.draw_self(self.radius, self.color)
+
+    def progress(self):
+        if not self.done:
+            if self.hunger == 0:
+                self.reproduce()
+            elif self.hunger == 1:
+                pass
+            else:
+                self.die()
+            self.done = True
+
+    def reproduce(self):
+        self.draw_self(self.radius, (128, 0, 128))
+        self.env.children.add(
+            Creature(
+                self.env,
+                self.screen,
+                radius=self.radius,
+                n=self.n,
+            )
+        )
 
     def die(self):
         self.dead = True
-        pygame.draw.circle(self.image, (0, 0, 0), self.center, self.radius + 2)
-        pygame.draw.circle(self.image, (255, 0, 0), self.center, self.radius)
+        self.done = True
+        self.draw_self(self.radius, (255, 0, 0))
 
     def eat(self):
         self.hunger -= 1
@@ -132,15 +186,11 @@ class Nature:
         self.screen_width = self.screen.get_width()
         self.screen_height = self.screen.get_height()
 
-        self.reset()
+        self.generate_creatures(n=1)
+        self.foods = pygame.sprite.Group()
+        self.children = pygame.sprite.Group()
 
-    def reset(self):
-        self.done = False
-        self.truncated = False
-        self.time = 0
-        self.generate_food(n=50)
-        self.generate_creatures()
-        return None
+        self.reset()
 
     def generate_creatures(self, radius=15, n=50):
         self.creatures = pygame.sprite.Group()
@@ -172,15 +222,17 @@ class Nature:
         return False
 
     def step(self):
-        self.time += 1
+        self.time_alive += 1
         reward = 0
 
         for creature in self.creatures:
             creature.step()
-
         self.clock.tick(60)
 
-        if self.time >= self.truncation:
+        # done = False if any creature is not done else True
+        self.done = all([creature.done for creature in self.creatures])
+
+        if self.time_alive >= self.truncation:
             self.truncated = True
             self.done = True
 
@@ -191,10 +243,31 @@ class Nature:
             self.truncated,
         )
 
+    def reset(self):
+        time.sleep(1)
+
+        self.done = False
+        self.truncated = False
+        self.time_alive = 0
+        self.generate_food(n=50)
+
+        self.new_generation = pygame.sprite.Group()
+
+        for creature in self.creatures:
+            if not creature.dead:
+                creature.reset()
+                self.new_generation.add(creature)
+
+        for creature in self.children:
+            self.new_generation.add(creature)
+
+        self.creatures = self.new_generation.copy()
+        self.children = pygame.sprite.Group()
+        self.new_generation = pygame.sprite.Group()
+        print(len(self.creatures))
+
     def render(self):
-        self.screen.fill(
-            self.background_color
-        )  # Clear the screen with background color
+        self.screen.fill(self.background_color)
         self.foods.draw(self.screen)  # Render all food items
         self.creatures.draw(self.screen)  # Render all creatures
         pygame.display.update()
@@ -204,11 +277,13 @@ class Nature:
 
 
 env = Nature()
-done = False
-truncated = False
-env.render()
 
-while not done:
-    action = env.action_space.sample()
-    observation, reward, done, truncated = env.step()
+while True:
+    env.reset()
     env.render()
+    done = False
+    truncated = False
+
+    while not (done or truncated):
+        observation, reward, done, truncated = env.step()
+        env.render()
