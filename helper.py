@@ -1,3 +1,4 @@
+import random
 import noise
 import numpy as np
 import pygame
@@ -37,3 +38,35 @@ def create_gradient(surface, top_color, bottom_color):
 
         # Draw the gradient line inside the rectangle
         pygame.draw.line(surface, (int(r), int(g), int(b)), (0, row), (width, row))
+
+
+def get_edge_position(radius, screen):
+    margin = 65  # Distance from the edges
+    screen_width = screen.get_width()
+    screen_height = screen.get_height()
+
+    # Randomly choose whether the food appears on horizontal or vertical edges
+    if random.choice([True, False]):
+        # Horizontal edges (top or bottom)
+        x = random.randint(radius, screen_width - radius)
+        y = random.choice(
+            [
+                random.randint(50, margin),
+                random.randint(
+                    screen_height - radius - margin, screen_height - radius - 50
+                ),
+            ]
+        )
+    else:
+        # Vertical edges (left or right)
+        x = random.choice(
+            [
+                random.randint(50, margin),
+                random.randint(
+                    screen_width - radius - margin, screen_width - radius - 50
+                ),
+            ]
+        )
+        y = random.randint(radius, screen_height - radius)
+
+    return (x, y)

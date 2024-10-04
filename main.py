@@ -7,132 +7,142 @@ from noise import pnoise2
 import helper
 
 
-class Organism(Sprite):
-    def __init__(
-        self,
-        env,
-        screen,
-        radius=15,
-        border_thickness=2,
-    ) -> None:
+class Creature(Sprite):
+    def __init__(self, env, screen, radius=15, n=100, color=(151, 190, 90)):
+        super().__init__()
+
         self.screen = screen
         self.env = env
 
-        # Set initial position to the center of the screen
-        position = (screen.get_width() // 2, screen.get_height() // 2)
+        self.radius = radius
+        self.n = n
 
+        # Create a transparent surface for the creature
+        surface_size = (2 * radius) + 4  # Total size of the surface
+        self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
+
+        # Random position within screen bounds
+        self.position = helper.get_edge_position(radius, screen)
+
+        # Calculate center of the surface
+        center = (surface_size // 2, surface_size // 2)
+
+        # Draw the outer black circle and inner colored circle at the center
+        pygame.draw.circle(self.image, (0, 0, 0), center, radius + 2)
+        pygame.draw.circle(self.image, color, center, radius)
+
+        # Get rect for positioning
+        self.rect = self.image.get_rect()
+        self.rect.center = self.position
+
+    def step(self):
+        target = env.nearest_food(self.position)
+        self.move_towards(target)
+
+    def move_towards(self, target):
+        # Calculate the angle between the creature and the target
+        angle = np.arctan2(target[1] - self.position[1], target[0] - self.position[0])
+
+        # Calculate the new position of the creature
+        new_x = self.position[0] + np.cos(angle)
+        new_y = self.position[1] + np.sin(angle)
+
+        # Update the position of the creature
+        self.position = (new_x, new_y)
+        self.rect.center = self.position
+
+    def render(self):
+        # Blit the food image to the screen at its position
+        self.screen.blit(self.image, self.rect.topleft)
+
+
+class Food(Sprite):
+    def __init__(self, env, screen, radius=8, n=100, color=(232, 141, 103)):
+        super().__init__()
+
+        self.screen = screen
+        self.env = env
+
+        self.radius = radius
+        self.n = n
+
+        # Create a transparent surface for the food
         self.image = pygame.Surface(
             ((2 * radius) + 5, (2 * radius) + 5), pygame.SRCALPHA
         )
+
+        # Random position within screen bounds
+        self.position = (
+            random.randint(radius + 75, screen.get_width() - radius - 75),
+            random.randint(radius + 75, screen.get_height() - radius - 75),
+        )
+
+        # Create the circle on the image surface (center of the surface)
+        pygame.draw.circle(self.image, color, (radius + 2, radius + 2), radius)
+
+        # Get rect for positioning
         self.rect = self.image.get_rect()
+        self.rect.center = self.position
 
-        # Draw the border and filled circles
-        pygame.draw.circle(
-            self.image, (0, 0, 0, 255), self.rect.center, radius + border_thickness
-        )
-        pygame.draw.circle(self.image, (125, 125, 125, 255), self.rect.center, radius)
-
-        self.rect.center = (
-            position  # Set the center of the rect to the calculated position
-        )
-
-        self.maximum = 0
-        self.minimum = 0
-
-        self.tx = 0
-        self.ty = 10000
-
-    def step(self):
-        test = pnoise2(self.tx, self.ty)
-        # self.rect.centerx = helper.map_value(
-        #     pnoise2(self.tx), -1, 1, 0, self.screen.get_width()
-        # )
-        # self.rect.centery = helper.map_value(
-        #     pnoise2(self.ty), -1, 1, 0, self.screen.get_height()
-        # )
-        # self.maximum = max(self.maximum, pnoise1(self.tx))
-        # self.minimum = min(self.minimum, pnoise1(self.tx))
-        # print(self.maximum, self.minimum)
-
-        self.tx += 0.01
-        self.ty += 0.01
-
-        reward = 0
-
-        return (
-            self.get_observation(),
-            reward,
-            self.env.done,
-            self.env.truncated,
-        )
-
-    def get_observation(self):
-        return None
-
-    # def set_model(self, model):
-    #     self.model = model
-
-    def render(self):
-        # self.image.fill(
-        #     (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-        # )
-        self.screen.blit(self.image, self.rect)
+    def draw(self):
+        # Blit the food image to the screen at its position
+        self.screen.blit(self.image, self.rect.topleft)
 
 
 class Nature:
     def __init__(self):
-        self.screen = pygame.display.set_mode((1600, 800))
+        self.background_color = (243, 247, 236)
+        self.food_color = (232, 141, 103)
+
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Walker")
 
         self.action_space = MultiDiscrete([3, 3])
         self.observation_space = None
-        self.creature = Organism(self, screen=self.screen)
-
-        self.done = False
-        self.truncated = False
 
         self.truncation = 1_000_000
-        self.time = 0
 
         self.screen_width = self.screen.get_width()
         self.screen_height = self.screen.get_height()
-        self.generate_terrain_map()
+
+        self.reset()
 
     def reset(self):
-        self.generate_terrain_map()
-        self.creature = Organism(self, screen=self.screen)
         self.done = False
         self.truncated = False
         self.time = 0
+        self.generate_food()
+        self.generate_creatures()
         return None
 
-    def generate_terrain_map(self):
-        # Generate the noise-based grass map
-        grass_ratio, sky_ratio = 0.4, 0.6
-        grass = pygame.Surface((self.screen_width, self.screen_height * grass_ratio))
-        helper.create_gradient(grass, (207, 201, 38), (46, 207, 38))
-        self.screen.blit(
-            grass,
-            (
-                (self.screen_width - grass.get_width()) // 2,
-                self.screen_height - grass.get_height(),
-            ),
-        )
+    def generate_creatures(self, radius=15, n=50):
+        self.creatures = pygame.sprite.Group()
+        for i in range(n):
+            # food sprite group
+            self.creatures.add(Creature(self, self.screen, radius=radius, n=n))
 
-        sky = pygame.Surface((self.screen_width, self.screen_height * sky_ratio))
-        helper.create_gradient(sky, (87, 103, 165), (140, 143, 180))
-        self.screen.blit(
-            sky,
-            (
-                (self.screen_width - sky.get_width()) // 2,
-                0,
-            ),
-        )
+    def generate_food(self, radius=8, n=100):
+        self.foods = pygame.sprite.Group()
+        for i in range(n):
+            # food sprite group
+            self.foods.add(Food(self, self.screen, radius=radius, n=n))
+
+    def nearest_food(self, position):
+        nearest = None
+        nearest_distance = float("inf")
+        for food in self.foods:
+            distance = np.linalg.norm(np.array(food.position) - np.array(position))
+            if distance < nearest_distance:
+                nearest = food.position
+                nearest_distance = distance
+        return nearest
 
     def step(self):
-        self.creature.step()
         self.time += 1
         reward = 0
+
+        for creature in self.creatures:
+            creature.step()
 
         if self.time >= self.truncation:
             self.truncated = True
@@ -146,7 +156,11 @@ class Nature:
         )
 
     def render(self):
-        self.creature.render()
+        self.screen.fill(
+            self.background_color
+        )  # Clear the screen with background color
+        self.foods.draw(self.screen)  # Render all food items
+        self.creatures.draw(self.screen)  # Render all creatures
         pygame.display.update()
 
     def get_observation(self):
