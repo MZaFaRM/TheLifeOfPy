@@ -17,39 +17,65 @@ class Creature(Sprite):
         self.radius = radius
         self.n = n
 
+        self.hunger = 2
+        self.dead = False
+
         # Create a transparent surface for the creature
         surface_size = (2 * radius) + 4  # Total size of the surface
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
 
         # Random position within screen bounds
-        self.position = helper.get_edge_position(radius, screen)
+        self.original_position = helper.get_edge_position(radius, screen)
 
         # Calculate center of the surface
-        center = (surface_size // 2, surface_size // 2)
+        self.center = (surface_size // 2, surface_size // 2)
 
         # Draw the outer black circle and inner colored circle at the center
-        pygame.draw.circle(self.image, (0, 0, 0), center, radius + 2)
-        pygame.draw.circle(self.image, color, center, radius)
+        pygame.draw.circle(self.image, (0, 0, 0), self.center, radius + 2)
+        pygame.draw.circle(self.image, color, self.center, radius)
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = self.position
+        self.rect.center = self.original_position
+
+    def reset(self):
+        self.hunger = 2
+        self.original_position = helper.get_edge_position(self.radius, self.screen)
+        self.rect.center = self.original_position
 
     def step(self):
-        target = env.nearest_food(self.position)
-        self.move_towards(target)
+        if not self.dead:
+            if self.hunger <= 0:
+                self.move_towards(self.original_position)
+            elif env.touching_food(self.rect.center):
+                self.eat()
+            else:
+                target = env.nearest_food(self.rect.center)
+                if target is not None:
+                    self.move_towards(target)
+                else:
+                    self.die()
+
+    def die(self):
+        self.dead = True
+        pygame.draw.circle(self.image, (0, 0, 0), self.center, self.radius + 2)
+        pygame.draw.circle(self.image, (255, 0, 0), self.center, self.radius)
+
+    def eat(self):
+        self.hunger -= 1
 
     def move_towards(self, target):
         # Calculate the angle between the creature and the target
-        angle = np.arctan2(target[1] - self.position[1], target[0] - self.position[0])
+        angle = np.arctan2(
+            target[1] - self.rect.center[1], target[0] - self.rect.center[0]
+        )
 
         # Calculate the new position of the creature
-        new_x = self.position[0] + np.cos(angle)
-        new_y = self.position[1] + np.sin(angle)
+        new_x = self.rect.center[0] + np.cos(angle)
+        new_y = self.rect.center[1] + np.sin(angle)
 
         # Update the position of the creature
-        self.position = (new_x, new_y)
-        self.rect.center = self.position
+        self.rect.center = (new_x, new_y)
 
     def render(self):
         # Blit the food image to the screen at its position
@@ -93,6 +119,7 @@ class Nature:
     def __init__(self):
         self.background_color = (243, 247, 236)
         self.food_color = (232, 141, 103)
+        self.clock = pygame.time.Clock()
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         pygame.display.set_caption("Walker")
@@ -111,7 +138,7 @@ class Nature:
         self.done = False
         self.truncated = False
         self.time = 0
-        self.generate_food()
+        self.generate_food(n=50)
         self.generate_creatures()
         return None
 
@@ -137,12 +164,21 @@ class Nature:
                 nearest_distance = distance
         return nearest
 
+    def touching_food(self, position):
+        for food in self.foods:
+            if food.rect.collidepoint(position):
+                self.foods.remove(food)
+                return True
+        return False
+
     def step(self):
         self.time += 1
         reward = 0
 
         for creature in self.creatures:
             creature.step()
+
+        self.clock.tick(60)
 
         if self.time >= self.truncation:
             self.truncated = True
