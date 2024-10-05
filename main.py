@@ -22,7 +22,7 @@ class OrganismNN(nn.Module):
 
 
 class Creature(Sprite):
-    def __init__(self, env, screen, radius=15, n=100, color=(151, 190, 90)):
+    def __init__(self, env, screen, radius=5, n=100, color=(151, 190, 90)):
         super().__init__()
 
         self.screen = screen
@@ -30,6 +30,8 @@ class Creature(Sprite):
 
         self.radius = radius
         self.n = n
+        
+        self.brain = OrganismNN(input_size=5, hidden_size=10, output_size=2,)
 
         self.energy = self.max_energy = 10000
 
@@ -106,7 +108,7 @@ class Creature(Sprite):
             radius,
         )
 
-    def step(self):
+    def step(self, observation=None):
         if not (self.dead or self.done):
             self.energy -= 1
             if self.energy <= 0:
@@ -132,6 +134,31 @@ class Creature(Sprite):
 
             if self.rect.center == self.closest_edge:
                 self.progress()
+        # if not (self.dead or self.done):
+        #     self.energy -= 1
+        #     if self.energy <= 0:
+        #         self.die()
+        #         return
+
+        #     if self.hunger > 0:
+        #         food_available = env.nearest_food(self.rect.center)
+        #         if food_available:
+        #             if env.touching_food(self.rect.center):
+        #                 self.eat()
+        #             else:
+        #                 self.move_towards(food_available)
+
+        #         else:
+        #             if self.hunger == 1:
+        #                 self.move_towards(self.set_closest_edge(self.rect.center))
+        #             else:
+        #                 self.die()
+        #                 return
+        #     else:
+        #         self.move_towards(self.set_closest_edge(self.rect.center))
+
+        #     if self.rect.center == self.closest_edge:
+        #         self.progress()
 
     def reset(self):
         self.hunger = 2
@@ -171,18 +198,13 @@ class Creature(Sprite):
     def eat(self):
         self.hunger -= 1
 
-    def move_towards(self, target):
-        # Calculate the angle between the creature and the target
-        angle = np.arctan2(
-            target[1] - self.rect.center[1], target[0] - self.rect.center[0]
-        )
-
-        # Calculate the new position of the creature
-        new_x = self.rect.center[0] + np.cos(angle)
-        new_y = self.rect.center[1] + np.sin(angle)
-
-        # Update the position of the creature
-        self.rect.center = (new_x, new_y)
+    def move_towards(self, target, speed=1.0):
+        direction = np.array(target) - np.array(self.rect.center)
+        norm = np.linalg.norm(direction)
+        if norm > 0:
+            direction = direction / norm  # Normalize direction vector
+        new_position = np.array(self.rect.center) + direction * speed
+        self.rect.center = new_position
 
     def render(self):
         # Blit the food image to the screen at its position
@@ -245,15 +267,15 @@ class Nature:
 
         self.reset()
 
-    def generate_creatures(self, radius=15, n=50):
+    def generate_creatures(self, radius=5, n=50):
         self.creatures = pygame.sprite.Group()
-        for i in range(n):
+        for _ in range(n):
             # food sprite group
             self.creatures.add(Creature(self, self.screen, radius=radius, n=n))
 
-    def generate_food(self, radius=8, n=100):
+    def generate_food(self, radius=5, n=100):
         self.foods = pygame.sprite.Group()
-        for i in range(n):
+        for _ in range(n):
             # food sprite group
             self.foods.add(Food(self, self.screen, radius=radius, n=n))
 
@@ -261,7 +283,9 @@ class Nature:
         nearest = None
         nearest_distance = float("inf")
         for food in self.foods:
-            distance = np.linalg.norm(np.array(food.position) - np.array(position))
+            distance = np.sum(
+                (np.array(food.position) - np.array(position)) ** 2
+            )  # Squared distance
             if distance < nearest_distance:
                 nearest = food.position
                 nearest_distance = distance
@@ -278,24 +302,17 @@ class Nature:
         self.time_alive += 1
         reward = 0
 
+        # Batch all steps before rendering
         for creature in self.creatures:
             creature.step()
-        self.clock.tick(60)
-
-        # done = False if any creature is not done else True
-        self.done = all([creature.done for creature in self.creatures])
-        self.truncated = len(self.creatures) == 0
 
         if self.time_alive >= self.truncation:
-            self.truncated = True
             self.done = True
+            self.truncated = True
 
-        return (
-            self.get_observation(),
-            reward,
-            self.done,
-            self.truncated,
-        )
+        self.done = all(creature.done for creature in self.creatures)
+        self.truncated = len(self.creatures) == 0
+        return self.get_observation(), reward, self.done, self.truncated
 
     def reset(self):
         time.sleep(1)
