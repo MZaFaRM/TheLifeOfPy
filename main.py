@@ -4,8 +4,21 @@ from pygame.sprite import Sprite
 from gym.spaces import MultiDiscrete
 import random
 import numpy as np
-from noise import pnoise2
 import helper
+import torch
+import torch.nn as nn
+
+
+class OrganismNN(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(OrganismNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        x = torch.sigmoid(self.fc2(x))
+        return x
 
 
 class Creature(Sprite):
@@ -18,6 +31,8 @@ class Creature(Sprite):
         self.radius = radius
         self.n = n
 
+        self.energy = self.max_energy = 10000
+
         self.hunger = 2
         self.dead = False
 
@@ -29,7 +44,7 @@ class Creature(Sprite):
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
 
         # Random position within screen bounds
-        self.original_position = helper.get_edge_position(radius, screen)
+        self.closest_edge = None
 
         # Calculate center of the surface
         self.center = (surface_size // 2, surface_size // 2)
@@ -39,7 +54,43 @@ class Creature(Sprite):
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = self.original_position
+        self.rect.center = helper.get_edge_position(radius, screen)
+
+    def set_closest_edge(self, position):
+        if self.closest_edge:
+            return self.closest_edge
+
+        left = 0
+        up = 0
+        right = self.env.screen_width - 0
+        down = self.env.screen_height - 0
+
+        x, y = position
+
+        distance_up = y - up
+        distance_down = down - y
+        distance_left = x - left
+        distance_right = right - x
+
+        distances = {
+            "up": distance_up,
+            "down": distance_down,
+            "left": distance_left,
+            "right": distance_right,
+        }
+
+        closest_edge = min(distances, key=distances.get)
+
+        if closest_edge == "up":
+            self.closest_edge = (x, up)
+        elif closest_edge == "down":
+            self.closest_edge = (x, down)
+        elif closest_edge == "left":
+            self.closest_edge = (left, y)
+        elif closest_edge == "right":
+            self.closest_edge = (right, y)
+
+        return self.closest_edge
 
     def draw_self(self, radius, color, border_thickness=2, border_color=(0, 0, 0)):
         pygame.draw.circle(
@@ -55,14 +106,13 @@ class Creature(Sprite):
             radius,
         )
 
-    def reset(self):
-        self.hunger = 2
-        self.done = False
-        self.original_position = helper.get_edge_position(self.radius, self.screen)
-        self.rect.center = self.original_position
-
     def step(self):
         if not (self.dead or self.done):
+            self.energy -= 1
+            if self.energy <= 0:
+                self.die()
+                return
+
             if self.hunger > 0:
                 food_available = env.nearest_food(self.rect.center)
                 if food_available:
@@ -73,18 +123,21 @@ class Creature(Sprite):
 
                 else:
                     if self.hunger == 1:
-                        self.move_towards(self.original_position)
+                        self.move_towards(self.set_closest_edge(self.rect.center))
                     else:
                         self.die()
+                        return
             else:
-                self.move_towards(self.original_position)
+                self.move_towards(self.set_closest_edge(self.rect.center))
 
-            if self.rect.center == self.original_position:
+            if self.rect.center == self.closest_edge:
                 self.progress()
 
     def reset(self):
         self.hunger = 2
         self.done = False
+        self.energy = self.max_energy
+        self.closest_edge = None
         self.original_position = helper.get_edge_position(self.radius, self.screen)
         self.rect.center = self.original_position
         self.draw_self(self.radius, self.color)
@@ -186,7 +239,7 @@ class Nature:
         self.screen_width = self.screen.get_width()
         self.screen_height = self.screen.get_height()
 
-        self.generate_creatures(n=1)
+        self.generate_creatures(n=100)
         self.foods = pygame.sprite.Group()
         self.children = pygame.sprite.Group()
 
@@ -231,6 +284,7 @@ class Nature:
 
         # done = False if any creature is not done else True
         self.done = all([creature.done for creature in self.creatures])
+        self.truncated = len(self.creatures) == 0
 
         if self.time_alive >= self.truncation:
             self.truncated = True
@@ -249,7 +303,7 @@ class Nature:
         self.done = False
         self.truncated = False
         self.time_alive = 0
-        self.generate_food(n=50)
+        self.generate_food(n=100)
 
         self.new_generation = pygame.sprite.Group()
 
@@ -287,3 +341,6 @@ while True:
     while not (done or truncated):
         observation, reward, done, truncated = env.step()
         env.render()
+
+    if truncated:
+        break
