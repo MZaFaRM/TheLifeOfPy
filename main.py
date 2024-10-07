@@ -7,6 +7,11 @@ import numpy as np
 import helper
 import torch
 import torch.nn as nn
+from config import CreatureManager
+from config import SensorManager
+import config
+
+CREATURE_MANAGER = CreatureManager()
 
 
 class OrganismNN(nn.Module):
@@ -22,18 +27,33 @@ class OrganismNN(nn.Module):
 
 
 class Creature(Sprite):
-    def __init__(self, env, screen, radius=5, n=100, color=(151, 190, 90)):
+    def __init__(
+        self,
+        env,
+        screen,
+        radius=5,
+        n=100,
+        color=(151, 190, 90),
+        parent=None,
+        genes="",
+    ):
         super().__init__()
 
         self.screen = screen
         self.env = env
 
+        self.parent = parent
+
         self.radius = radius
         self.n = n
-        
-        self.brain = OrganismNN(input_size=5, hidden_size=10, output_size=2,)
 
-        self.energy = self.max_energy = 10000
+        self.brain = OrganismNN(
+            input_size=5,
+            hidden_size=10,
+            output_size=5,
+        )
+
+        self.energy = self.max_energy = 1000
 
         self.hunger = 2
         self.dead = False
@@ -57,6 +77,8 @@ class Creature(Sprite):
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = helper.get_edge_position(radius, screen)
+
+        self.DNA = CREATURE_MANAGER.register_creature(self)
 
     def set_closest_edge(self, position):
         if self.closest_edge:
@@ -108,24 +130,34 @@ class Creature(Sprite):
             radius,
         )
 
-    def step(self, observation=None):
+    def step(self):
+        observation = self.get_observation()
+        # self.energy -= 1
+        # if self.energy < 0:
+        #     self.done = True
+        # return
         if not (self.dead or self.done):
             self.energy -= 1
+            # input_data = torch.tensor([0.5, 1.0, 0.2, 0.9, 0.3])
+            # actions = self.brain(input_data)
+            # best_action = actions[torch.argmax(actions).item()]
+
             if self.energy <= 0:
                 self.die()
                 return
 
             if self.hunger > 0:
                 food_available = env.nearest_food(self.rect.center)
-                if food_available:
+                if food_available is not None:
                     if env.touching_food(self.rect.center):
                         self.eat()
                     else:
-                        self.move_towards(food_available)
+                        self.move_in_direction(SensorManager.obs_Nfd(self.env, self))
+                        pass
 
                 else:
                     if self.hunger == 1:
-                        self.move_towards(self.set_closest_edge(self.rect.center))
+                        self.move_in_direction(SensorManager.obs_Nfd(self.env, self))
                     else:
                         self.die()
                         return
@@ -134,31 +166,6 @@ class Creature(Sprite):
 
             if self.rect.center == self.closest_edge:
                 self.progress()
-        # if not (self.dead or self.done):
-        #     self.energy -= 1
-        #     if self.energy <= 0:
-        #         self.die()
-        #         return
-
-        #     if self.hunger > 0:
-        #         food_available = env.nearest_food(self.rect.center)
-        #         if food_available:
-        #             if env.touching_food(self.rect.center):
-        #                 self.eat()
-        #             else:
-        #                 self.move_towards(food_available)
-
-        #         else:
-        #             if self.hunger == 1:
-        #                 self.move_towards(self.set_closest_edge(self.rect.center))
-        #             else:
-        #                 self.die()
-        #                 return
-        #     else:
-        #         self.move_towards(self.set_closest_edge(self.rect.center))
-
-        #     if self.rect.center == self.closest_edge:
-        #         self.progress()
 
     def reset(self):
         self.hunger = 2
@@ -205,6 +212,35 @@ class Creature(Sprite):
             direction = direction / norm  # Normalize direction vector
         new_position = np.array(self.rect.center) + direction * speed
         self.rect.center = new_position
+        
+    def move_in_direction(self, target, speed=1.0):
+        # direction = np.array(target) - np.array(self.rect.center)
+        # Step 1: Convert degrees to radians
+        direction_radians = np.radians(target)
+        
+        # Step 2: Calculate the change in x and y coordinates
+        dx = speed * np.cos(direction_radians) * speed
+        dy = speed * np.sin(direction_radians) * speed
+        
+        # Step 3: Update the current position
+        new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
+        
+        self.rect.center = new_position
+
+    def get_observation(self):
+        if not hasattr(self, "parsed_dna"):
+            self.parsed_dna = CREATURE_MANAGER.get_parsed_dna(self.DNA)
+
+        observations = []
+        for sensor in self.parsed_dna:
+            observation_func = getattr(SensorManager, f"obs_{sensor}", None)
+            if observation_func is not None:
+                observation = observation_func(self.env, self)
+                observations.append(observation)
+            else:
+                # Handle the case where the sensor doesn't exist (optional)
+                raise Exception(f"Error: No method for sensor {sensor}")
+        return observations
 
     def render(self):
         # Blit the food image to the screen at its position
@@ -261,7 +297,7 @@ class Nature:
         self.screen_width = self.screen.get_width()
         self.screen_height = self.screen.get_height()
 
-        self.generate_creatures(n=100)
+        self.generate_creatures(n=1)
         self.foods = pygame.sprite.Group()
         self.children = pygame.sprite.Group()
 
@@ -280,16 +316,24 @@ class Nature:
             self.foods.add(Food(self, self.screen, radius=radius, n=n))
 
     def nearest_food(self, position):
-        nearest = None
-        nearest_distance = float("inf")
-        for food in self.foods:
-            distance = np.sum(
-                (np.array(food.position) - np.array(position)) ** 2
-            )  # Squared distance
-            if distance < nearest_distance:
-                nearest = food.position
-                nearest_distance = distance
-        return nearest
+        creature_pos = np.array(position)
+        food_positions = np.array([food.position for food in env.foods])
+
+        # Squared distances
+        distances = np.sum((food_positions - creature_pos) ** 2, axis=1)
+
+        # If there are no food objects
+        if len(distances) == 0:
+            # No food, so return infinite distance and no position
+            return None
+
+        # Find the index of the nearest food
+        nearest_index = np.argmin(distances)
+
+        # Return the nearest distance and its coordinates
+        nearest_coordinates = food_positions[nearest_index]
+
+        return nearest_coordinates
 
     def touching_food(self, position):
         for food in self.foods:
@@ -358,6 +402,8 @@ while True:
     while not (done or truncated):
         observation, reward, done, truncated = env.step()
         env.render()
+
+    break
 
     if truncated:
         break
