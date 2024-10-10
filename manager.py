@@ -1,7 +1,8 @@
 import random
 import numpy as np
 import pygame
-from agents import Creature
+import agents
+import neural
 
 # Nearest Food Location (Distance)
 # Nearest Food Direction (Angle)
@@ -32,16 +33,33 @@ class CreatureManager:
         self.creature_population += 1
         return self.generate_dna(creature)
 
+    def get_brain(self, input_size=5, hidden_size=10, output_size=5):
+        return neural.OrganismNN(
+            input_size,
+            hidden_size,
+            output_size,
+        )
+
     def get_creature_attributes(self, creature):
         if creature.parent == None:
             sensors = random.choices(list(SensorManager.sensors.keys()), k=5)
         return "".join(sensor for sensor in sensors)
 
     def generate_creatures(self, radius=5, n=50):
-        self.creatures = pygame.sprite.Group()
+        creatures = pygame.sprite.Group()
         for _ in range(n):
             # food sprite group
-            self.creatures.add(Creature(self, self.screen, radius=radius, n=n))
+            creatures.add(
+                agents.Creature(
+                    self.env,
+                    self.screen,
+                    self,
+                    radius=radius,
+                    n=n,
+                )
+            )
+            
+        return creatures
 
     def generate_id(self):
         number = self.creature_population
