@@ -58,7 +58,7 @@ class CreatureManager:
                     n=n,
                 )
             )
-            
+
         return creatures
 
     def generate_id(self):
@@ -94,9 +94,9 @@ class SensorManager:
     sensors = {
         "AAAAA": "Nfl",  # Nearest Food Location (Distance)
         "AAAAT": "Nfd",  # Nearest Food Direction (Angle)
-        "AAATA": "Nhl",  # Nearest Home Location (Distance)
-        "AAATT": "Nhd",  # Nearest Home Direction (Angle)
-        "AATAA": "Cey",  # Current Energy (Amount)
+        # "AAATA": "Nhl",  # Nearest Home Location (Distance)
+        # "AAATT": "Nhd",  # Nearest Home Direction (Angle)
+        # "AATAA": "Cey",  # Current Energy (Amount)
         # "AATAT": "Nfc",  # Number of Agents Trying to Eat the Nearest Food (Count)
         # "AATTA": "Nrl",  # Nearest Carnivorous Creature Location (Distance)
         # "AATTT": "Ncl",  # Nearest Creature Location (Distance)
@@ -122,26 +122,40 @@ class SensorManager:
 
         # If there are no food objects
         if len(distances) == 0:
-            # No food, so return infinite distance and no position
-            return None
+            # No food, so -1
+            return -1
 
-        # Find the index of the nearest food
-        nearest_index = np.argmin(distances)
-
-        # Return the nearest distance and its coordinates
-        nearest_coordinates = food_positions[nearest_index]
-
-        return nearest_coordinates
+        # Find the distance to the nearest food
+        nearest_distance = np.min(distances) ** 0.5
+        return nearest_distance if nearest_distance < 100 else -1
 
     @classmethod
     def obs_Nfd(cls, env, creature):
-        co_ordinates = cls.obs_Nfl(env, creature)
+        creature_pos = np.array(creature.rect.center)
+        food_positions = np.array([food.position for food in env.foods])
+
+        # Squared distances
+        distances = np.sum((food_positions - creature_pos) ** 2, axis=1)
+
+        # If there are no food objects
+        if len(distances) == 0:
+            # No food, so -1
+            return -1
+
+        # Find the distance to the nearest food
+        nearest_food = np.argmin(distances)
+
+        if distances[nearest_food] ** 0.5 > 100:
+            return -1
+
+        co_ordinates = food_positions[nearest_food]
+
         direction = np.arctan2(
             co_ordinates[1] - creature.rect.center[1],
             co_ordinates[0] - creature.rect.center[0],
         )
 
-        return np.degrees(direction)  # Return the angle in degrees
+        return np.degrees(direction) % 360  # Return the angle in degrees
 
     @classmethod
     def obs_Nhl(cls, env, creature):

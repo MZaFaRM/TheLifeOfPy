@@ -111,14 +111,14 @@ class Creature(Sprite):
 
     def step(self):
         observation = self.get_observation()
-        # self.energy -= 1
-        # if self.energy < 0:
-        #     self.done = True
-        # return
+        action = self.brain.get_best_action(observation)
+
+        self.energy -= 1
+        if self.energy < 0:
+            self.done = True
+        return
         if not (self.dead or self.done):
             self.energy -= 1
-            actions = self.brain.get_best_action(observation)
-            # best_action = actions[torch.argmax(actions).item()]
 
             if self.energy <= 0:
                 self.die()
