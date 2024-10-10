@@ -16,6 +16,11 @@ class OrganismNN:
         )
         self.bias_hidden = np.random.uniform(-4, 4, self.hidden_size)
         self.bias_output = np.random.uniform(-4, 4, self.output_size)
+        
+    def get_best_action(self, inputs):
+        output = self.forward(inputs)
+        best_action = np.argmax(output)
+        return best_action
 
     def forward(self, inputs):
         # Forward pass through the network

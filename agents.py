@@ -117,8 +117,7 @@ class Creature(Sprite):
         # return
         if not (self.dead or self.done):
             self.energy -= 1
-            # input_data = torch.tensor([0.5, 1.0, 0.2, 0.9, 0.3])
-            # actions = self.brain(input_data)
+            actions = self.brain.get_best_action(observation)
             # best_action = actions[torch.argmax(actions).item()]
 
             if self.energy <= 0:
