@@ -67,16 +67,11 @@ class Nature:
         return False
 
     def step(self):
-        self.time_alive += 1
         reward = 0
 
         # Batch all steps before rendering
         for creature in self.creatures:
             creature.step()
-
-        if self.time_alive >= self.truncation:
-            self.done = True
-            self.truncated = True
 
         self.done = all(creature.done for creature in self.creatures)
         self.truncated = len(self.creatures) == 0
@@ -87,18 +82,18 @@ class Nature:
 
         self.done = False
         self.truncated = False
-        self.time_alive = 0
         self.generate_food(n=100)
 
         self.new_generation = pygame.sprite.Group()
+
+        self.creatures = self.creature_manager.evolve_population()
 
         for creature in self.creatures:
             if not creature.dead:
                 creature.reset()
                 self.new_generation.add(creature)
-
-        for creature in self.children:
-            self.new_generation.add(creature)
+        # for creature in self.children:
+        #     self.new_generation.add(creature)
 
         self.creatures = self.new_generation.copy()
         self.children = pygame.sprite.Group()
@@ -127,7 +122,5 @@ while True:
         observation, reward, done, truncated = env.step()
         env.render()
 
-    break
-
-    if truncated:
-        break
+    # if truncated:
+    #     break

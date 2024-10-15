@@ -9,14 +9,14 @@ class OrganismNN:
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.weights_input_hidden = np.random.uniform(
-            -4, 4, (self.input_size, self.hidden_size)
+            -1, 1, (self.input_size, self.hidden_size)
         )
         self.weights_hidden_output = np.random.uniform(
-            -4, 4, (self.hidden_size, self.output_size)
+            -1, 1, (self.hidden_size, self.output_size)
         )
-        self.bias_hidden = np.random.uniform(-4, 4, self.hidden_size)
-        self.bias_output = np.random.uniform(-4, 4, self.output_size)
-        
+        self.bias_hidden = np.random.uniform(-1, 1, self.hidden_size)
+        self.bias_output = np.random.uniform(-1, 1, self.output_size)
+
     def get_best_action(self, inputs):
         output = self.forward(inputs)
         best_action = np.argmax(output)
@@ -29,25 +29,43 @@ class OrganismNN:
         return output
 
     def get_weights(self):
-        # Retrieve weights as a single flattened array
+        # Retrieve weights and biases as a single flattened array
         return np.concatenate(
-            (self.weights_input_hidden.flatten(), self.weights_hidden_output.flatten())
+            (
+                self.weights_input_hidden.flatten(),
+                self.weights_hidden_output.flatten(),
+                self.bias_hidden.flatten(),
+                self.bias_output.flatten(),
+            )
         )
 
     def set_weights(self, weight_array):
-        # Set weights from a single flattened array
+        # Set weights and biases from a single flattened array
         input_size, hidden_size, output_size = (
             self.input_size,
             self.hidden_size,
             self.output_size,
         )
         input_hidden_size = input_size * hidden_size
+        hidden_output_size = hidden_size * output_size
+        bias_hidden_size = hidden_size
+        bias_output_size = output_size
+
         self.weights_input_hidden = weight_array[:input_hidden_size].reshape(
             input_size, hidden_size
         )
-        self.weights_hidden_output = weight_array[input_hidden_size:].reshape(
-            hidden_size, output_size
-        )
+        self.weights_hidden_output = weight_array[
+            input_hidden_size : input_hidden_size + hidden_output_size
+        ].reshape(hidden_size, output_size)
+        self.bias_hidden = weight_array[
+            input_hidden_size
+            + hidden_output_size : input_hidden_size
+            + hidden_output_size
+            + bias_hidden_size
+        ]
+        self.bias_output = weight_array[
+            input_hidden_size + hidden_output_size + bias_hidden_size :
+        ]
 
 
 # Implement Genetic Algorithm functions
@@ -70,42 +88,4 @@ def mutate(weights, mutation_rate=0.01):
 # Example fitness function (for demonstration)
 def fitness_function(creature):
     # Define your custom fitness metric
-    return creature.energy
-
-
-def evolve_population(
-    creatures,
-    env,
-    screen,
-    creature_manager,
-    population_size,
-    elite_size=2,
-    mutation_rate=0.01,
-):
-    # Sort creatures by fitness
-    sorted_creatures = sorted(
-        creatures, key=lambda c: fitness_function(c), reverse=True
-    )
-    next_generation = sorted_creatures[:elite_size]  # Keep the elite
-
-    # Generate new children until the population is restored
-    while len(next_generation) < population_size:
-        # Select two parents randomly from the top performers
-        parent1, parent2 = np.random.choice(sorted_creatures[:10], 2, replace=False)
-        # Perform crossover and mutation to generate new children
-        child_weights1, child_weights2 = crossover(
-            parent1.brain.get_weights(), parent2.brain.get_weights()
-        )
-        child_weights1 = mutate(child_weights1, mutation_rate)
-        child_weights2 = mutate(child_weights2, mutation_rate)
-
-        # Create new creatures from the children weights
-        child1 = agents.Creature(env, screen, creature_manager)
-        child2 = agents.Creature(env, screen, creature_manager)
-        child1.brain.set_weights(child_weights1)
-        child2.brain.set_weights(child_weights2)
-
-        next_generation.append(child1)
-        next_generation.append(child2)
-
-    return next_generation
+    return creature.time_alive

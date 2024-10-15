@@ -22,6 +22,7 @@ class Creature(Sprite):
 
         self.screen = screen
         self.env = env
+        self.time_alive = 0
 
         self.parent = parent
 
@@ -32,7 +33,7 @@ class Creature(Sprite):
 
         self.brain = self.creature_manager.get_brain()
 
-        self.energy = self.max_energy = 1000
+        self.energy = self.max_energy = 250
 
         self.hunger = 2
         self.dead = False
@@ -110,13 +111,33 @@ class Creature(Sprite):
         )
 
     def step(self):
-        observation = self.get_observation()
-        action = self.brain.get_best_action(observation)
+        if not (self.dead or self.done):
+            self.time_alive = 1
+            observation = self.get_observation()
+            action = self.brain.get_best_action(observation)
 
-        self.energy -= 1
-        if self.energy < 0:
-            self.done = True
+            if action == 0:
+                self.rect.centerx += 10
+            elif action == 1:
+                self.rect.centerx -= 10
+            elif action == 2:
+                self.rect.centery += 10
+            elif action == 3:
+                self.rect.centery -= 10
+
+            if self.env.touching_food(self.rect.center):
+                self.eat()
+
+            self.energy -= 1
+            if self.energy < 0:
+                self.done = True
+                self.die()
+            return
+        else:
+            pass
+        
         return
+
         if not (self.dead or self.done):
             self.energy -= 1
 
@@ -182,7 +203,9 @@ class Creature(Sprite):
         self.draw_self(self.radius, (255, 0, 0))
 
     def eat(self):
+        print(self, "ate")
         self.hunger -= 1
+        self.energy += 125
 
     def move_towards(self, target, speed=1.0):
         direction = np.array(target) - np.array(self.rect.center)

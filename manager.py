@@ -33,7 +33,7 @@ class CreatureManager:
         self.creature_population += 1
         return self.generate_dna(creature)
 
-    def get_brain(self, input_size=5, hidden_size=10, output_size=5):
+    def get_brain(self, input_size=5, hidden_size=10, output_size=4):
         return neural.OrganismNN(
             input_size,
             hidden_size,
@@ -85,6 +85,40 @@ class CreatureManager:
         creature_id = self.generate_id()
         creature_attributes = self.get_creature_attributes(creature)
         return creature_id + creature_attributes
+
+    def evolve_population(
+        self,
+        population_size=50,
+        elite_size=2,
+        mutation_rate=0.01,
+    ):
+        # Sort creatures by fitness
+        sorted_creatures = sorted(
+            self.env.creatures, key=lambda c: neural.fitness_function(c), reverse=True
+        )
+        next_generation = sorted_creatures[:elite_size]  # Keep the elite
+
+        # Generate new children until the population is restored
+        while len(next_generation) < population_size:
+            # Select two parents randomly from the top performers
+            parent1, parent2 = np.random.choice(sorted_creatures[:10], 2, replace=False)
+            # Perform crossover and mutation to generate new children
+            child_weights1, child_weights2 = neural.crossover(
+                parent1.brain.get_weights(), parent2.brain.get_weights()
+            )
+            child_weights1 = neural.mutate(child_weights1, mutation_rate)
+            child_weights2 = neural.mutate(child_weights2, mutation_rate)
+
+            # Create new creatures from the children weights
+            child1 = agents.Creature(self.env, self.screen, self)
+            child2 = agents.Creature(self.env, self.screen, self)
+            child1.brain.set_weights(child_weights1)
+            child2.brain.set_weights(child_weights2)
+
+            next_generation.append(child1)
+            next_generation.append(child2)
+
+        return next_generation
 
 
 TOTAL_SENSORS = 17
