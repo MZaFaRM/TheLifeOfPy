@@ -70,3 +70,7 @@ def get_edge_position(radius, screen):
         y = random.randint(radius, screen_height - radius)
 
     return (x, y)
+
+
+def distance_between_points(a, b):
+    return (pow(b[0] - a[0], 2) + pow(b[1] - a[1], 2) ** 0.5)

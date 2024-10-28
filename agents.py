@@ -12,13 +12,31 @@ class Creature(Sprite):
         env,
         screen,
         creature_manager,
-        radius=5,
-        n=100,
-        color=(151, 190, 90),
+        radius=10,
+        color=(124, 245, 255),
         parent=None,
         genes="",
     ):
         super().__init__()
+
+        self.attrs = {
+            "color": color,
+            "radius": radius,
+            "border": {
+                "color": (100,57,255),
+                "thickness": 2,
+            },
+            "max_energy": 250,
+            "vision": {
+                "radius": 40,
+                "color": {
+                    "found": (0, 255, 0, 25),
+                    "looking": (0, 255, 255, 25),
+                },
+            },
+        }
+
+        self.states = {"vision": "looking", "alive": True}  # looking, found
 
         self.screen = screen
         self.env = env
@@ -26,23 +44,20 @@ class Creature(Sprite):
 
         self.parent = parent
 
-        self.radius = radius
-        self.n = n
-
         self.creature_manager = creature_manager
 
-        self.brain = self.creature_manager.get_brain()
-
-        self.energy = self.max_energy = 250
+        self.energy = self.attrs["max_energy"]
 
         self.hunger = 2
-        self.dead = False
 
         self.done = False
-        self.color = color
+        self.color = self.attrs["color"]
 
         # Create a transparent surface for the creature
-        surface_size = (2 * radius) + 4  # Total size of the surface
+        # +4 for radius
+        surface_size = (
+            (2 * self.attrs["radius"]) + 4 + (2 * self.attrs["vision"]["radius"])
+        )
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
 
         # Random position within screen bounds
@@ -52,13 +67,17 @@ class Creature(Sprite):
         self.center = (surface_size // 2, surface_size // 2)
 
         # Draw the outer black circle and inner colored circle at the center
-        self.draw_self(radius, color)
+        self.draw_self()
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = helper.get_edge_position(radius, screen)
+        self.rect.center = helper.get_edge_position(self.attrs["radius"], screen)
 
         self.DNA = self.creature_manager.register_creature(self)
+
+        self.state = {
+            "food": True,
+        }
 
     def set_closest_edge(self, position):
         if self.closest_edge:
@@ -96,50 +115,70 @@ class Creature(Sprite):
 
         return self.closest_edge
 
-    def draw_self(self, radius, color, border_thickness=2, border_color=(0, 0, 0)):
+    def draw_self(self, color=None, border_color=(0, 0, 0)):
+
+        # Vision circle
         pygame.draw.circle(
             self.image,
-            border_color,
+            self.attrs["vision"]["color"][self.states["vision"]],
             self.center,
-            radius + border_thickness,
+            self.attrs["radius"] + self.attrs["vision"]["radius"],
         )
+
+        # Border
         pygame.draw.circle(
             self.image,
-            color,
+            self.attrs["border"]["color"],
             self.center,
-            radius,
+            self.attrs["radius"] + self.attrs["border"]["thickness"],
+        )
+
+        # Creature
+        pygame.draw.circle(
+            self.image,
+            self.attrs["color"] if self.states["alive"] else (255, 0, 0),
+            self.center,
+            self.attrs["radius"],
         )
 
     def step(self):
-        if not (self.dead or self.done):
-            self.time_alive = 1
+        if not self.done:
+            self.time_alive += 1
             observation = self.get_observation()
-            action = self.brain.get_best_action(observation)
 
-            if action == 0:
-                self.rect.centerx += 10
-            elif action == 1:
-                self.rect.centerx -= 10
-            elif action == 2:
-                self.rect.centery += 10
-            elif action == 3:
-                self.rect.centery -= 10
+        #     action = self.brain.get_best_action(observation)
 
-            if self.env.touching_food(self.rect.center):
-                self.eat()
+        #     if action == 0:
+        #         self.rect.centerx += 10
+        #     elif action == 1:
+        #         self.rect.centerx -= 10
+        #     elif action == 2:
+        #         self.rect.centery += 10
+        #     elif action == 3:
+        #         self.rect.centery -= 10
 
+        #     if self.env.touching_food(self.rect.center):
+        #         self.eat()
+
+        #     self.energy -= 1
+        #     if self.energy < 0:
+        #         self.done = True
+        #         self.die()
+        #     return
+        # else:
+        #     pass
+
+        # return
+
+        if not self.done:
             self.energy -= 1
-            if self.energy < 0:
-                self.done = True
-                self.die()
-            return
-        else:
-            pass
-        
-        return
 
-        if not (self.dead or self.done):
-            self.energy -= 1
+            if self.rect.collideobjects(
+                [food.rect for food in self.env.foods], key=lambda o: o
+            ):
+                self.states["vision"] = "found"
+            else:
+                self.states["vision"] = "looking"
 
             if self.energy <= 0:
                 self.die()
@@ -147,6 +186,7 @@ class Creature(Sprite):
 
             if self.hunger > 0:
                 food_available = self.env.nearest_food(self.rect.center)
+
                 if food_available is not None:
                     if self.env.touching_food(self.rect.center):
                         self.eat()
@@ -166,14 +206,18 @@ class Creature(Sprite):
             if self.rect.center == self.closest_edge:
                 self.progress()
 
+        self.draw_self()
+
     def reset(self):
         self.hunger = 2
         self.done = False
-        self.energy = self.max_energy
+        self.energy = self.attrs["max_energy"]
         self.closest_edge = None
-        self.original_position = helper.get_edge_position(self.radius, self.screen)
+        self.original_position = helper.get_edge_position(
+            self.attrs["radius"], self.screen
+        )
         self.rect.center = self.original_position
-        self.draw_self(self.radius, self.color)
+        self.draw_self()
 
     def progress(self):
         if not self.done:
@@ -186,24 +230,22 @@ class Creature(Sprite):
             self.done = True
 
     def reproduce(self):
-        self.draw_self(self.radius, (128, 0, 128))
+        self.draw_self(color=(128, 0, 128))
         self.env.children.add(
             Creature(
                 self.env,
                 self.screen,
                 self.creature_manager,
-                radius=self.radius,
-                n=self.n,
+                radius=self.attrs["radius"],
             )
         )
 
     def die(self):
-        self.dead = True
+        self.states["alive"] = False
         self.done = True
-        self.draw_self(self.radius, (255, 0, 0))
+        self.draw_self(color=(255, 0, 0))
 
     def eat(self):
-        print(self, "ate")
         self.hunger -= 1
         self.energy += 125
 
@@ -250,7 +292,7 @@ class Creature(Sprite):
 
 
 class Food(Sprite):
-    def __init__(self, env, screen, radius=8, n=100, color=(232, 141, 103)):
+    def __init__(self, env, screen, radius=8, n=100, color=(124, 176, 109)):
         super().__init__()
 
         self.screen = screen
@@ -260,9 +302,7 @@ class Food(Sprite):
         self.n = n
 
         # Create a transparent surface for the food
-        self.image = pygame.Surface(
-            ((2 * radius) + 5, (2 * radius) + 5), pygame.SRCALPHA
-        )
+        self.image = pygame.Surface(((2 * radius), (2 * radius)), pygame.SRCALPHA)
 
         # Random position within screen bounds
         self.position = (
@@ -271,7 +311,7 @@ class Food(Sprite):
         )
 
         # Create the circle on the image surface (center of the surface)
-        pygame.draw.circle(self.image, color, (radius + 2, radius + 2), radius)
+        pygame.draw.circle(self.image, color, (radius, radius), radius)
 
         # Get rect for positioning
         self.rect = self.image.get_rect()

@@ -2,7 +2,6 @@ import random
 import numpy as np
 import pygame
 import agents
-import neural
 
 # Nearest Food Location (Distance)
 # Nearest Food Direction (Angle)
@@ -23,8 +22,18 @@ import neural
 
 
 class CreatureManager:
+    base = 4  # Since Adenine, Thymine, Guanine, Cytosine
+    dna_value = {
+        0: "A",
+        1: "T",
+        2: "G",
+        3: "C",
+    }
+    
+    situations = ["Food in Vicinity", "Nothing"]
+    behaviours = ["Eat Food", "Roam Random"]
 
-    def __init__(self, env, screen) -> None:
+    def __init__(self, env, screen, attrs=5) -> None:
         self.creature_population = 0
         self.env = env
         self.screen = screen
@@ -34,18 +43,14 @@ class CreatureManager:
         return self.generate_dna(creature)
 
     def get_brain(self, input_size=5, hidden_size=10, output_size=4):
-        return neural.OrganismNN(
-            input_size,
-            hidden_size,
-            output_size,
-        )
+        return 1
 
     def get_creature_attributes(self, creature):
         if creature.parent == None:
             sensors = random.choices(list(SensorManager.sensors.keys()), k=5)
         return "".join(sensor for sensor in sensors)
 
-    def generate_creatures(self, radius=5, n=50):
+    def generate_creatures(self, radius=10, n=50):
         creatures = pygame.sprite.Group()
         for _ in range(n):
             # food sprite group
@@ -55,7 +60,6 @@ class CreatureManager:
                     self.screen,
                     self,
                     radius=radius,
-                    n=n,
                 )
             )
 
@@ -63,19 +67,17 @@ class CreatureManager:
 
     def generate_id(self):
         number = self.creature_population
-        base = 4  # Since Adenine, Thymine, Guanine, Cytosine
-        dna_value = {0: "A", 1: "T", 2: "G", 3: "C"}
         result = []
         while number > 0:
-            result.insert(0, number % base)
-            number = number // base
+            result.insert(0, number % self.base)
+            number = number // self.base
 
         while len(result) < 6:
             # 6 because 6 digit numbers with base 4 can be used
             # to represent at least 4096 creatures
             result.insert(0, 0)
 
-        return "".join(dna_value[digit] for digit in result)
+        return "".join(self.dna_value[digit] for digit in result)
 
     def get_parsed_dna(self, DNA):
         creature_sensors = [DNA[i : i + 5] for i in range(6, len(DNA), 5)]
@@ -83,42 +85,9 @@ class CreatureManager:
 
     def generate_dna(self, creature):
         creature_id = self.generate_id()
+        
         creature_attributes = self.get_creature_attributes(creature)
         return creature_id + creature_attributes
-
-    def evolve_population(
-        self,
-        population_size=50,
-        elite_size=2,
-        mutation_rate=0.01,
-    ):
-        # Sort creatures by fitness
-        sorted_creatures = sorted(
-            self.env.creatures, key=lambda c: neural.fitness_function(c), reverse=True
-        )
-        next_generation = sorted_creatures[:elite_size]  # Keep the elite
-
-        # Generate new children until the population is restored
-        while len(next_generation) < population_size:
-            # Select two parents randomly from the top performers
-            parent1, parent2 = np.random.choice(sorted_creatures[:10], 2, replace=False)
-            # Perform crossover and mutation to generate new children
-            child_weights1, child_weights2 = neural.crossover(
-                parent1.brain.get_weights(), parent2.brain.get_weights()
-            )
-            child_weights1 = neural.mutate(child_weights1, mutation_rate)
-            child_weights2 = neural.mutate(child_weights2, mutation_rate)
-
-            # Create new creatures from the children weights
-            child1 = agents.Creature(self.env, self.screen, self)
-            child2 = agents.Creature(self.env, self.screen, self)
-            child1.brain.set_weights(child_weights1)
-            child2.brain.set_weights(child_weights2)
-
-            next_generation.append(child1)
-            next_generation.append(child2)
-
-        return next_generation
 
 
 TOTAL_SENSORS = 17
@@ -126,8 +95,8 @@ TOTAL_SENSORS = 17
 
 class SensorManager:
     sensors = {
-        "AAAAA": "Nfl",  # Nearest Food Location (Distance)
-        "AAAAT": "Nfd",  # Nearest Food Direction (Angle)
+        "AAAAA": "Nfl",  # Food in Vicinity (Distance)
+        # "AAAAT": "Nfd",  # Nearest Food Direction (Angle)
         # "AAATA": "Nhl",  # Nearest Home Location (Distance)
         # "AAATT": "Nhd",  # Nearest Home Direction (Angle)
         # "AATAA": "Cey",  # Current Energy (Amount)

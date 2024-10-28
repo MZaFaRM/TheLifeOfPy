@@ -10,8 +10,7 @@ import manager
 
 class Nature:
     def __init__(self):
-        self.background_color = (243, 247, 236)
-        self.food_color = (232, 141, 103)
+        self.background_color = (0, 0, 0)
         self.clock = pygame.time.Clock()
 
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -73,6 +72,7 @@ class Nature:
         for creature in self.creatures:
             creature.step()
 
+        self.clock.tick(60)
         self.done = all(creature.done for creature in self.creatures)
         self.truncated = len(self.creatures) == 0
         return self.get_observation(), reward, self.done, self.truncated
@@ -86,10 +86,8 @@ class Nature:
 
         self.new_generation = pygame.sprite.Group()
 
-        self.creatures = self.creature_manager.evolve_population()
-
         for creature in self.creatures:
-            if not creature.dead:
+            if creature.states["alive"]:
                 creature.reset()
                 self.new_generation.add(creature)
         # for creature in self.children:
@@ -98,7 +96,6 @@ class Nature:
         self.creatures = self.new_generation.copy()
         self.children = pygame.sprite.Group()
         self.new_generation = pygame.sprite.Group()
-        print(len(self.creatures))
 
     def render(self):
         self.screen.fill(self.background_color)
