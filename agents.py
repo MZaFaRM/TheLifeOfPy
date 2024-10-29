@@ -28,7 +28,7 @@ class Creature(Sprite):
                 "color": (100, 57, 255),
                 "thickness": 1,
             },
-            "max_energy": float("inf"),
+            "max_energy": 1000,
             "max_speed": random.randint(1, 7),
             "vision": {
                 "radius": 40,
@@ -44,6 +44,7 @@ class Creature(Sprite):
             "hunger": 2,
             "speed": random.randint(1, 7),
             "alive": True,
+            "time": 0,
             "time_alive": 0,
             "vision": "looking",  # looking, found
             "acceleration_factor": 0.1,
@@ -83,56 +84,21 @@ class Creature(Sprite):
 
         self.DNA = self.creature_manager.register_creature(self)
 
-    def set_closest_edge(self, position):
-        if self.closest_edge:
-            return self.closest_edge
+    def draw_self(self, vision_circle=False):
 
-        left = 0
-        up = 0
-        right = self.env.screen_width - 0
-        down = self.env.screen_height - 0
-
-        x, y = position
-
-        distance_up = y - up
-        distance_down = down - y
-        distance_left = x - left
-        distance_right = right - x
-
-        distances = {
-            "up": distance_up,
-            "down": distance_down,
-            "left": distance_left,
-            "right": distance_right,
-        }
-
-        closest_edge = min(distances, key=distances.get)
-
-        if closest_edge == "up":
-            self.closest_edge = (x, up)
-        elif closest_edge == "down":
-            self.closest_edge = (x, down)
-        elif closest_edge == "left":
-            self.closest_edge = (left, y)
-        elif closest_edge == "right":
-            self.closest_edge = (right, y)
-
-        return self.closest_edge
-
-    def draw_self(self):
-
-        # Vision circle
-        pygame.draw.circle(
-            self.image,
-            self.attrs["vision"]["color"][self.states["vision"]],
-            self.center,
-            self.attrs["radius"] + self.attrs["vision"]["radius"],
-        )
+        if vision_circle:
+            # Vision circle
+            pygame.draw.circle(
+                self.image,
+                self.attrs["vision"]["color"][self.states["vision"]],
+                self.center,
+                self.attrs["radius"] + self.attrs["vision"]["radius"],
+            )
 
         # Border
         pygame.draw.circle(
             self.image,
-            self.attrs["border"]["color"],
+            self.attrs["border"]["color"] if self.states["alive"] else (0, 0, 0),
             self.center,
             self.attrs["radius"] + self.attrs["border"]["thickness"],
         )
@@ -140,12 +106,14 @@ class Creature(Sprite):
         # Creature
         pygame.draw.circle(
             self.image,
-            self.attrs["color"] if self.states["alive"] else (255, 0, 0),
+            self.attrs["color"] if self.states["alive"] else (0, 0, 0),
             self.center,
             self.attrs["radius"],
         )
 
     def step(self):
+        self.states["time"] += 1
+
         if not self.done:
             self.states["time_alive"] += 1
             self.states["energy"] -= 1
@@ -163,7 +131,6 @@ class Creature(Sprite):
                 if self.states["vision"] == "found":
                     if self.rect.center == found_object_rect.center:
                         self.eat()
-                        self.env.touching_food(self.rect.center)
                     else:
                         self.move_towards(found_object_rect.center)
                         pass
@@ -171,11 +138,11 @@ class Creature(Sprite):
                 else:
                     self.move_in_direction(self.states["angle"])
             else:
-                # self.move_towards(self.set_closest_edge(self.rect.center))
                 self.move_in_direction(self.states["angle"])
 
-            if self.rect.center == self.closest_edge:
-                self.progress()
+        if not self.states["alive"]:
+            if (self.states["time"] - self.states["time_alive"]) < 100:
+                return
 
         self.draw_self()
 
@@ -235,7 +202,8 @@ class Creature(Sprite):
 
     def eat(self):
         self.states["hunger"] -= 1
-        self.states["energy"] += 125
+        self.states["energy"] += self.attrs["max_energy"] // 2
+        self.env.remove_food(self.rect.center)
 
     def move_towards(self, target):
         direction = np.array(target) - np.array(self.rect.center)
@@ -276,10 +244,6 @@ class Creature(Sprite):
                 # Handle the case where the sensor doesn't exist (optional)
                 raise Exception(f"Error: No method for sensor {sensor}")
         return observations
-
-    def render(self):
-        # Blit the food image to the screen at its position
-        self.screen.blit(self.image, self.rect.topleft)
 
 
 class Food(Sprite):

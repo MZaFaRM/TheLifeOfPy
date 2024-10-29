@@ -26,7 +26,7 @@ class Nature:
 
         self.creature_manager = manager.CreatureManager(env=self, screen=self.screen)
 
-        self.creatures = self.creature_manager.generate_creatures(n=200)
+        self.creatures = self.creature_manager.generate_creatures(n=100)
         self.foods = pygame.sprite.Group()
         self.children = pygame.sprite.Group()
 
@@ -58,7 +58,7 @@ class Nature:
 
         return nearest_coordinates
 
-    def touching_food(self, position):
+    def remove_food(self, position):
         for food in self.foods:
             if food.rect.collidepoint(position):
                 self.foods.remove(food)
@@ -73,7 +73,7 @@ class Nature:
             creature.step()
 
         self.clock.tick(60)
-        self.done = all(creature.done for creature in self.creatures)
+        # self.done = all(creature.done for creature in self.creatures)
         self.truncated = len(self.creatures) == 0
         return self.get_observation(), reward, self.done, self.truncated
 
@@ -82,7 +82,7 @@ class Nature:
 
         self.done = False
         self.truncated = False
-        self.generate_food(n=200)
+        self.generate_food(n=100)
 
         self.new_generation = pygame.sprite.Group()
 
