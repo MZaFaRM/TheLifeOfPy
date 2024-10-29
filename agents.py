@@ -4,6 +4,7 @@ import helper
 from manager import SensorManager
 import numpy as np
 import random
+import noise
 
 
 class Creature(Sprite):
@@ -23,10 +24,10 @@ class Creature(Sprite):
             "color": color,
             "radius": radius,
             "border": {
-                "color": (100,57,255),
+                "color": (100, 57, 255),
                 "thickness": 2,
             },
-            "max_energy": 250,
+            "max_energy": 1000,
             "vision": {
                 "radius": 40,
                 "color": {
@@ -36,7 +37,14 @@ class Creature(Sprite):
             },
         }
 
-        self.states = {"vision": "looking", "alive": True}  # looking, found
+        self.states = {
+            "vision": "looking",  # looking, found
+            "alive": True,
+            "tx": random.randint(0, 1000) / 1000,
+            "ty": random.randint(0, 1000) / 1000,
+        }
+
+        self.noise = noise
 
         self.screen = screen
         self.env = env
@@ -71,13 +79,9 @@ class Creature(Sprite):
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = helper.get_edge_position(self.attrs["radius"], screen)
+        self.rect.center = helper.get_random_position(screen)
 
         self.DNA = self.creature_manager.register_creature(self)
-
-        self.state = {
-            "food": True,
-        }
 
     def set_closest_edge(self, position):
         if self.closest_edge:
@@ -115,7 +119,7 @@ class Creature(Sprite):
 
         return self.closest_edge
 
-    def draw_self(self, color=None, border_color=(0, 0, 0)):
+    def draw_self(self):
 
         # Vision circle
         pygame.draw.circle(
@@ -146,30 +150,6 @@ class Creature(Sprite):
             self.time_alive += 1
             observation = self.get_observation()
 
-        #     action = self.brain.get_best_action(observation)
-
-        #     if action == 0:
-        #         self.rect.centerx += 10
-        #     elif action == 1:
-        #         self.rect.centerx -= 10
-        #     elif action == 2:
-        #         self.rect.centery += 10
-        #     elif action == 3:
-        #         self.rect.centery -= 10
-
-        #     if self.env.touching_food(self.rect.center):
-        #         self.eat()
-
-        #     self.energy -= 1
-        #     if self.energy < 0:
-        #         self.done = True
-        #         self.die()
-        #     return
-        # else:
-        #     pass
-
-        # return
-
         if not self.done:
             self.energy -= 1
 
@@ -179,6 +159,11 @@ class Creature(Sprite):
                 self.states["vision"] = "found"
             else:
                 self.states["vision"] = "looking"
+
+            print(noise.pnoise1(self.states["tx"]))
+            print(noise.pnoise1(self.states["ty"]))
+            self.states["tx"] += 1
+            self.states["ty"] += 1
 
             if self.energy <= 0:
                 self.die()
@@ -213,9 +198,7 @@ class Creature(Sprite):
         self.done = False
         self.energy = self.attrs["max_energy"]
         self.closest_edge = None
-        self.original_position = helper.get_edge_position(
-            self.attrs["radius"], self.screen
-        )
+        self.original_position = helper.get_random_position(self.screen)
         self.rect.center = self.original_position
         self.draw_self()
 
@@ -230,7 +213,7 @@ class Creature(Sprite):
             self.done = True
 
     def reproduce(self):
-        self.draw_self(color=(128, 0, 128))
+        self.draw_self()
         self.env.children.add(
             Creature(
                 self.env,
@@ -243,7 +226,6 @@ class Creature(Sprite):
     def die(self):
         self.states["alive"] = False
         self.done = True
-        self.draw_self(color=(255, 0, 0))
 
     def eat(self):
         self.hunger -= 1
