@@ -1,3 +1,4 @@
+import math
 import pygame
 from pygame.sprite import Sprite
 import helper
@@ -44,7 +45,7 @@ class Creature(Sprite):
             "vision": "looking",  # looking, found
             "angle": 0,  # degrees
             "alive": True,
-            "td": random.randint(0, 100) / 100,  # for pnoise generation
+            "td": random.randint(0, 1000),  # for pnoise generation
         }
 
         self.noise = noise
@@ -174,7 +175,8 @@ class Creature(Sprite):
                 else:
                     self.move_in_direction(self.states["angle"])
             else:
-                self.move_towards(self.set_closest_edge(self.rect.center))
+                # self.move_towards(self.set_closest_edge(self.rect.center))
+                self.move_in_direction(self.states["angle"])
 
             if self.rect.center == self.closest_edge:
                 self.progress()
@@ -190,8 +192,7 @@ class Creature(Sprite):
             return "looking"
 
     def update_angle(self):
-        angle = noise.pnoise1(self.states["td"])
-        angle = ((angle + 1) / 2) * 360
+        angle = noise.snoise2(self.states["td"], 0) * 360
         self.states["td"] += 0.01
         return angle
 
@@ -241,16 +242,14 @@ class Creature(Sprite):
         new_position = np.array(self.rect.center) + direction * speed
         self.rect.center = new_position
 
-    def move_in_direction(self, target, speed=1.0):
-        # direction = np.array(target) - np.array(self.rect.center)
-        # Step 1: Convert degrees to radians
-        direction_radians = np.radians(target)
+    def move_in_direction(self, direction, speed=1.0):
+        direction = np.radians(direction)
 
-        # Step 2: Calculate the change in x and y coordinates
-        dx = speed * np.cos(direction_radians) * speed
-        dy = speed * np.sin(direction_radians) * speed
+        # Calculate the change in x and y coordinates
+        dx = speed * np.cos(direction)
+        dy = speed * np.sin(direction)
 
-        # Step 3: Update the current position
+        # Update the current position
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
