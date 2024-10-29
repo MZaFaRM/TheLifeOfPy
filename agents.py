@@ -17,7 +17,6 @@ class Creature(Sprite):
         radius=5,
         color=(124, 245, 255),
         parent=None,
-        genes="",
     ):
         super().__init__()
 
@@ -38,6 +37,18 @@ class Creature(Sprite):
                 },
             },
         }
+
+        colors = [
+            "#f94144",
+            "#f3722c",
+            "#f8961e",
+            "#f9c74f",
+            "#90be6d",
+            "#43aa8b",
+            "#577590",
+        ]
+
+        self.attrs["color"] = colors[self.attrs["max_speed"] - 1]
 
         self.states = {
             "angle": 0,  # degrees
