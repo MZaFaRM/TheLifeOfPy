@@ -116,6 +116,7 @@ class SensorManager:
 
     @classmethod
     def obs_Nfl(cls, env, creature):
+        return 
         creature_pos = np.array(creature.rect.center)
         food_positions = np.array([food.position for food in env.foods])
 

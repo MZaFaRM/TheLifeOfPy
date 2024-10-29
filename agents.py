@@ -7,9 +7,6 @@ import numpy as np
 import random
 import noise
 
-max_perlin = -float("inf")
-min_perlin = float("inf")
-
 
 class Creature(Sprite):
     def __init__(
@@ -32,7 +29,7 @@ class Creature(Sprite):
                 "thickness": 1,
             },
             "max_energy": float("inf"),
-            "speed": 0.6,
+            "max_speed": random.randint(1, 7),
             "vision": {
                 "radius": 40,
                 "color": {
@@ -43,25 +40,24 @@ class Creature(Sprite):
         }
 
         self.states = {
-            "vision": "looking",  # looking, found
             "angle": 0,  # degrees
+            "hunger": 2,
+            "speed": random.randint(1, 7),
             "alive": True,
+            "time_alive": 0,
+            "vision": "looking",  # looking, found
+            "acceleration_factor": 0.1,
             "td": random.randint(0, 1000),  # for pnoise generation
+            "energy": self.attrs["max_energy"],
         }
 
         self.noise = noise
 
         self.screen = screen
         self.env = env
-        self.time_alive = 0
 
         self.parent = parent
-
         self.creature_manager = creature_manager
-
-        self.energy = self.attrs["max_energy"]
-
-        self.hunger = 2
 
         self.done = False
         self.color = self.attrs["color"]
@@ -74,9 +70,6 @@ class Creature(Sprite):
             + (2 * self.attrs["vision"]["radius"])
         )
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
-
-        # Random position within screen bounds
-        self.closest_edge = None
 
         # Calculate center of the surface
         self.center = (surface_size // 2, surface_size // 2)
@@ -154,20 +147,19 @@ class Creature(Sprite):
 
     def step(self):
         if not self.done:
-            self.time_alive += 1
-            observation = self.get_observation()
-
-        if not self.done:
-            self.energy -= 1
+            self.states["time_alive"] += 1
+            self.states["energy"] -= 1
 
             self.states["vision"], found_object_rect = self.update_vision_state()
             self.states["angle"] = self.update_angle()
 
-            if self.energy <= 0:
+            self.update_speed()
+
+            if self.states["energy"] <= 0:
                 self.die()
                 return
 
-            if self.hunger > 0:
+            if self.states["hunger"] > 0:
                 if self.states["vision"] == "found":
                     if self.rect.center == found_object_rect.center:
                         self.eat()
@@ -187,6 +179,13 @@ class Creature(Sprite):
 
         self.draw_self()
 
+    def update_speed(self):
+        self.states["speed"] += self.states["acceleration_factor"]
+        if (self.states["speed"] > self.attrs["max_speed"]) or (
+            self.states["speed"] < 0.7
+        ):
+            self.states["acceleration_factor"] = -self.states["acceleration_factor"]
+
     def update_vision_state(self):
         if found_object := self.rect.collideobjects(
             [food.rect for food in self.env.foods], key=lambda o: o
@@ -201,9 +200,9 @@ class Creature(Sprite):
         return angle
 
     def reset(self):
-        self.hunger = 2
+        self.states["hunger"] = 2
         self.done = False
-        self.energy = self.attrs["max_energy"]
+        self.states["energy"] = self.attrs["max_energy"]
         self.closest_edge = None
         self.original_position = helper.get_random_position(self.screen)
         self.rect.center = self.original_position
@@ -211,9 +210,9 @@ class Creature(Sprite):
 
     def progress(self):
         if not self.done:
-            if self.hunger == 0:
+            if self.states["hunger"] == 0:
                 self.reproduce()
-            elif self.hunger == 1:
+            elif self.states["hunger"] == 1:
                 pass
             else:
                 self.die()
@@ -235,15 +234,17 @@ class Creature(Sprite):
         self.done = True
 
     def eat(self):
-        self.hunger -= 1
-        self.energy += 125
+        self.states["hunger"] -= 1
+        self.states["energy"] += 125
 
-    def move_towards(self, target, speed=1.0):
+    def move_towards(self, target):
         direction = np.array(target) - np.array(self.rect.center)
         norm = np.linalg.norm(direction)
         if norm > 0:
             direction = direction / norm  # Normalize direction vector
-        new_position = np.array(self.rect.center) + direction * speed
+        new_position = np.array(self.rect.center) + direction * (
+            min(self.states["speed"], 1)
+        )
         self.rect.center = new_position
 
         self.rect = helper.normalize_position(self.rect, self.env.screen)
@@ -252,8 +253,8 @@ class Creature(Sprite):
         direction = np.radians(direction)
 
         # Calculate the change in x and y coordinates
-        dx = self.attrs["speed"] * np.cos(direction)
-        dy = self.attrs["speed"] * np.sin(direction)
+        dx = self.states["speed"] * np.cos(direction)
+        dy = self.states["speed"] * np.sin(direction)
 
         # Update the current position
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)

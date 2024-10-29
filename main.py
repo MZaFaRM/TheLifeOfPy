@@ -26,7 +26,7 @@ class Nature:
 
         self.creature_manager = manager.CreatureManager(env=self, screen=self.screen)
 
-        self.creatures = self.creature_manager.generate_creatures(n=50)
+        self.creatures = self.creature_manager.generate_creatures(n=200)
         self.foods = pygame.sprite.Group()
         self.children = pygame.sprite.Group()
 
@@ -82,7 +82,7 @@ class Nature:
 
         self.done = False
         self.truncated = False
-        self.generate_food(n=100)
+        self.generate_food(n=200)
 
         self.new_generation = pygame.sprite.Group()
 
