@@ -49,3 +49,8 @@ def get_random_position(screen):
 
 def distance_between_points(a, b):
     return pow(b[0] - a[0], 2) + pow(b[1] - a[1], 2) ** 0.5
+
+def normalize_position(rect, screen):
+    rect.centerx = rect.centerx % screen.get_width()
+    rect.centery = rect.centery % screen.get_height()
+    return rect

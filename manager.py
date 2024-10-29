@@ -29,7 +29,7 @@ class CreatureManager:
         2: "G",
         3: "C",
     }
-    
+
     situations = ["Food in Vicinity", "Nothing"]
     behaviours = ["Eat Food", "Roam Random"]
 
@@ -50,7 +50,7 @@ class CreatureManager:
             sensors = random.choices(list(SensorManager.sensors.keys()), k=5)
         return "".join(sensor for sensor in sensors)
 
-    def generate_creatures(self, radius=10, n=50):
+    def generate_creatures(self, n=50):
         creatures = pygame.sprite.Group()
         for _ in range(n):
             # food sprite group
@@ -59,7 +59,6 @@ class CreatureManager:
                     self.env,
                     self.screen,
                     self,
-                    radius=radius,
                 )
             )
 
@@ -85,7 +84,7 @@ class CreatureManager:
 
     def generate_dna(self, creature):
         creature_id = self.generate_id()
-        
+
         creature_attributes = self.get_creature_attributes(creature)
         return creature_id + creature_attributes
 

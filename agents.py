@@ -17,7 +17,7 @@ class Creature(Sprite):
         env,
         screen,
         creature_manager,
-        radius=10,
+        radius=5,
         color=(124, 245, 255),
         parent=None,
         genes="",
@@ -29,9 +29,10 @@ class Creature(Sprite):
             "radius": radius,
             "border": {
                 "color": (100, 57, 255),
-                "thickness": 2,
+                "thickness": 1,
             },
-            "max_energy": 1000,
+            "max_energy": float("inf"),
+            "speed": 0.6,
             "vision": {
                 "radius": 40,
                 "color": {
@@ -68,7 +69,9 @@ class Creature(Sprite):
         # Create a transparent surface for the creature
         # +4 for radius
         surface_size = (
-            (2 * self.attrs["radius"]) + 4 + (2 * self.attrs["vision"]["radius"])
+            (2 * self.attrs["radius"])
+            + self.attrs["border"]["thickness"]
+            + (2 * self.attrs["vision"]["radius"])
         )
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
 
@@ -157,7 +160,7 @@ class Creature(Sprite):
         if not self.done:
             self.energy -= 1
 
-            self.states["vision"] = self.update_vision_state()
+            self.states["vision"], found_object_rect = self.update_vision_state()
             self.states["angle"] = self.update_angle()
 
             if self.energy <= 0:
@@ -166,10 +169,11 @@ class Creature(Sprite):
 
             if self.hunger > 0:
                 if self.states["vision"] == "found":
-                    if self.env.touching_food(self.rect.center):
+                    if self.rect.center == found_object_rect.center:
                         self.eat()
+                        self.env.touching_food(self.rect.center)
                     else:
-                        self.move_in_direction(SensorManager.obs_Nfd(self.env, self))
+                        self.move_towards(found_object_rect.center)
                         pass
 
                 else:
@@ -184,12 +188,12 @@ class Creature(Sprite):
         self.draw_self()
 
     def update_vision_state(self):
-        if self.rect.collideobjects(
+        if found_object := self.rect.collideobjects(
             [food.rect for food in self.env.foods], key=lambda o: o
         ):
-            return "found"
+            return "found", found_object
         else:
-            return "looking"
+            return "looking", found_object
 
     def update_angle(self):
         angle = noise.snoise2(self.states["td"], 0) * 360
@@ -242,17 +246,20 @@ class Creature(Sprite):
         new_position = np.array(self.rect.center) + direction * speed
         self.rect.center = new_position
 
-    def move_in_direction(self, direction, speed=1.0):
+        self.rect = helper.normalize_position(self.rect, self.env.screen)
+
+    def move_in_direction(self, direction):
         direction = np.radians(direction)
 
         # Calculate the change in x and y coordinates
-        dx = speed * np.cos(direction)
-        dy = speed * np.sin(direction)
+        dx = self.attrs["speed"] * np.cos(direction)
+        dy = self.attrs["speed"] * np.sin(direction)
 
         # Update the current position
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
+        self.rect = helper.normalize_position(self.rect, self.env.screen)
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):
@@ -275,7 +282,7 @@ class Creature(Sprite):
 
 
 class Food(Sprite):
-    def __init__(self, env, screen, radius=8, n=100, color=(124, 176, 109)):
+    def __init__(self, env, screen, radius=4, n=200, color=(124, 176, 109)):
         super().__init__()
 
         self.screen = screen

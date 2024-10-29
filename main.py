@@ -32,11 +32,11 @@ class Nature:
 
         self.reset()
 
-    def generate_food(self, radius=5, n=100):
+    def generate_food(self, n=100):
         self.foods = pygame.sprite.Group()
         for _ in range(n):
             # food sprite group
-            self.foods.add(agents.Food(self, self.screen, radius=radius, n=n))
+            self.foods.add(agents.Food(self, self.screen, n=n))
 
     def nearest_food(self, position):
         creature_pos = np.array(position)
