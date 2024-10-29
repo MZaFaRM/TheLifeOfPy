@@ -6,6 +6,9 @@ import numpy as np
 import random
 import noise
 
+max_perlin = -float("inf")
+min_perlin = float("inf")
+
 
 class Creature(Sprite):
     def __init__(
@@ -39,9 +42,9 @@ class Creature(Sprite):
 
         self.states = {
             "vision": "looking",  # looking, found
+            "angle": 0,  # degrees
             "alive": True,
-            "tx": random.randint(0, 1000) / 1000,
-            "ty": random.randint(0, 1000) / 1000,
+            "td": random.randint(0, 100) / 100,  # for pnoise generation
         }
 
         self.noise = noise
@@ -153,26 +156,15 @@ class Creature(Sprite):
         if not self.done:
             self.energy -= 1
 
-            if self.rect.collideobjects(
-                [food.rect for food in self.env.foods], key=lambda o: o
-            ):
-                self.states["vision"] = "found"
-            else:
-                self.states["vision"] = "looking"
-
-            print(noise.pnoise1(self.states["tx"]))
-            print(noise.pnoise1(self.states["ty"]))
-            self.states["tx"] += 1
-            self.states["ty"] += 1
+            self.states["vision"] = self.update_vision_state()
+            self.states["angle"] = self.update_angle()
 
             if self.energy <= 0:
                 self.die()
                 return
 
             if self.hunger > 0:
-                food_available = self.env.nearest_food(self.rect.center)
-
-                if food_available is not None:
+                if self.states["vision"] == "found":
                     if self.env.touching_food(self.rect.center):
                         self.eat()
                     else:
@@ -180,11 +172,7 @@ class Creature(Sprite):
                         pass
 
                 else:
-                    if self.hunger == 1:
-                        self.move_in_direction(SensorManager.obs_Nfd(self.env, self))
-                    else:
-                        self.die()
-                        return
+                    self.move_in_direction(self.states["angle"])
             else:
                 self.move_towards(self.set_closest_edge(self.rect.center))
 
@@ -192,6 +180,20 @@ class Creature(Sprite):
                 self.progress()
 
         self.draw_self()
+
+    def update_vision_state(self):
+        if self.rect.collideobjects(
+            [food.rect for food in self.env.foods], key=lambda o: o
+        ):
+            return "found"
+        else:
+            return "looking"
+
+    def update_angle(self):
+        angle = noise.pnoise1(self.states["td"])
+        angle = ((angle + 1) / 2) * 360
+        self.states["td"] += 0.01
+        return angle
 
     def reset(self):
         self.hunger = 2
