@@ -46,11 +46,12 @@ class CreatureManager:
         return 1
 
     def get_creature_attributes(self, creature):
+        return
         if creature.parent == None:
             sensors = random.choices(list(SensorManager.sensors.keys()), k=5)
         return "".join(sensor for sensor in sensors)
 
-    def generate_creatures(self, n=50):
+    def generate_creatures(self, n=50, *args, **kwargs):
         creatures = pygame.sprite.Group()
         for _ in range(n):
             # food sprite group
@@ -59,6 +60,8 @@ class CreatureManager:
                     self.env,
                     self.screen,
                     self,
+                    *args,
+                    **kwargs,
                 )
             )
 
@@ -83,6 +86,7 @@ class CreatureManager:
         return [SensorManager.sensors[sensor] for sensor in creature_sensors]
 
     def generate_dna(self, creature):
+        return
         creature_id = self.generate_id()
 
         creature_attributes = self.get_creature_attributes(creature)
@@ -116,7 +120,7 @@ class SensorManager:
 
     @classmethod
     def obs_Nfl(cls, env, creature):
-        return 
+        return
         creature_pos = np.array(creature.rect.center)
         food_positions = np.array([food.position for food in env.foods])
 

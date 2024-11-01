@@ -26,7 +26,7 @@ class Nature:
 
         self.creature_manager = manager.CreatureManager(env=self, screen=self.screen)
 
-        self.creatures = self.creature_manager.generate_creatures(n=100)
+        self.creatures = self.creature_manager.generate_creatures(n=200)
         self.foods = pygame.sprite.Group()
         self.children = pygame.sprite.Group()
 
@@ -70,10 +70,11 @@ class Nature:
 
         # Batch all steps before rendering
         for creature in self.creatures:
+            # time.sleep(0.01) 
             creature.step()
 
-        self.clock.tick(60)
-        # self.done = all(creature.done for creature in self.creatures)
+        # self.clock.tick(60)
+        self.done = all(creature.done for creature in self.creatures)
         self.truncated = len(self.creatures) == 0
         return self.get_observation(), reward, self.done, self.truncated
 
@@ -109,15 +110,15 @@ class Nature:
 
 env = Nature()
 
-while True:
-    env.reset()
-    env.render()
-    done = False
-    truncated = False
+# while True:
+env.reset()
+env.render()
+done = False
+truncated = False
 
-    while not (done or truncated):
-        observation, reward, done, truncated = env.step()
-        env.render()
+while not (done or truncated):
+    observation, reward, done, truncated = env.step()
+    env.render()
 
     # if truncated:
     #     break

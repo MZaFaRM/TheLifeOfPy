@@ -6,6 +6,8 @@ from manager import SensorManager
 import numpy as np
 import random
 import noise
+from enums import Base
+from uuid import uuid4
 
 
 class Creature(Sprite):
@@ -15,20 +17,28 @@ class Creature(Sprite):
         screen,
         creature_manager,
         radius=5,
+        position=None,
         color=(124, 245, 255),
-        parent=None,
+        parents=None,
     ):
         super().__init__()
 
         self.attrs = {
+            "id": uuid4(),
             "color": color,
             "radius": radius,
+            "mating_timeout": random.randint(150, 300),
+            "colors": {
+                "alive": color,
+                "dead": (0, 0, 0),
+                "reproducing": (255, 255, 255),
+            },
             "border": {
                 "color": (100, 57, 255),
-                "thickness": 1,
+                "thickness": 2.5,
             },
             "max_energy": 1000,
-            "max_speed": random.randint(1, 7),
+            "max_speed": random.randint(1, 2),
             "vision": {
                 "radius": 40,
                 "color": {
@@ -53,11 +63,25 @@ class Creature(Sprite):
         self.states = {
             "angle": 0,  # degrees
             "hunger": 2,
-            "speed": random.randint(1, 7),
+            "speed": random.randint(1, 2),
             "alive": True,
             "time": 0,
             "time_alive": 0,
-            "vision": "looking",  # looking, found
+            "mating": {
+                "state": Base.not_ready,
+                "mate": None,
+                "timeout": self.attrs["mating_timeout"],
+            },
+            "vision": {
+                "food": {
+                    "state": Base.looking,
+                    "rect": None,
+                },
+                "mate": {
+                    "state": Base.looking,
+                    "mate": None,
+                },
+            },
             "acceleration_factor": 0.1,
             "td": random.randint(0, 1000),  # for pnoise generation
             "energy": self.attrs["max_energy"],
@@ -68,7 +92,7 @@ class Creature(Sprite):
         self.screen = screen
         self.env = env
 
-        self.parent = parent
+        self.parents = parents
         self.creature_manager = creature_manager
 
         self.done = False
@@ -91,7 +115,7 @@ class Creature(Sprite):
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = helper.get_random_position(screen)
+        self.rect.center = position or helper.get_random_position(screen)
 
         self.DNA = self.creature_manager.register_creature(self)
 
@@ -106,18 +130,30 @@ class Creature(Sprite):
                 self.attrs["radius"] + self.attrs["vision"]["radius"],
             )
 
+        color = (0, 0, 0)
+        if not self.states["alive"]:
+            color = (0, 0, 0)
+        elif self.states["mating"]["state"] == Base.mating:
+            color = (255, 255, 255)
+        elif self.states["mating"]["state"] == Base.ready:
+            color = (0, 0, 255)
+            
         # Border
         pygame.draw.circle(
             self.image,
-            self.attrs["border"]["color"] if self.states["alive"] else (0, 0, 0),
+            color,
             self.center,
             self.attrs["radius"] + self.attrs["border"]["thickness"],
         )
 
+        color = self.attrs["color"]
+        if not self.states["alive"]:
+            color = (0, 0, 0)
+
         # Creature
         pygame.draw.circle(
             self.image,
-            self.attrs["color"] if self.states["alive"] else (0, 0, 0),
+            color,
             self.center,
             self.attrs["radius"],
         )
@@ -128,8 +164,17 @@ class Creature(Sprite):
         if not self.done:
             self.states["time_alive"] += 1
             self.states["energy"] -= 1
+            self.states["mating"]["timeout"] -= 1
 
-            self.states["vision"], found_object_rect = self.update_vision_state()
+            if self.states["mating"]["timeout"] <= 0:
+                if (self.states["energy"] >= 50) and (
+                    self.states["mating"]["state"] != Base.mating
+                ):
+                    self.states["mating"]["state"] = Base.ready
+                    # if random.random() < 0.6:
+                    #     pass
+
+            self.update_vision_state()
             self.states["angle"] = self.update_angle()
 
             self.update_speed()
@@ -138,12 +183,55 @@ class Creature(Sprite):
                 self.die()
                 return
 
-            if self.states["hunger"] > 0:
-                if self.states["vision"] == "found":
-                    if self.rect.center == found_object_rect.center:
+            if self.states["mating"]["state"] == Base.mating:
+                self.move_towards(self.states["mating"]["mate"].rect.center, speed=0.8)
+
+                if self.rect.center == self.states["mating"]["mate"].rect.center:
+                    self.creature_manager.generate_creatures(
+                        n=1,
+                        parents=(self, self.states["mating"]["mate"]),
+                        position=self.rect.center,
+                    )
+                    print("Creature born")
+
+                    self.states["mating"]["mate"].remove_mate()
+                    self.remove_mate()
+
+            elif (
+                # Check if the creature is ready to mate
+                (self.states["mating"]["state"] == Base.ready)
+                # Check if a mate is found
+                and (self.states["vision"]["mate"]["state"] == Base.found)
+                # Check if the mate is ready to mate
+                and (
+                    self.states["vision"]["mate"]["mate"].states["mating"]["state"]
+                    == Base.ready
+                )
+            ):
+
+                # TODO: Remove this
+                random_color = (
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                    random.randint(0, 255),
+                )
+
+                self.attrs["color"] = random_color
+                self.states["vision"]["mate"]["mate"].attrs["color"] = random_color
+
+                # Set the creature's mating state to mating
+                self.set_mate(mate=self.states["vision"]["mate"]["mate"])
+                # Set the mate's mating state to mating
+                self.states["vision"]["mate"]["mate"].set_mate(mate=self)
+
+                self.move_towards(self.states["mating"]["mate"].rect.center)
+
+            elif self.states["hunger"] > 0:
+                if self.states["vision"]["food"]["state"] == Base.found:
+                    if self.rect.center == self.states["vision"]["food"]["rect"].center:
                         self.eat()
                     else:
-                        self.move_towards(found_object_rect.center)
+                        self.move_towards(self.states["vision"]["food"]["rect"].center)
                         pass
 
                 else:
@@ -157,6 +245,15 @@ class Creature(Sprite):
 
         self.draw_self()
 
+    def set_mate(self, mate):
+        self.states["mating"]["state"] = Base.mating
+        self.states["mating"]["mate"] = mate
+
+    def remove_mate(self):
+        self.states["mating"]["state"] = Base.not_ready
+        self.states["mating"]["mate"] = None
+        self.states["mating"]["timeout"] = self.attrs["mating_timeout"]
+
     def update_speed(self):
         self.states["speed"] += self.states["acceleration_factor"]
         if (self.states["speed"] > self.attrs["max_speed"]) or (
@@ -165,12 +262,31 @@ class Creature(Sprite):
             self.states["acceleration_factor"] = -self.states["acceleration_factor"]
 
     def update_vision_state(self):
-        if found_object := self.rect.collideobjects(
-            [food.rect for food in self.env.foods], key=lambda o: o
+        if rect := self.rect.collideobjects(
+            [food.rect for food in self.env.foods], key=lambda rect: rect
         ):
-            return "found", found_object
+            self.states["vision"]["food"]["state"] = Base.found
+            self.states["vision"]["food"]["rect"] = rect
         else:
-            return "looking", found_object
+            self.states["vision"]["food"]["state"] = Base.looking
+            self.states["vision"]["food"]["rect"] = None
+
+        other_creatures = [
+            creature
+            for creature in self.env.creatures
+            if creature is not self and creature.states["mating"]["state"] == Base.ready
+        ]
+
+        if creature_index := self.rect.collidelistall(
+            [creature.rect for creature in other_creatures]
+        ):
+            self.states["vision"]["mate"]["state"] = Base.found
+            self.states["vision"]["mate"]["mate"] = other_creatures[creature_index[0]]
+
+        else:
+            self.states["vision"]["mate"]["state"] = Base.looking
+            self.states["vision"]["mate"]["mate"] = None
+        return
 
     def update_angle(self):
         angle = noise.snoise2(self.states["td"], 0) * 360
@@ -216,16 +332,19 @@ class Creature(Sprite):
         self.states["energy"] += self.attrs["max_energy"] // 2
         self.env.remove_food(self.rect.center)
 
-    def move_towards(self, target):
+    def move_towards(self, target, speed=None):
+        speed = speed or self.states["speed"]
         direction = np.array(target) - np.array(self.rect.center)
-        norm = np.linalg.norm(direction)
-        if norm > 0:
-            direction = direction / norm  # Normalize direction vector
-        new_position = np.array(self.rect.center) + direction * (
-            min(self.states["speed"], 1)
-        )
-        self.rect.center = new_position
+        distance_to_target = np.linalg.norm(direction)
 
+        if distance_to_target <= speed:
+            self.rect.center = target
+        else:
+            direction = direction / distance_to_target
+            new_position = np.array(self.rect.center) + direction * speed
+            self.rect.center = new_position
+
+        # Normalize position to stay within screen bounds
         self.rect = helper.normalize_position(self.rect, self.env.screen)
 
     def move_in_direction(self, direction):
