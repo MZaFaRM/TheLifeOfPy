@@ -52,10 +52,9 @@ class CreatureManager:
         return "".join(sensor for sensor in sensors)
 
     def generate_creatures(self, n=50, *args, **kwargs):
-        creatures = pygame.sprite.Group()
+        self.creatures = pygame.sprite.Group()
         for _ in range(n):
-            # food sprite group
-            creatures.add(
+            self.creatures.add(
                 agents.Creature(
                     self.env,
                     self.screen,
@@ -65,7 +64,20 @@ class CreatureManager:
                 )
             )
 
-        return creatures
+        return self.creatures
+
+    def add_creatures(self, n=1, *args, **kwargs):
+        for _ in range(n):
+            self.creatures.add(
+                agents.Creature(
+                    self.env,
+                    self.screen,
+                    self,
+                    *args,
+                    **kwargs,
+                )
+            )
+        return self.creatures
 
     def generate_id(self):
         number = self.creature_population

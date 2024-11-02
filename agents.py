@@ -42,8 +42,8 @@ class Creature(Sprite):
             "vision": {
                 "radius": 40,
                 "color": {
-                    "found": (0, 255, 0, 25),
-                    "looking": (0, 255, 255, 25),
+                    Base.found: (0, 255, 0, 25),
+                    Base.looking: (0, 255, 255, 25),
                 },
             },
         }
@@ -125,7 +125,7 @@ class Creature(Sprite):
             # Vision circle
             pygame.draw.circle(
                 self.image,
-                self.attrs["vision"]["color"][self.states["vision"]],
+                self.attrs["vision"]["color"][self.states["vision"]["food"]["state"]],
                 self.center,
                 self.attrs["radius"] + self.attrs["vision"]["radius"],
             )
@@ -137,7 +137,7 @@ class Creature(Sprite):
             color = (255, 255, 255)
         elif self.states["mating"]["state"] == Base.ready:
             color = (0, 0, 255)
-            
+
         # Border
         pygame.draw.circle(
             self.image,
@@ -187,7 +187,7 @@ class Creature(Sprite):
                 self.move_towards(self.states["mating"]["mate"].rect.center, speed=0.8)
 
                 if self.rect.center == self.states["mating"]["mate"].rect.center:
-                    self.creature_manager.generate_creatures(
+                    self.creature_manager.add_creatures(
                         n=1,
                         parents=(self, self.states["mating"]["mate"]),
                         position=self.rect.center,
@@ -208,17 +208,6 @@ class Creature(Sprite):
                     == Base.ready
                 )
             ):
-
-                # TODO: Remove this
-                random_color = (
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                    random.randint(0, 255),
-                )
-
-                self.attrs["color"] = random_color
-                self.states["vision"]["mate"]["mate"].attrs["color"] = random_color
-
                 # Set the creature's mating state to mating
                 self.set_mate(mate=self.states["vision"]["mate"]["mate"])
                 # Set the mate's mating state to mating

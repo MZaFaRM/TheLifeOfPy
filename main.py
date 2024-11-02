@@ -68,14 +68,16 @@ class Nature:
     def step(self):
         reward = 0
 
+        creatures = self.creature_manager.creatures
+
         # Batch all steps before rendering
-        for creature in self.creatures:
-            # time.sleep(0.01) 
+        for creature in creatures:
+            # time.sleep(0.01)
             creature.step()
 
         # self.clock.tick(60)
-        self.done = all(creature.done for creature in self.creatures)
-        self.truncated = len(self.creatures) == 0
+        self.done = all(creature.done for creature in creatures)
+        self.truncated = len(creatures) == 0
         return self.get_observation(), reward, self.done, self.truncated
 
     def reset(self):
@@ -94,7 +96,6 @@ class Nature:
         # for creature in self.children:
         #     self.new_generation.add(creature)
 
-        self.creatures = self.new_generation.copy()
         self.children = pygame.sprite.Group()
         self.new_generation = pygame.sprite.Group()
 
