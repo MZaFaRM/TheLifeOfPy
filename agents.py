@@ -14,7 +14,7 @@ class Creature(Sprite):
     def __init__(
         self,
         env,
-        screen,
+        env_window,
         creature_manager,
         radius=5,
         position=None,
@@ -89,7 +89,7 @@ class Creature(Sprite):
 
         self.noise = noise
 
-        self.screen = screen
+        self.env_window = env_window
         self.env = env
 
         self.parents = parents
@@ -115,7 +115,7 @@ class Creature(Sprite):
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = position or helper.get_random_position(screen)
+        self.rect.center = position or helper.get_random_position(env_window)
 
         self.DNA = self.creature_manager.register_creature(self)
 
@@ -287,7 +287,7 @@ class Creature(Sprite):
         self.done = False
         self.states["energy"] = self.attrs["max_energy"]
         self.closest_edge = None
-        self.original_position = helper.get_random_position(self.screen)
+        self.original_position = helper.get_random_position(self.env_window)
         self.rect.center = self.original_position
         self.draw_self()
 
@@ -306,7 +306,7 @@ class Creature(Sprite):
         self.env.children.add(
             Creature(
                 self.env,
-                self.screen,
+                self.env_window,
                 self.creature_manager,
                 radius=self.attrs["radius"],
             )
@@ -333,8 +333,8 @@ class Creature(Sprite):
             new_position = np.array(self.rect.center) + direction * speed
             self.rect.center = new_position
 
-        # Normalize position to stay within screen bounds
-        self.rect = helper.normalize_position(self.rect, self.env.screen)
+        # Normalize position to stay within env_window bounds
+        self.rect = helper.normalize_position(self.rect, self.env.env_window)
 
     def move_in_direction(self, direction):
         direction = np.radians(direction)
@@ -347,7 +347,7 @@ class Creature(Sprite):
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
-        self.rect = helper.normalize_position(self.rect, self.env.screen)
+        self.rect = helper.normalize_position(self.rect, self.env.env_window)
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):
@@ -366,10 +366,10 @@ class Creature(Sprite):
 
 
 class Food(Sprite):
-    def __init__(self, env, screen, radius=4, n=200, color=(124, 176, 109)):
+    def __init__(self, env, env_window, radius=4, n=200, color=(124, 176, 109)):
         super().__init__()
 
-        self.screen = screen
+        self.env_window = env_window
         self.env = env
 
         self.radius = radius
@@ -378,10 +378,10 @@ class Food(Sprite):
         # Create a transparent surface for the food
         self.image = pygame.Surface(((2 * radius), (2 * radius)), pygame.SRCALPHA)
 
-        # Random position within screen bounds
+        # Random position within env_window bounds
         self.position = (
-            random.randint(radius + 75, screen.get_width() - radius - 75),
-            random.randint(radius + 75, screen.get_height() - radius - 75),
+            random.randint(radius + 75, env_window.get_width() - radius - 75),
+            random.randint(radius + 75, env_window.get_height() - radius - 75),
         )
 
         # Create the circle on the image surface (center of the surface)
@@ -392,5 +392,5 @@ class Food(Sprite):
         self.rect.center = self.position
 
     def draw(self):
-        # Blit the food image to the screen at its position
-        self.screen.blit(self.image, self.rect.topleft)
+        # Blit the food image to the env_window at its position
+        self.env_window.blit(self.image, self.rect.topleft)

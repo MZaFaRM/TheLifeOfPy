@@ -33,10 +33,10 @@ class CreatureManager:
     situations = ["Food in Vicinity", "Nothing"]
     behaviours = ["Eat Food", "Roam Random"]
 
-    def __init__(self, env, screen, attrs=5) -> None:
+    def __init__(self, env, env_window, attrs=5) -> None:
         self.creature_population = 0
         self.env = env
-        self.screen = screen
+        self.env_window = env_window
 
     def register_creature(self, creature):
         self.creature_population += 1
@@ -57,7 +57,7 @@ class CreatureManager:
             self.creatures.add(
                 agents.Creature(
                     self.env,
-                    self.screen,
+                    self.env_window,
                     self,
                     *args,
                     **kwargs,
@@ -71,7 +71,7 @@ class CreatureManager:
             self.creatures.add(
                 agents.Creature(
                     self.env,
-                    self.screen,
+                    self.env_window,
                     self,
                     *args,
                     **kwargs,

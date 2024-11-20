@@ -2,6 +2,7 @@ import random
 import noise
 import numpy as np
 import pygame
+from functools import lru_cache
 
 
 def map_value(value, start1, stop1, start2, stop2):
@@ -40,17 +41,38 @@ def create_gradient(surface, top_color, bottom_color):
         pygame.draw.line(surface, (int(r), int(g), int(b)), (0, row), (width, row))
 
 
-def get_random_position(screen):
+def get_random_position(env_window):
     return (
-        random.randint(0, screen.get_width()),
-        random.randint(0, screen.get_height()),
+        random.randint(0, env_window.get_width()),
+        random.randint(0, env_window.get_height()),
     )
 
 
 def distance_between_points(a, b):
     return pow(b[0] - a[0], 2) + pow(b[1] - a[1], 2) ** 0.5
 
-def normalize_position(rect, screen):
-    rect.centerx = rect.centerx % screen.get_width()
-    rect.centery = rect.centery % screen.get_height()
+
+def normalize_position(rect, env_window):
+    rect.centerx = rect.centerx % env_window.get_width()
+    rect.centery = rect.centery % env_window.get_height()
     return rect
+
+
+@lru_cache(maxsize=1)
+def get_scaling_factor(main_window):
+    return (
+        main_window.get_width() / 1600,
+        main_window.get_height() / 900,
+    )
+
+
+def scale_image_by_factor(image, factor):
+    image = pygame.transform.scale(
+        image,
+        (
+            int(image.get_width() * factor[0]),
+            int(image.get_height() * factor[1]),
+        ),
+    )
+
+    return image
