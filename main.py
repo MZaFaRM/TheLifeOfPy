@@ -17,6 +17,7 @@ class Nature:
     def __init__(self):
 
         pygame.font.init()
+        self.buttons = {}
 
         self.clock = pygame.time.Clock()
 
@@ -62,9 +63,6 @@ class Nature:
 
     def setup_sidebar(self):
         self.sidebar_image = pygame.image.load(image_assets + "/sidebar.svg")
-        self.sidebar_image = helper.scale_image_by_factor(
-            self.sidebar_image, self.scaling_factor
-        )
         self.sidebar_window = pygame.Surface(
             (self.sidebar_image.get_width(), self.sidebar_image.get_height()),
             pygame.SRCALPHA,
@@ -73,27 +71,106 @@ class Nature:
         self.sidebar_window_rect = self.sidebar_window.get_rect()
         self.sidebar_window_rect.topright = (self.main_window.get_width() - 50, 50)
 
+        sidebar_window_width = self.sidebar_window.get_width()
+        sidebar_window_height = self.sidebar_window.get_height()
+
+        button_configs = [
+            {
+                "name": "create_organism",
+                "image": "/create_organism_button.svg",
+                "position": (
+                    sidebar_window_width // 2,
+                    sidebar_window_height - 225,
+                ),
+            },
+            {
+                "name": "end_simulation",
+                "image": "/end_simulation_button.svg",
+                "position": (
+                    sidebar_window_width // 2,
+                    sidebar_window_height - 150,
+                ),
+            },
+            {
+                "name": "show_graphs",
+                "image": "/show_graphs_button.svg",
+                "position": (
+                    sidebar_window_width // 2,
+                    sidebar_window_height - 75,
+                ),
+            },
+        ]
+
+        # Load, position, and blit each button
+        for config in button_configs:
+            self.load_and_store_button(
+                name=config["name"],
+                screen=self.sidebar_window,
+                image_name=config["image"],
+                position=config.pop("position"),
+            )
+
+        # Draw the sidebar window onto the main window
         self.main_window.blit(self.sidebar_window, self.sidebar_window_rect)
+
+    def load_and_store_button(self, screen, name, image_name, position):
+        button_image = pygame.image.load(image_assets + image_name)
+        button_rect = button_image.get_rect(center=position)
+        # Blit button to the sidebar
+        screen.blit(button_image, button_rect)
+        # Store button's image and rect in a dictionary for later reference
+        self.buttons[name] = {"image": button_image, "rect": button_rect}
 
     def setup_env_window(self):
         self.env_image = pygame.image.load(image_assets + "/dot_grid.svg")
-        self.env_image = helper.scale_image_by_factor(
-            self.env_image, self.scaling_factor
-        )
         self.env_window = pygame.Surface(
             (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
         )
         self.env_window.blit(self.env_image, (0, 0))
+
+        self.time_control_buttons = [
+            {
+                "name": "pause_time",
+                "image": "/pause_time_button.svg",
+                "position": (
+                    50,
+                    self.env_window.get_height() - 50,
+                ),
+            },
+            {
+                "name": "play_time",
+                "image": "/play_time_button.svg",
+                "position": (
+                    100,
+                    self.env_window.get_height() - 50,
+                ),
+            },
+            {
+                "name": "fast_forward_time",
+                "image": "/fast_forward_button.svg",
+                "position": (
+                    150,
+                    self.env_window.get_height() - 50,
+                ),
+            },
+        ]
+
+        for i, button in enumerate(self.time_control_buttons):
+            button_image = pygame.image.load(image_assets + button["image"])
+            button_rect = button_image.get_rect(center=button.pop("position"))
+            self.env_window.blit(button_image, button_rect)
+            self.time_control_buttons[i] = {
+                "image": button_image,
+                "surface": button_image,
+                "rect": button_rect,
+            }
+
         self.main_window.blit(self.env_window, (50, 100))
 
     def setup_main_window(self):
         self.main_window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        self.main_window.fill(Colors.bg_color)
-        main_font = pygame.font.Font(Fonts.PixelifySans, 30)
-        text_surface = main_font.render("Environment", True, Colors.primary)
-        text_surface_rect = text_surface.get_rect()
-        text_surface_rect.topleft = (50, 50)
-        self.main_window.blit(text_surface, text_surface_rect)
+        self.bg_image = pygame.image.load(image_assets + "/background.svg")
+        self.main_window.blit(self.bg_image, (0, 0))
 
     def generate_food(self, n=100):
         self.foods = pygame.sprite.Group()
@@ -168,10 +245,13 @@ class Nature:
 
     def render(self):
         self.env_window.fill(Colors.bg_color)
-
         self.env_window.blit(self.env_image, (0, 0))
+
         self.foods.draw(self.env_window)  # Render all food items
         self.creatures.draw(self.env_window)  # Render all creatures
+        for button in self.time_control_buttons:
+            self.env_window.blit(button["image"], button["rect"])
+
         self.main_window.blit(self.env_window, (50, 100))
         pygame.display.update()
 
