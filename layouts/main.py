@@ -40,6 +40,7 @@ class MainLayout:
                 break
 
     def update(self):
+        
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
                 self.surface.blit(button_data["image"]["clicked"], button_data["rect"])

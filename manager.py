@@ -34,7 +34,7 @@ class CreatureManager:
     situations = ["Food in Vicinity", "Nothing"]
     behaviours = ["Eat Food", "Roam Random"]
 
-    def __init__(self, env, env_window, attrs=5) -> None:
+    def __init__(self, env, env_window) -> None:
         self.creature_population = 0
         self.env = env
         self.env_window = env_window
@@ -379,18 +379,14 @@ class SensorManager:
 
 
 class Counter:
-    def __init__(self, start=0, position=(50, 50)):
-        self.value = start
+    def __init__(self):
+        self.surface = pygame.Surface((100, 26), pygame.SRCALPHA)
         self.font = pygame.font.Font(Fonts.PixelifySans, 22)
-        self.position = position
+        self.rect = self.surface.get_rect(topleft=(0, 0))
 
-    def increment(self):
-        self.value += 1
-
-    def decrement(self):
-        self.value -= 1
-
-    def draw(self, surface):
+    def draw(self, value):
         # Render the counter value as text
-        text = self.font.render("{:,}".format(self.value), True, Colors.bg_color)
-        surface.blit(text, self.position)
+        self.surface.fill(Colors.primary)
+
+        text = self.font.render("{:,}".format(value), True, Colors.bg_color)
+        self.surface.blit(text, self.rect)

@@ -1,19 +1,13 @@
-import time
-
 import numpy as np
 import pygame
 from gym.spaces import MultiDiscrete
 
 import agents
-import config
-import helper
 from layouts.environment import EnvLayout
 from layouts.sidebar import SidebarLayout
 import manager
-from manager import Counter
 
 # from graphs import PopulationPlot
-from config import Colors, Fonts, image_assets
 
 from layouts.main import MainLayout
 
@@ -39,7 +33,8 @@ class Nature:
         # self.graph_manager = PopulationPlot([1, 2], 200)
 
         self.creature_manager = manager.CreatureManager(
-            env=self, env_window=self.env_layout.surface
+            env=self,
+            env_window=self.env_layout.surface,
         )
         self.creatures = self.creature_manager.generate_creatures(n=200)
         self.foods = self.generate_food(n=100)
@@ -75,10 +70,6 @@ class Nature:
         self.env_layout = EnvLayout(
             main_layout=self.main_layout,
         )
-
-        # Define constants
-        self.screen_width = self.env_layout.surface.get_width()
-        self.screen_height = self.env_layout.surface.get_height()
 
         # Sidebar
         self.sidebar_layout = SidebarLayout(main_layout=self.main_layout)
@@ -133,22 +124,25 @@ class Nature:
             return self.get_observation(), reward, self.done, self.truncated
         self.time_steps += 1
 
-        creatures = self.creature_manager.creatures
-
         # Batch all steps before rendering
-        for creature in creatures:
+        for creature in self.creatures:
             creature.step()
 
         # self.graph_manager.update_population(self.time_steps, creature_data)
         self.clock.tick(1000)
         # self.done = all(creature.done for creature in creatures)
-        self.truncated = len(creatures) == 0
+        self.truncated = len(self.creatures) == 0
         return self.get_observation(), reward, self.done, self.truncated
 
     def reset(self):
         return
 
     def render(self):
+        self.main_layout.surface.blit(self.main_layout.bg_image, (0, 0))
+        self.sidebar_layout.update(self.creatures)
+        self.main_layout.surface.blit(
+            self.sidebar_layout.surface, self.sidebar_layout.rect
+        )
         self.env_layout.update(self.foods, self.creatures)
         self.main_layout.surface.blit(self.env_layout.surface, (50, 100))
         self.main_layout.update()

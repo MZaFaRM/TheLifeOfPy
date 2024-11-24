@@ -37,7 +37,7 @@ class Creature(Sprite):
                 "color": (100, 57, 255),
                 "thickness": 2.5,
             },
-            "max_energy": 1000,
+            "max_energy": 500,
             "max_speed": random.randint(1, 2),
             "vision": {
                 "radius": 40,
@@ -87,9 +87,16 @@ class Creature(Sprite):
             "energy": self.attrs["max_energy"],
         }
 
+        self.env_window = env_window
+
+        # x_range: from left edge to right edge
+        self.x_range = (0, self.env_window.get_width())
+
+        # y_range: from top edge to bottom edge
+        self.y_range = (0, self.env_window.get_height())
+
         self.noise = noise
 
-        self.env_window = env_window
         self.env = env
 
         self.parents = parents
@@ -110,16 +117,15 @@ class Creature(Sprite):
         # Calculate center of the surface
         self.center = (surface_size // 2, surface_size // 2)
 
-        # Draw the outer black circle and inner colored circle at the center
-        self.draw_self()
-
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(env_window)
 
         self.DNA = self.creature_manager.register_creature(self)
 
-    def draw_self(self, vision_circle=False):
+    def draw(self, surface, vision_circle=False):
+        if not self.states["alive"]:
+            return
 
         if vision_circle:
             # Vision circle
@@ -157,6 +163,16 @@ class Creature(Sprite):
             self.center,
             self.attrs["radius"],
         )
+        
+        pygame.draw.rect(
+            self.image,
+            self.attrs["color"],
+            self.rect,
+            2,
+            
+        )
+
+        surface.blit(self.image, self.rect.center)
 
     def step(self):
         self.states["time"] += 1
@@ -231,8 +247,6 @@ class Creature(Sprite):
             if (self.states["time"] - self.states["time_alive"]) < 100:
                 return
 
-        self.draw_self()
-
     def set_mate(self, mate):
         self.states["mating"]["state"] = Base.mating
         self.states["mating"]["mate"] = mate
@@ -262,7 +276,9 @@ class Creature(Sprite):
         other_creatures = [
             creature
             for creature in self.env.creatures
-            if creature is not self and creature.states["mating"]["state"] == Base.ready
+            if creature is not self
+            and creature.states["mating"]["state"] == Base.ready
+            and creature.states["alive"]
         ]
 
         if creature_index := self.rect.collidelistall(
@@ -288,7 +304,6 @@ class Creature(Sprite):
         self.closest_edge = None
         self.original_position = helper.get_random_position(self.env_window)
         self.rect.center = self.original_position
-        self.draw_self()
 
     def progress(self):
         if not self.done:
@@ -301,7 +316,6 @@ class Creature(Sprite):
             self.done = True
 
     def reproduce(self):
-        self.draw_self()
         self.env.children.add(
             Creature(
                 self.env,
@@ -333,7 +347,7 @@ class Creature(Sprite):
             self.rect.center = new_position
 
         # Normalize position to stay within env_window bounds
-        self.rect = helper.normalize_position(self.rect, self.env.env_layout.surface)
+        self.rect = helper.normalize_position(self.rect, self.x_range, self.y_range)
 
     def move_in_direction(self, direction):
         direction = np.radians(direction)
@@ -346,7 +360,7 @@ class Creature(Sprite):
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
-        self.rect = helper.normalize_position(self.rect, self.env.env_layout.surface)
+        self.rect = helper.normalize_position(self.rect, self.x_range, self.y_range)
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):
