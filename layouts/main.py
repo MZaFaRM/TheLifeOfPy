@@ -11,6 +11,13 @@ class MainLayout:
 
         self.time_control_buttons = buttons
 
+        self.close_window_button = pygame.image.load(
+            image_assets + "/close_window_button.svg"
+        )
+        self.close_window_button_rect = self.close_window_button.get_rect(
+            topright=(self.surface.get_width(), 0)
+        )
+
         for _, button_data in self.time_control_buttons.items():
             default_button = pygame.image.load(image_assets + button_data.pop("image"))
             clicked_button = pygame.image.load(
@@ -31,6 +38,10 @@ class MainLayout:
             )
 
     def handle_button_click(self, event):
+        if self.close_window_button_rect.collidepoint(event.pos):
+            pygame.quit()
+            exit()
+        
         for button, button_data in self.time_control_buttons.items():
             if button_data["rect"].collidepoint(event.pos):
                 button_data["clicked"] = True
@@ -40,7 +51,7 @@ class MainLayout:
                 break
 
     def update(self):
-        
+        self.surface.blit(self.close_window_button, self.close_window_button_rect)
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
                 self.surface.blit(button_data["image"]["clicked"], button_data["rect"])

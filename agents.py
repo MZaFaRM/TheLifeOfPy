@@ -91,9 +91,7 @@ class Creature(Sprite):
         }
 
         self.env_window = env_window
-
         self.noise = noise
-
         self.env = env
 
         self.parents = parents
