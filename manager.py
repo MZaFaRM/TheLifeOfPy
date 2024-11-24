@@ -2,6 +2,7 @@ import random
 import numpy as np
 import pygame
 import agents
+from config import Colors, Fonts
 
 # Nearest Food Location (Distance)
 # Nearest Food Direction (Angle)
@@ -37,9 +38,12 @@ class CreatureManager:
         self.creature_population = 0
         self.env = env
         self.env_window = env_window
+        self.alive_count = 0
+        self.dead_count = 0
 
     def register_creature(self, creature):
         self.creature_population += 1
+        return 1
         return self.generate_dna(creature)
 
     def get_brain(self, input_size=5, hidden_size=10, output_size=4):
@@ -96,13 +100,6 @@ class CreatureManager:
     def get_parsed_dna(self, DNA):
         creature_sensors = [DNA[i : i + 5] for i in range(6, len(DNA), 5)]
         return [SensorManager.sensors[sensor] for sensor in creature_sensors]
-
-    def generate_dna(self, creature):
-        return
-        creature_id = self.generate_id()
-
-        creature_attributes = self.get_creature_attributes(creature)
-        return creature_id + creature_attributes
 
 
 TOTAL_SENSORS = 17
@@ -379,3 +376,21 @@ class SensorManager:
         return (
             nearest_food.food_type if nearest_food else 0
         )  # Return type or zero if no food found
+
+
+class Counter:
+    def __init__(self, start=0, position=(50, 50)):
+        self.value = start
+        self.font = pygame.font.Font(Fonts.PixelifySans, 22)
+        self.position = position
+
+    def increment(self):
+        self.value += 1
+
+    def decrement(self):
+        self.value -= 1
+
+    def draw(self, surface):
+        # Render the counter value as text
+        text = self.font.render("{:,}".format(self.value), True, Colors.bg_color)
+        surface.blit(text, self.position)

@@ -58,14 +58,6 @@ def normalize_position(rect, env_window):
     return rect
 
 
-@lru_cache(maxsize=1)
-def get_scaling_factor(main_window):
-    return (
-        main_window.get_width() / 1600,
-        main_window.get_height() / 900,
-    )
-
-
 def scale_image_by_factor(image, factor):
     image = pygame.transform.scale(
         image,

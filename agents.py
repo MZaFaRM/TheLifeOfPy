@@ -333,7 +333,7 @@ class Creature(Sprite):
             self.rect.center = new_position
 
         # Normalize position to stay within env_window bounds
-        self.rect = helper.normalize_position(self.rect, self.env.env_window)
+        self.rect = helper.normalize_position(self.rect, self.env.env_layout.surface)
 
     def move_in_direction(self, direction):
         direction = np.radians(direction)
@@ -346,7 +346,7 @@ class Creature(Sprite):
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
-        self.rect = helper.normalize_position(self.rect, self.env.env_window)
+        self.rect = helper.normalize_position(self.rect, self.env.env_layout.surface)
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):
