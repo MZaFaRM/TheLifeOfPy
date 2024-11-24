@@ -18,11 +18,6 @@ class EnvLayout:
         self.surface.fill(Colors.bg_color)
         self.surface.blit(self.env_image, (0, 0))
 
-        x, y = (0, 0)
-        width, height = self.surface.get_width(), self.surface.get_height()
-        rect = pygame.Rect(x, y, width, height)
-        pygame.draw.rect(self.surface, (0, 0, 0), rect, 2)
-
         foods.draw(self.surface)
         for creature in creatures:
             creature.draw(self.surface)

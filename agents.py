@@ -20,6 +20,7 @@ class Creature(Sprite):
         position=None,
         color=(124, 245, 255),
         parents=None,
+        initial_energy=None,
     ):
         super().__init__()
 
@@ -84,16 +85,12 @@ class Creature(Sprite):
             },
             "acceleration_factor": 0.1,
             "td": random.randint(0, 1000),  # for pnoise generation
-            "energy": self.attrs["max_energy"],
+            "energy": (
+                self.attrs["max_energy"] if not initial_energy else initial_energy
+            ),
         }
 
         self.env_window = env_window
-
-        # x_range: from left edge to right edge
-        self.x_range = (0, self.env_window.get_width())
-
-        # y_range: from top edge to bottom edge
-        self.y_range = (0, self.env_window.get_height())
 
         self.noise = noise
 
@@ -163,16 +160,8 @@ class Creature(Sprite):
             self.center,
             self.attrs["radius"],
         )
-        
-        pygame.draw.rect(
-            self.image,
-            self.attrs["color"],
-            self.rect,
-            2,
-            
-        )
 
-        surface.blit(self.image, self.rect.center)
+        surface.blit(self.image, self.rect.topleft)
 
     def step(self):
         self.states["time"] += 1
@@ -200,13 +189,21 @@ class Creature(Sprite):
                 return
 
             if self.states["mating"]["state"] == Base.mating:
+                if self.states["mating"]["mate"].states["alive"] == False:
+                    self.remove_mate()
+                    return
+
                 self.move_towards(self.states["mating"]["mate"].rect.center, speed=0.8)
 
                 if self.rect.center == self.states["mating"]["mate"].rect.center:
+                    self.states["energy"] -= 250
+                    self.states["mating"]["mate"].states["energy"] -= 250
+
                     self.creature_manager.add_creatures(
                         n=1,
                         parents=(self, self.states["mating"]["mate"]),
                         position=self.rect.center,
+                        initial_energy=500,
                     )
 
                     self.states["mating"]["mate"].remove_mate()
@@ -347,7 +344,7 @@ class Creature(Sprite):
             self.rect.center = new_position
 
         # Normalize position to stay within env_window bounds
-        self.rect = helper.normalize_position(self.rect, self.x_range, self.y_range)
+        self.rect = helper.normalize_position(self.rect, self.env_window)
 
     def move_in_direction(self, direction):
         direction = np.radians(direction)
@@ -360,7 +357,7 @@ class Creature(Sprite):
         new_position = (self.rect.center[0] + dx, self.rect.center[1] + dy)
 
         self.rect.center = new_position
-        self.rect = helper.normalize_position(self.rect, self.x_range, self.y_range)
+        self.rect = helper.normalize_position(self.rect, self.env_window)
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):

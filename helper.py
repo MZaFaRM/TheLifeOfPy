@@ -52,10 +52,22 @@ def distance_between_points(a, b):
     return pow(b[0] - a[0], 2) + pow(b[1] - a[1], 2) ** 0.5
 
 
-def normalize_position(rect, x_range, y_range):
-    return rect
-    rect.x = (rect.x % x_range[1])
-    rect.y = (rect.y % y_range[1])
+def normalize_position(rect, env_window):
+    x_range = (-(rect.width // 2), env_window.get_width() - (rect.width // 2))
+    y_range = (-(rect.height // 2), env_window.get_height() - (rect.height // 2))
+
+    x, y = rect.topleft
+    if x < x_range[0]:
+        x = x_range[1] - 1
+    elif x > x_range[1]:
+        x = x_range[0] + 1
+        
+    if y < y_range[0]:
+        y = y_range[1] - 1
+    elif y > y_range[1]:
+        y = y_range[0] + 1
+        
+    rect.topleft = x, y
     return rect
 
 
