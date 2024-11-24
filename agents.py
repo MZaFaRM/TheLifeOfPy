@@ -192,7 +192,6 @@ class Creature(Sprite):
                         parents=(self, self.states["mating"]["mate"]),
                         position=self.rect.center,
                     )
-                    print("Creature born")
 
                     self.states["mating"]["mate"].remove_mate()
                     self.remove_mate()

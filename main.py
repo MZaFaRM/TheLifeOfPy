@@ -127,50 +127,54 @@ class Nature:
             (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
         )
         self.env_window.blit(self.env_image, (0, 0))
-
-        self.time_control_buttons = [
-            {
-                "name": "pause_time",
-                "image": "/pause_time_button.svg",
-                "position": (
-                    50,
-                    self.env_window.get_height() - 50,
-                ),
-            },
-            {
-                "name": "play_time",
-                "image": "/play_time_button.svg",
-                "position": (
-                    100,
-                    self.env_window.get_height() - 50,
-                ),
-            },
-            {
-                "name": "fast_forward_time",
-                "image": "/fast_forward_button.svg",
-                "position": (
-                    150,
-                    self.env_window.get_height() - 50,
-                ),
-            },
-        ]
-
-        for i, button in enumerate(self.time_control_buttons):
-            button_image = pygame.image.load(image_assets + button["image"])
-            button_rect = button_image.get_rect(center=button.pop("position"))
-            self.env_window.blit(button_image, button_rect)
-            self.time_control_buttons[i] = {
-                "image": button_image,
-                "surface": button_image,
-                "rect": button_rect,
-            }
-
         self.main_window.blit(self.env_window, (50, 100))
 
     def setup_main_window(self):
         self.main_window = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.bg_image = pygame.image.load(image_assets + "/background.svg")
         self.main_window.blit(self.bg_image, (0, 0))
+        y = self.main_window.get_height() - 75
+
+        self.time_control_buttons = {
+            "pause_time": {
+                "name": "pause_time",
+                "image": "/pause_time_button.svg",
+                "clicked_image": "/pause_time_button_clicked.svg",
+                "clicked": False,
+                "position": (75, y),
+            },
+            "play_time": {
+                "name": "play_time",
+                "image": "/play_time_button.svg",
+                "clicked_image": "/play_time_button_clicked.svg",
+                "clicked": True,
+                "position": (125, y),
+            },
+            "fast_forward_time": {
+                "name": "fast_forward_time",
+                "image": "/fast_forward_button.svg",
+                "clicked_image": "/fast_forward_button_clicked.svg",
+                "clicked": False,
+                "position": (175, y),
+            },
+        }
+
+        for _, button_data in self.time_control_buttons.items():
+            default_button = pygame.image.load(image_assets + button_data.pop("image"))
+            clicked_button = pygame.image.load(
+                image_assets + button_data.pop("clicked_image")
+            )
+            button_rect = default_button.get_rect(center=button_data.pop("position"))
+
+            button_data.update(
+                {
+                    "image": {
+                        "default": default_button,
+                        "clicked": clicked_button,
+                    },
+                    "rect": button_rect,
+                }
+            )
 
     def generate_food(self, n=100):
         self.foods = pygame.sprite.Group()
@@ -207,6 +211,24 @@ class Nature:
 
     def step(self):
         reward = 0
+
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                self.done = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for button, button_data in self.time_control_buttons.items():
+                    if button_data["rect"].collidepoint(event.pos):
+                        button_data["clicked"] = True
+                        for other_button in self.time_control_buttons:
+                            if other_button != button:
+                                self.time_control_buttons[other_button][
+                                    "clicked"
+                                ] = False
+                        break
+
+        if self.time_control_buttons["pause_time"]["clicked"]:
+            return self.get_observation(), reward, self.done, self.truncated
         self.time_steps += 1
 
         creatures = self.creature_manager.creatures
@@ -249,10 +271,18 @@ class Nature:
 
         self.foods.draw(self.env_window)  # Render all food items
         self.creatures.draw(self.env_window)  # Render all creatures
-        for button in self.time_control_buttons:
-            self.env_window.blit(button["image"], button["rect"])
-
         self.main_window.blit(self.env_window, (50, 100))
+
+        for _, button_data in self.time_control_buttons.items():
+            if button_data["clicked"]:
+                self.main_window.blit(
+                    button_data["image"]["clicked"], button_data["rect"]
+                )
+            else:
+                self.main_window.blit(
+                    button_data["image"]["default"], button_data["rect"]
+                )
+
         pygame.display.update()
 
     def get_observation(self):
