@@ -1,6 +1,10 @@
 import random
+
+import noise
 import numpy as np
 import pygame
+from noise import pnoise1, pnoise2, snoise2
+
 import agents
 from config import Colors, Fonts
 
@@ -20,6 +24,85 @@ from config import Colors, Fonts
 # Current Speed (Speed)
 # Predator Count Nearby (Count)
 # Current Energy Usage Rate (Rate)
+
+
+class PlantManager:
+    def __init__(self, env, env_surface) -> None:
+        self.env = env
+        self.env_surface = env_surface
+        self.scale = 1000
+        self.dx = random.uniform(0, 100)
+        self.dy = random.uniform(0, 100)
+        self.dz = random.uniform(0, 100)
+        self.perlin_frequency = 0.02
+        self.plants = pygame.sprite.Group()
+
+    def bulk_generate_plants_patch(self, n=100):
+        for _ in range(n):
+            # Use single-layer Perlin noise for simplicity
+            cluster_points = self.get_coords_from_noise()
+            for x, y in cluster_points:
+                self.plants.add(
+                    agents.Plant(
+                        self,
+                        self.env_surface,
+                        pos=(x, y),
+                    )
+                )
+
+        return self.plants
+
+    def get_coords_from_noise(self):
+        # Increment dx and dy for smooth noise
+        self.dx += self.perlin_frequency
+        self.dy += self.perlin_frequency
+
+        x_noise = snoise2(self.dx, self.dy)
+        y_noise = snoise2(self.dx + 100, self.dy + 100)
+
+        # Scale and normalize noise values to environment dimensions
+        center_x = int(((x_noise + 1) / 2) * (self.env_surface.get_width() - 75))
+        center_y = int(((y_noise + 1) / 2) * (self.env_surface.get_height() - 75))
+
+        cluster_points = []
+        cluster_radius = 50
+        for _ in range(5):
+            offset_x = random.uniform(-cluster_radius, cluster_radius)
+            offset_y = random.uniform(-cluster_radius, cluster_radius)
+            cluster_x = max(
+                0,
+                min(
+                    self.env_surface.get_width() - 75,
+                    center_x + offset_x,
+                ),
+            )
+            cluster_y = max(
+                0,
+                min(
+                    self.env_surface.get_height() - 75,
+                    center_y + offset_y,
+                ),
+            )
+            cluster_points.append((int(cluster_x), int(cluster_y)))
+
+        return cluster_points
+
+    def create_plant_patch(self):
+        cluster_points = self.get_coords_from_noise()
+        for x, y in cluster_points:
+            self.plants.add(
+                agents.Plant(
+                    self,
+                    self.env_surface,
+                    pos=(x, y),
+                )
+            )
+
+    def get_plants(self):
+        return self.plants
+
+    def remove_plant(self, plant):
+        self.plants.remove(plant)
 
 
 class CreatureManager:

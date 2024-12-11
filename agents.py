@@ -260,7 +260,8 @@ class Creature(Sprite):
 
     def update_vision_state(self):
         if rect := self.rect.collideobjects(
-            [food.rect for food in self.env.foods], key=lambda rect: rect
+            [food.rect for food in self.env.plant_manager.get_plants()],
+            key=lambda rect: rect,
         ):
             self.states["vision"]["food"]["state"] = Base.found
             self.states["vision"]["food"]["rect"] = rect
@@ -373,8 +374,10 @@ class Creature(Sprite):
         return observations
 
 
-class Food(Sprite):
-    def __init__(self, env, env_window, radius=4, n=200, color=(124, 176, 109)):
+class Plant(Sprite):
+    def __init__(
+        self, env, env_window, pos=None, radius=4, n=200, color=(124, 176, 109)
+    ):
         super().__init__()
 
         self.env_window = env_window
@@ -387,7 +390,7 @@ class Food(Sprite):
         self.image = pygame.Surface(((2 * radius), (2 * radius)), pygame.SRCALPHA)
 
         # Random position within env_window bounds
-        self.position = (
+        self.position = pos or (
             random.randint(radius + 75, env_window.get_width() - radius - 75),
             random.randint(radius + 75, env_window.get_height() - radius - 75),
         )

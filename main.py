@@ -36,8 +36,12 @@ class Nature:
             env=self,
             env_window=self.env_layout.surface,
         )
-        self.creatures = self.creature_manager.generate_creatures(n=200)
-        self.foods = self.generate_food(n=100)
+        self.plant_manager = manager.PlantManager(
+            env=self,
+            env_surface=self.env_layout.surface,
+        )
+        self.creatures = self.creature_manager.generate_creatures(n=100)
+        self.plant_manager.bulk_generate_plants_patch(n=10)
 
     def setup_screen(self):
         # Main Window
@@ -76,37 +80,10 @@ class Nature:
 
         pygame.display.set_caption("DARWIN")
 
-    def generate_food(self, n=100):
-        foods = pygame.sprite.Group()
-        for _ in range(n):
-            # food sprite group
-            foods.add(agents.Food(self, self.env_layout.surface, n=n))
-        return foods
-
-    def nearest_food(self, position):
-        creature_pos = np.array(position)
-        food_positions = np.array([food.position for food in env.foods])
-
-        # Squared distances
-        distances = np.sum((food_positions - creature_pos) ** 2, axis=1)
-
-        # If there are no food objects
-        if len(distances) == 0:
-            # No food, so return infinite distance and no position
-            return None
-
-        # Find the index of the nearest food
-        nearest_index = np.argmin(distances)
-
-        # Return the nearest distance and its coordinates
-        nearest_coordinates = food_positions[nearest_index]
-
-        return nearest_coordinates
-
     def remove_food(self, position):
-        for food in self.foods:
-            if food.rect.collidepoint(position):
-                self.foods.remove(food)
+        for plant in self.plant_manager.get_plants():
+            if plant.rect.collidepoint(position):
+                self.plant_manager.remove_plant(plant)
                 return True
         return False
 
@@ -131,7 +108,11 @@ class Nature:
         # self.graph_manager.update_population(self.time_steps, creature_data)
         self.clock.tick(1000)
         # self.done = all(creature.done for creature in creatures)
-        self.truncated = len(self.creatures) == 0
+        self.truncated = False  # or len(self.creatures) == 0
+
+        if self.time_steps % 100 == 0:
+            self.plant_manager.create_plant_patch()
+
         return self.get_observation(), reward, self.done, self.truncated
 
     def reset(self):
@@ -143,7 +124,7 @@ class Nature:
         self.main_layout.surface.blit(
             self.sidebar_layout.surface, self.sidebar_layout.rect
         )
-        self.env_layout.update(self.foods, self.creatures)
+        self.env_layout.update(self.plant_manager.get_plants(), self.creatures)
         self.main_layout.surface.blit(self.env_layout.surface, (50, 100))
         self.main_layout.update()
         pygame.display.flip()
