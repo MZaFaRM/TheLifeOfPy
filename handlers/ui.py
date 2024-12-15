@@ -45,6 +45,7 @@ class UIHandler:
 
         for name, info in self.screen_states[screen]["components"].items():
             rendered_component = info["handler"](
+                main_surface=self.surface,
                 context=self.screen_states[screen].get("context", {}),
             )
             self.screen_states["rendered_components"][name] = {
@@ -52,14 +53,14 @@ class UIHandler:
                 "handler": rendered_component,
             }
 
-    def event_handler(self, events):
+    def _event_handler(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
 
-        for name, info in self.screen_states["rendered_components"].items():
-            info["handler"].event_handler(events)
+            for name, info in self.screen_states["rendered_components"].items():
+                yield from info["handler"]._event_handler(event) or []
 
     def update_screen(self, context=None):
         self.surface.blit(self.bg_image, (0, 0))

@@ -9,7 +9,6 @@ from handlers.ui import UIHandler
 
 class Nature:
     def __init__(self):
-
         pygame.font.init()
 
         self.clock = pygame.time.Clock()
@@ -17,6 +16,7 @@ class Nature:
         self.time_steps = 0
         self.done = False
         self.truncated = False
+        self.paused = False
 
         self.ui_handler = UIHandler()
 
@@ -51,9 +51,16 @@ class Nature:
         reward = 0
 
         events = pygame.event.get()
-        self.ui_handler.event_handler(events)
-
+        updates = list(self.ui_handler._event_handler(events))
         self.time_steps += 1
+
+        if "pause_time" in updates:
+            self.paused = True
+        if "play_time" in updates:
+            self.paused = False
+
+        if self.paused:
+            return self.get_observation(), reward, self.done, self.truncated
 
         # Batch all steps before rendering
         for creature in self.creatures:

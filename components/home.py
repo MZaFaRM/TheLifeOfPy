@@ -5,10 +5,12 @@ from handlers.organisms import Counter
 
 
 class HomeComponent:
-    def __init__(self, context=None):
-        self.context = context
-        screen_width, screen_height = pygame.display.get_surface().get_size()
-        self.surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+    def __init__(self, main_surface, context=None):
+        # screen_width, screen_height = pygame.display.get_surface().get_size()
+        screen_width, screen_height = main_surface.get_size()
+
+        self.surface = main_surface
+        # self.surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
         self.time_control_buttons = {
             "pause_time": {
                 "name": "pause_time",
@@ -60,22 +62,23 @@ class HomeComponent:
                 }
             )
 
-    def event_handler(self, events):
-        for event in events:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if self.close_window_button_rect.collidepoint(event.pos):
-                    pygame.quit()
-                    exit()
+    def _event_handler(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.close_window_button_rect.collidepoint(event.pos):
+                pygame.quit()
+                exit()
 
-                for button, button_data in self.time_control_buttons.items():
-                    if button_data["rect"].collidepoint(event.pos):
-                        button_data["clicked"] = True
-                        for other_button in self.time_control_buttons:
-                            if other_button != button:
-                                self.time_control_buttons[other_button][
-                                    "clicked"
-                                ] = False
-                        break
+            for button, button_data in self.time_control_buttons.items():
+                if button_data["rect"].collidepoint(event.pos):
+                    button_data["clicked"] = True
+                    for other_button in self.time_control_buttons:
+                        if other_button != button:
+                            self.time_control_buttons[other_button][
+                                "clicked"
+                            ] = False
+                    break
+                
+            yield button
 
     def update(self, context=None):
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
@@ -87,14 +90,14 @@ class HomeComponent:
 
 
 class EnvComponent:
-    def __init__(self, context=None):
+    def __init__(self, main_surface, context=None):
         self.env_image = pygame.image.load(image_assets + "/dot_grid.svg")
         self.surface = pygame.Surface(
             (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
         )
         self.surface.blit(self.env_image, (0, 0))
 
-    def event_handler(self, events):
+    def _event_handler(self, event):
         pass
 
     def update(self, context=None):
@@ -110,7 +113,7 @@ class EnvComponent:
 
 
 class SidebarComponent:
-    def __init__(self, context=None):
+    def __init__(self, main_surface, context=None):
         self.sidebar_image = pygame.image.load(image_assets + "/sidebar.svg")
         self.surface = pygame.Surface(
             (self.sidebar_image.get_width(), self.sidebar_image.get_height()),
@@ -160,7 +163,7 @@ class SidebarComponent:
                 position=button.pop("position"),
             )
 
-    def event_handler(self, events):
+    def _event_handler(self, event):
         pass
 
     def load_and_store_button(self, screen, name, image_name, position):
