@@ -3,13 +3,11 @@ import pygame
 from gym.spaces import MultiDiscrete
 
 import agents
-from layouts.environment import EnvLayout
-from layouts.sidebar import SidebarLayout
 import manager
+from layouts.home import EnvLayout, MainLayout, SidebarLayout
 
 # from graphs import PopulationPlot
 
-from layouts.main import MainLayout
 
 
 class Nature:
@@ -47,7 +45,7 @@ class Nature:
         # Main Window
         self.time_control_buttons = {
             "pause_time": {
-                "name": "pause_time",
+                "name": "pause_time", 
                 "image": "/pause_time_button.svg",
                 "clicked_image": "/pause_time_button_clicked.svg",
                 "clicked": False,

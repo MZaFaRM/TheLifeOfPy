@@ -1,6 +1,83 @@
 import pygame
-from config import image_assets
+
+from config import Colors, image_assets
 from manager import Counter
+
+
+class MainLayout:
+    def __init__(self, buttons):
+        self.surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.bg_image = pygame.image.load(image_assets + "/background.svg")
+        self.surface.blit(self.bg_image, (0, 0))
+        y = self.surface.get_height() - 75
+
+        self.time_control_buttons = buttons
+
+        self.close_window_button = pygame.image.load(
+            image_assets + "/close_window_button.svg"
+        )
+        self.close_window_button_rect = self.close_window_button.get_rect(
+            topright=(self.surface.get_width(), 0)
+        )
+
+        for _, button_data in self.time_control_buttons.items():
+            default_button = pygame.image.load(image_assets + button_data.pop("image"))
+            clicked_button = pygame.image.load(
+                image_assets + button_data.pop("clicked_image")
+            )
+            button_rect = default_button.get_rect(
+                center=(button_data.pop("x_position"), y)
+            )
+
+            button_data.update(
+                {
+                    "image": {
+                        "default": default_button,
+                        "clicked": clicked_button,
+                    },
+                    "rect": button_rect,
+                }
+            )
+
+    def handle_button_click(self, event):
+        if self.close_window_button_rect.collidepoint(event.pos):
+            pygame.quit()
+            exit()
+
+        for button, button_data in self.time_control_buttons.items():
+            if button_data["rect"].collidepoint(event.pos):
+                button_data["clicked"] = True
+                for other_button in self.time_control_buttons:
+                    if other_button != button:
+                        self.time_control_buttons[other_button]["clicked"] = False
+                break
+
+    def update(self):
+        self.surface.blit(self.close_window_button, self.close_window_button_rect)
+        for button_data in self.time_control_buttons.values():
+            if button_data["clicked"]:
+                self.surface.blit(button_data["image"]["clicked"], button_data["rect"])
+            else:
+                self.surface.blit(button_data["image"]["default"], button_data["rect"])
+
+
+class EnvLayout:
+    def __init__(self, main_layout):
+        self.main_layout = main_layout
+        self.env_image = pygame.image.load(image_assets + "/dot_grid.svg")
+        self.surface = pygame.Surface(
+            (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
+        )
+        self.surface.blit(self.env_image, (0, 0))
+        self.main_layout.surface.blit(self.surface, (50, 100))
+
+    def update(self, foods, creatures):
+        self.surface.fill(Colors.bg_color)
+        self.surface.blit(self.env_image, (0, 0))
+
+        foods.draw(self.surface)
+        for creature in creatures:
+            creature.draw(self.surface)
 
 
 class SidebarLayout:
