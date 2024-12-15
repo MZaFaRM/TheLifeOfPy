@@ -2,7 +2,7 @@ import math
 import pygame
 from pygame.sprite import Sprite
 import helper
-from manager import SensorManager
+from handlers.organisms import SensorManager
 import numpy as np
 import random
 import noise

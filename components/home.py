@@ -1,25 +1,46 @@
 import pygame
 
 from config import Colors, image_assets
-from manager import Counter
+from handlers.organisms import Counter
 
 
-class MainLayout:
-    def __init__(self, buttons):
-        self.surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        self.bg_image = pygame.image.load(image_assets + "/background.svg")
-        self.surface.blit(self.bg_image, (0, 0))
-        y = self.surface.get_height() - 75
-
-        self.time_control_buttons = buttons
+class HomeComponent:
+    def __init__(self, context=None):
+        self.context = context
+        screen_width, screen_height = pygame.display.get_surface().get_size()
+        self.surface = pygame.Surface((screen_width, screen_height), pygame.SRCALPHA)
+        self.time_control_buttons = {
+            "pause_time": {
+                "name": "pause_time",
+                "image": "/pause_time_button.svg",
+                "clicked_image": "/pause_time_button_clicked.svg",
+                "clicked": False,
+                "x_position": 75,
+            },
+            "play_time": {
+                "name": "play_time",
+                "image": "/play_time_button.svg",
+                "clicked_image": "/play_time_button_clicked.svg",
+                "clicked": True,
+                "x_position": 125,
+            },
+            "fast_forward_time": {
+                "name": "fast_forward_time",
+                "image": "/fast_forward_button.svg",
+                "clicked_image": "/fast_forward_button_clicked.svg",
+                "clicked": False,
+                "x_position": 175,
+            },
+        }
 
         self.close_window_button = pygame.image.load(
             image_assets + "/close_window_button.svg"
         )
         self.close_window_button_rect = self.close_window_button.get_rect(
-            topright=(self.surface.get_width(), 0)
+            topright=(screen_width, 0)
         )
 
+        y = screen_height - 75
         for _, button_data in self.time_control_buttons.items():
             default_button = pygame.image.load(image_assets + button_data.pop("image"))
             clicked_button = pygame.image.load(
@@ -39,20 +60,24 @@ class MainLayout:
                 }
             )
 
-    def handle_button_click(self, event):
-        if self.close_window_button_rect.collidepoint(event.pos):
-            pygame.quit()
-            exit()
+    def event_handler(self, events):
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if self.close_window_button_rect.collidepoint(event.pos):
+                    pygame.quit()
+                    exit()
 
-        for button, button_data in self.time_control_buttons.items():
-            if button_data["rect"].collidepoint(event.pos):
-                button_data["clicked"] = True
-                for other_button in self.time_control_buttons:
-                    if other_button != button:
-                        self.time_control_buttons[other_button]["clicked"] = False
-                break
+                for button, button_data in self.time_control_buttons.items():
+                    if button_data["rect"].collidepoint(event.pos):
+                        button_data["clicked"] = True
+                        for other_button in self.time_control_buttons:
+                            if other_button != button:
+                                self.time_control_buttons[other_button][
+                                    "clicked"
+                                ] = False
+                        break
 
-    def update(self):
+    def update(self, context=None):
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
@@ -61,40 +86,37 @@ class MainLayout:
                 self.surface.blit(button_data["image"]["default"], button_data["rect"])
 
 
-class EnvLayout:
-    def __init__(self, main_layout):
-        self.main_layout = main_layout
+class EnvComponent:
+    def __init__(self, context=None):
         self.env_image = pygame.image.load(image_assets + "/dot_grid.svg")
         self.surface = pygame.Surface(
             (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
         )
         self.surface.blit(self.env_image, (0, 0))
-        self.main_layout.surface.blit(self.surface, (50, 100))
 
-    def update(self, foods, creatures):
+    def event_handler(self, events):
+        pass
+
+    def update(self, context=None):
+        plants = context.get("plants")
+        creatures = context.get("creatures")
+
         self.surface.fill(Colors.bg_color)
         self.surface.blit(self.env_image, (0, 0))
 
-        foods.draw(self.surface)
+        plants.draw(self.surface)
         for creature in creatures:
             creature.draw(self.surface)
 
 
-class SidebarLayout:
-    def __init__(self, main_layout):
-        self.main_layout = main_layout
-
+class SidebarComponent:
+    def __init__(self, context=None):
         self.sidebar_image = pygame.image.load(image_assets + "/sidebar.svg")
         self.surface = pygame.Surface(
             (self.sidebar_image.get_width(), self.sidebar_image.get_height()),
             pygame.SRCALPHA,
         )
         self.surface.blit(self.sidebar_image, (0, 0))
-        self.rect = self.surface.get_rect()
-        self.rect.topright = (
-            self.main_layout.surface.get_width() - 50,
-            50,
-        )
 
         self.alive_counter = Counter()
         self.dead_counter = Counter()
@@ -138,8 +160,8 @@ class SidebarLayout:
                 position=button.pop("position"),
             )
 
-        # Draw the sidebar window onto the main window
-        self.main_layout.surface.blit(self.surface, self.rect)
+    def event_handler(self, events):
+        pass
 
     def load_and_store_button(self, screen, name, image_name, position):
         button_image = pygame.image.load(image_assets + image_name)
@@ -149,7 +171,8 @@ class SidebarLayout:
         # Store button's image and rect in a dictionary for later reference
         self.buttons[name].update({"image": button_image, "rect": button_rect})
 
-    def update(self, creatures):
+    def update(self, context=None):
+        creatures = context.get("creatures")
         alive = 0
         dead = 0
         for creature in creatures:

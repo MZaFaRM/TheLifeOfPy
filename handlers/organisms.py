@@ -117,10 +117,10 @@ class CreatureManager:
     situations = ["Food in Vicinity", "Nothing"]
     behaviours = ["Eat Food", "Roam Random"]
 
-    def __init__(self, env, env_window) -> None:
+    def __init__(self, env, env_surface) -> None:
         self.creature_population = 0
         self.env = env
-        self.env_window = env_window
+        self.env_window = env_surface
         self.alive_count = 0
         self.dead_count = 0
 
@@ -183,6 +183,9 @@ class CreatureManager:
     def get_parsed_dna(self, DNA):
         creature_sensors = [DNA[i : i + 5] for i in range(6, len(DNA), 5)]
         return [SensorManager.sensors[sensor] for sensor in creature_sensors]
+
+    def get_creatures(self):
+        return self.creatures
 
 
 TOTAL_SENSORS = 17
