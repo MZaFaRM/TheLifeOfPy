@@ -53,11 +53,17 @@ class Nature:
         events = pygame.event.get()
         updates = list(self.ui_handler._event_handler(events))
         self.time_steps += 1
+        if updates:
+            print("Updates: ", *updates)
 
         if "pause_time" in updates:
             self.paused = True
         if "play_time" in updates:
             self.paused = False
+        if "navigate_home" in updates:
+            self.ui_handler.initialize_screen(screen="home")
+        if "navigate_laboratory" in updates:
+            self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:
             return self.get_observation(), reward, self.done, self.truncated

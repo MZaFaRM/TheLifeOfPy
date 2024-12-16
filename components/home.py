@@ -193,14 +193,16 @@ class SidebarComponent:
 
     def _event_handler(self, event):
         if event.type in [pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN]:
+            # Get mouse position relative to the sidebar
             mouse_x, mouse_y = event.pos
             rel_x, rel_y = mouse_x - self.surface_x, mouse_y - self.surface_y
+            # Check if the mouse is within the bounds of the button
             if self.buttons["create_organism"]["rect"].collidepoint((rel_x, rel_y)):
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     button = self.buttons["create_organism"]
                     button["current_image"] = button["clicked_image"]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    self.context["nav_handler"](screen="laboratory")
+                    yield "navigate_laboratory"
             else:
                 button = self.buttons["create_organism"]
                 button["current_image"] = button["image"]

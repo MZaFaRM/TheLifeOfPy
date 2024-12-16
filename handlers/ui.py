@@ -35,16 +35,17 @@ class UIHandler:
                         },
                     },
                 },
-                "context": {
-                    "nav_handler": self.initialize_screen,
-                },
+                "context": {},
             },
             "laboratory": {
                 "components": {
                     "env": {
                         "handler": LaboratoryComponent,
                         "custom_position": {
-                            "topleft": (50, 50),
+                            "center": (
+                                self.surface.get_width() // 2,
+                                self.surface.get_height() // 2,
+                            ),
                         },
                     },
                 },
