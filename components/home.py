@@ -125,6 +125,7 @@ class EnvComponent:
 
 class SidebarComponent:
     def __init__(self, main_surface, context=None):
+        self.context = context
         self.sidebar_image = pygame.image.load(
             os.path.join(image_assets, "home", "sidebar.svg")
         )
@@ -133,6 +134,10 @@ class SidebarComponent:
             pygame.SRCALPHA,
         )
         self.surface.blit(self.sidebar_image, (0, 0))
+
+        # For button click checks
+        self.surface_x = main_surface.get_width() - self.surface.get_width() - 50
+        self.surface_y = 50
 
         self.alive_counter = Counter()
         self.dead_counter = Counter()
@@ -177,7 +182,11 @@ class SidebarComponent:
             )
 
     def _event_handler(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_x, mouse_y = event.pos
+            rel_x, rel_y = mouse_x - self.surface_x, mouse_y - self.surface_y
+            if self.buttons["create_organism"]["rect"].collidepoint((rel_x, rel_y)):
+                self.context["nav_handler"](screen="laboratory")
 
     def load_and_store_button(self, screen, name, image_name, position):
         button_image = pygame.image.load(os.path.join(image_assets, image_name))

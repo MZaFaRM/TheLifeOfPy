@@ -1,5 +1,6 @@
 import pygame
 from components.home import EnvComponent, HomeComponent, SidebarComponent
+from components.laboratory import LaboratoryComponent
 from config import Colors, image_assets
 from copy import deepcopy
 
@@ -12,7 +13,7 @@ class UIHandler:
 
         self.screen_states = {
             "current_screen": "home",
-            "screens": ["home"],
+            "screens": ["home", "laboratory"],
             "home": {
                 "components": {
                     "env": {
@@ -31,6 +32,19 @@ class UIHandler:
                         "handler": HomeComponent,
                         "custom_position": {
                             "topleft": (0, 0),
+                        },
+                    },
+                },
+                "context": {
+                    "nav_handler": self.initialize_screen,
+                },
+            },
+            "laboratory": {
+                "components": {
+                    "env": {
+                        "handler": LaboratoryComponent,
+                        "custom_position": {
+                            "topleft": (50, 50),
                         },
                     },
                 },
