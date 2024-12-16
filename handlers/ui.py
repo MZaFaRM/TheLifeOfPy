@@ -7,9 +7,8 @@ from copy import deepcopy
 class UIHandler:
     def __init__(self):
         self.surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.surface.fill((26, 26, 26))
         pygame.display.set_caption("DARWIN")
-        self.bg_image = pygame.image.load(image_assets + "/background.svg")
-        self.surface.blit(self.bg_image, (0, 0))
 
         self.screen_states = {
             "current_screen": "home",
@@ -63,7 +62,7 @@ class UIHandler:
                 yield from info["handler"]._event_handler(event) or []
 
     def update_screen(self, context=None):
-        self.surface.blit(self.bg_image, (0, 0))
+        self.surface.fill((26, 26, 26))
 
         for name, info in self.screen_states["rendered_components"].items():
             info["handler"].update(context=context)
