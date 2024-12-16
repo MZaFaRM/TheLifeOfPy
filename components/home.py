@@ -148,7 +148,11 @@ class SidebarComponent:
         self.buttons = {
             "create_organism": {
                 "name": "create_organism",
+                "current_image": None,
                 "image": os.path.join("home", "create_organism_button.svg"),
+                "clicked_image": os.path.join(
+                    "home", "create_organism_button_clicked.svg"
+                ),
                 "position": (
                     sidebar_window_width // 2,
                     sidebar_window_height - 225,
@@ -156,7 +160,11 @@ class SidebarComponent:
             },
             "end_simulation": {
                 "name": "end_simulation",
+                "current_image": None,
                 "image": os.path.join("home", "end_simulation_button.svg"),
+                "clicked_image": os.path.join(
+                    "home", "end_simulation_button_clicked.svg"
+                ),
                 "position": (
                     sidebar_window_width // 2,
                     sidebar_window_height - 150,
@@ -164,7 +172,9 @@ class SidebarComponent:
             },
             "show_graphs": {
                 "name": "show_graphs",
+                "current_image": None,
                 "image": os.path.join("home", "show_graphs_button.svg"),
+                "clicked_image": os.path.join("home", "show_graphs_button_clicked.svg"),
                 "position": (
                     sidebar_window_width // 2,
                     sidebar_window_height - 75,
@@ -176,25 +186,42 @@ class SidebarComponent:
         for button in self.buttons.values():
             self.load_and_store_button(
                 name=button["name"],
-                screen=self.surface,
-                image_name=button["image"],
+                image=button["image"],
+                clicked_image=button["clicked_image"],
                 position=button.pop("position"),
             )
 
     def _event_handler(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type in [pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN]:
             mouse_x, mouse_y = event.pos
             rel_x, rel_y = mouse_x - self.surface_x, mouse_y - self.surface_y
             if self.buttons["create_organism"]["rect"].collidepoint((rel_x, rel_y)):
-                self.context["nav_handler"](screen="laboratory")
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    button = self.buttons["create_organism"]
+                    button["current_image"] = button["clicked_image"]
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.context["nav_handler"](screen="laboratory")
+            else:
+                button = self.buttons["create_organism"]
+                button["current_image"] = button["image"]
 
-    def load_and_store_button(self, screen, name, image_name, position):
-        button_image = pygame.image.load(os.path.join(image_assets, image_name))
+    def load_and_store_button(self, name, image, clicked_image, position):
+        button_image = pygame.image.load(os.path.join(image_assets, image))
+        clicked_button_image = pygame.image.load(
+            os.path.join(image_assets, clicked_image)
+        )
         button_rect = button_image.get_rect(center=position)
         # Blit button to the sidebar
-        screen.blit(button_image, button_rect)
+        self.surface.blit(button_image, button_rect)
         # Store button's image and rect in a dictionary for later reference
-        self.buttons[name].update({"image": button_image, "rect": button_rect})
+        self.buttons[name].update(
+            {
+                "current_image": button_image,
+                "image": button_image,
+                "rect": button_rect,
+                "clicked_image": clicked_button_image,
+            }
+        )
 
     def update(self, context=None):
         creatures = context.get("creatures")
@@ -211,3 +238,6 @@ class SidebarComponent:
 
         self.surface.blit(self.alive_counter.surface, (115, 325))
         self.surface.blit(self.dead_counter.surface, (290, 325))
+
+        for button in self.buttons.values():
+            self.surface.blit(button["current_image"], button["rect"])
