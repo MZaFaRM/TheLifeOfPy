@@ -26,7 +26,7 @@ class Nature:
         self.truncation = 1_000_000
 
         # self.graph_manager = PopulationPlot([1, 2], 200)
-        self.ui_handler.initialize_screen(screen="home")
+        self.ui_handler.initialize_screen(screen="laboratory")
         env_surface = self.ui_handler.get_component(name="env").surface
 
         self.creature_manager = organisms.CreatureManager(

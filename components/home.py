@@ -73,11 +73,11 @@ class HomeComponent:
             )
 
     def _event_handler(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONUP:
             if self.close_window_button_rect.collidepoint(event.pos):
                 pygame.quit()
                 exit()
-
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             for button, button_data in self.time_control_buttons.items():
                 if button_data["rect"].collidepoint(event.pos):
                     button_data["clicked"] = True
