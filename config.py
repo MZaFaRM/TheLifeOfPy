@@ -12,7 +12,9 @@ class Colors:
 
 class Fonts:
     # fmt: off
-    PixelifySans = os.path.join(font_assets, "PixelifySans", "PixelifySans-Regular.ttf")
-    PixelifySansBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-Bold.ttf")
-    PixelifySansMedium = os.path.join(font_assets, "PixelifySans", "PixelifySans-Medium.ttf")
-    PixelifySansSemiBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-SemiBold.ttf")
+    PixelifySans = os.path.join(font_assets, "PixelifySans", "PixelifySans-Regular.otf")
+    PixelifySansBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-Bold.otf")
+    PixelifySansBlack = os.path.join(font_assets, "PixelifySans", "PixelifySans-Black.otf")
+    PixelifySansMedium = os.path.join(font_assets, "PixelifySans", "PixelifySans-Medium.otf")
+    PixelifySansSemiBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-SemiBold.otf")
+    PixelifySansExtraBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-ExtraBold.otf")

@@ -13,18 +13,19 @@ class LaboratoryComponent:
 
         self.traits_schema = {
             "font": pygame.font.Font(Fonts.PixelifySansMedium, 21),
-            "text_color": pygame.Color(26, 26, 26, 175),
-            "bg_color": pygame.Color(74, 227, 181, 255),
+            "text_color": pygame.Color(0, 0, 0),
+            "bg_color": pygame.Color(74, 227, 181),
+            "yIncrement": 34,
             "options": {
-                "Initial Population": {
+                "Initial Population: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": int,
                 },
-                "Species": {
+                "Species: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": str,
                 },
-                "Traitline": {
+                "Traitline: ": {
                     "choices": [
                         {"value": "Swordling", "selected": True},
                         {"value": "Mineling", "selected": False},
@@ -33,7 +34,7 @@ class LaboratoryComponent:
                     ],
                     "type": "single choice list",
                 },
-                "Domain": {
+                "Domain: ": {
                     "choices": [
                         {"value": "Square", "selected": True},
                         {"value": "Circle", "selected": False},
@@ -42,34 +43,34 @@ class LaboratoryComponent:
                     ],
                     "type": "single choice list",
                 },
-                "Kingdom": {
+                "Kingdom: ": {
                     "choices": [
                         {"value": "Predator", "selected": False},
                         {"value": "Prey", "selected": False},
                     ],
                     "type": "single choice list",
                 },
-                "Vision Radius": {
+                "Vision Radius: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": int,
                 },
-                "Size": {
+                "Size: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": int,
                 },
-                "Color": {
+                "Color: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": "color",
                 },
-                "Speed": {
+                "Speed: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": int,
                 },
-                "Max Energy": {
+                "Max Energy: ": {
                     "choices": {"user_input": {"selected": False}},
                     "type": int,
                 },
-                "Blood Thirsty": {
+                "Blood Thirsty: ": {
                     "choices": [
                         {"value": "False", "selected": True},
                         {"value": "True", "selected": False},
@@ -81,14 +82,26 @@ class LaboratoryComponent:
 
         option_x, option_y = 75, 350
         for option, value in self.traits_schema["options"].items():
-            text_surface = self.traits_schema["font"].render(
-                option, False, self.traits_schema["text_color"]
+            text_surface = pygame.Surface((200, 30))
+            text_surface.fill(self.traits_schema["bg_color"])
+            text = self.traits_schema["font"].render(
+                option,
+                True,
+                self.traits_schema["text_color"],
+                self.traits_schema["bg_color"],
             )
+            text_surface.blit(text, (0, 0))
             self.traits_schema["options"][option]["surface"] = text_surface
             self.traits_schema["options"][option]["rect"] = text_surface.get_rect(
                 topleft=(option_x, option_y)
             )
-            option_y += 35
+            option_y += self.traits_schema["yIncrement"]
+
+        # self.unleash_organisms_button = {
+        #     "image" : pygame.image.load(
+        #         os.path.join(image_assets, 'laboratory', )
+        #     )
+        # }
 
     def configure_dp_circle(self):
         self.pic_circle = {
@@ -169,3 +182,4 @@ class LaboratoryComponent:
                 value["surface"],
                 value["rect"],
             )
+        # self.surface.blit(self.traits_schema_titles, self.traits_schema_titles_rect)
