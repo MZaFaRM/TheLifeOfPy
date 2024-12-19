@@ -1,4 +1,5 @@
 import os
+import re
 import pygame
 from config import Fonts, image_assets
 
@@ -28,11 +29,12 @@ class LaboratoryComponent:
             "bg_color": pygame.Color(74, 227, 181),
             "yIncrement": 34,
             "highlight_width": 25,
+            "selected_option": "Initial Population: ",
             "options": {
                 "Initial Population: ": {
                     "selected": True,
                     "type": "user_input_int",
-                    "data": 100,
+                    "data": "100",
                 },
                 "Species: ": {
                     "selected": False,
@@ -67,27 +69,27 @@ class LaboratoryComponent:
                 "Vision Radius: ": {
                     "selected": False,
                     "type": "user_input_int",
-                    "data": 0,
+                    "data": "0",
                 },
                 "Size: ": {
                     "selected": False,
                     "type": "user_input_int",
-                    "data": 0,
+                    "data": "0",
                 },
                 "Color: ": {
                     "selected": False,
                     "type": "user_input_color",
-                    "data": 0,
+                    "data": "1A1A1A",
                 },
                 "Speed: ": {
                     "selected": False,
                     "type": "user_input_int",
-                    "data": 0,
+                    "data": "0",
                 },
                 "Max Energy: ": {
                     "selected": False,
                     "type": "user_input_int",
-                    "data": 0,
+                    "data": "0",
                 },
                 "Blood Thirsty: ": {
                     "choices": [
@@ -114,7 +116,7 @@ class LaboratoryComponent:
         option_surface = pygame.Surface((1000, self.traits_schema["highlight_width"]))
         option_surface.fill(self.traits_schema["bg_color"])
 
-        text_surface = pygame.Surface((200, self.traits_schema["highlight_width"]))
+        text_surface = pygame.Surface((900, self.traits_schema["highlight_width"]))
         text_surface.fill(self.traits_schema["bg_color"])
         text = self.traits_schema["font"].render(
             option,
@@ -129,42 +131,21 @@ class LaboratoryComponent:
 
     def configure_option_rhs(self, option, value, option_surface, x, y):
         if value["type"] == "user_input_int":
-            self.configure_user_input_int(value, option_surface, x, y)
+            self.configure_user_input(value, option_surface, x, y, input_type="int")
         elif value["type"] == "user_input_str":
-            self.configure_user_input_str(value, option_surface, x, y)
+            self.configure_user_input(value, option_surface, x, y, input_type="str")
+        elif value["type"] == "user_input_color":
+            self.configure_user_input(value, option_surface, x, y, input_type="color")
         elif value["type"] == "single_choice_list":
             self.configure_single_choice_list(value, option_surface, x, y)
 
-    def configure_user_input_int(self, value, option_surface, x, y):
-        data = "{:,}".format(value["data"])
-        if value["selected"] and (self.time // 20) % 2 == 0:
-            data += "_"
-
-        text = self.traits_schema["font"].render(
-            data,
-            True,
-            self.traits_schema["bg_color"],
-            self.traits_schema["text_color"],
-        )
-        text_surface = pygame.Surface(
-            (
-                text.get_width() + 15,
-                self.traits_schema["highlight_width"],
-            )
-        )
-        text_surface.blit(text, (5, 0))
-        option_surface.blit(text_surface, (200, 0))
-        value["absolute_rect"] = text_surface.get_rect(
-            topleft=(
-                x
-                + 200
-                + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                y + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
-            )
-        )
-
-    def configure_user_input_str(self, value, option_surface, x, y):
+    def configure_user_input(self, value, option_surface, x, y, input_type="str"):
         data = value["data"]
+        if input_type == "int":
+            data = "{:,}".format(int(value["data"]))
+        elif input_type == "color":
+            data = "#" + data
+
         if value["selected"] and (self.time // 20) % 2 == 0:
             data += "_"
 
@@ -267,7 +248,11 @@ class LaboratoryComponent:
 
     def configure_dp_circle(self):
         self.pic_circle = {
-            "angle": 0,
+            "organism_image": pygame.image.load(
+                os.path.join(image_assets, "creatures", "triangle.svg"),
+            ),
+            "organism_angle": 0,
+            "border_angle": 0,
             "border_image": pygame.image.load(
                 os.path.join(image_assets, "laboratory", "pic_circle_border.svg")
             ),
@@ -286,6 +271,9 @@ class LaboratoryComponent:
             **self.pic_circle["position"]
         )
         self.pic_circle["border_rect"] = self.pic_circle["rect"]
+        self.pic_circle["organism_rect"] = self.pic_circle["organism_image"].get_rect(
+            **self.pic_circle["position"]
+        )
 
     def configure_back_button(self):
         self.back_button = {
@@ -336,7 +324,6 @@ class LaboratoryComponent:
                     self.unleash_organism_button["image"]
                 )
 
-            selected_option = None
             for option, value in self.traits_schema["options"].items():
                 if value["type"] == "single_choice_list":
                     selected_choice = None
@@ -349,30 +336,82 @@ class LaboratoryComponent:
                         for choice in value["choices"]:
                             choice["selected"] = choice["value"] == selected_choice
 
-                elif value["type"] in ["user_input_int", "user_input_str"]:
+                elif value["type"] in [
+                    "user_input_int",
+                    "user_input_str",
+                    "user_input_color",
+                ]:
                     if value["absolute_rect"].collidepoint(event.pos):
                         if event.type == pygame.MOUSEBUTTONDOWN:
-                            selected_option = option
                             value["selected"] = True
+                            self.traits_schema["selected_option"] = option
                     else:
                         value["selected"] = False
 
         elif event.type == pygame.KEYDOWN:
-            pass
-            
+            selected_option = self.traits_schema.get("selected_option")
+            selected_option_type = (
+                self.traits_schema["options"].get(selected_option).get("type")
+            )
+            if event.key == pygame.K_BACKSPACE:
+                self.traits_schema["options"][selected_option]["data"] = (
+                    self.traits_schema["options"][selected_option]["data"][:-1]
+                )
+            elif re.match("[a-zA-Z0-9 ]", event.unicode):
+                if selected_option_type == "user_input_str":
+                    self.traits_schema["options"][selected_option][
+                        "data"
+                    ] += event.unicode
+                elif selected_option_type == "user_input_color":
+                    data = self.traits_schema["options"][selected_option]["data"]
+                    if len(data) < 6 and re.match("[a-fA-F0-9]", event.unicode):
+                        self.traits_schema["options"][selected_option]["data"] = (
+                            data + event.unicode
+                        )
 
-    def rotated_pic_circle(self):
-        self.pic_circle["angle"] += 1
+                elif selected_option_type == "user_input_int":
+                    self.traits_schema["options"][selected_option]["data"] += (
+                        event.unicode if event.unicode.isdigit() else ""
+                    )
+
+            elif event.key == pygame.K_TAB:
+                selected_option_index = list(
+                    self.traits_schema["options"].keys()
+                ).index(selected_option)
+                next_option = list(self.traits_schema["options"].keys())[
+                    (selected_option_index + 1) % len(self.traits_schema["options"])
+                ]
+                self.traits_schema["selected_option"] = next_option
+                self.traits_schema["options"][selected_option]["selected"] = False
+                self.traits_schema["options"][next_option]["selected"] = True
+
+    def rotate_pic_circle_border(self):
+        self.pic_circle["border_angle"] += 1
         rotated_image = pygame.transform.rotate(
-            self.pic_circle["border_image"], self.pic_circle["angle"]
+            self.pic_circle["border_image"], self.pic_circle["border_angle"]
         )
         self.pic_circle["border_rect"] = rotated_image.get_rect(
             center=self.pic_circle["rect"].center
         )
         return rotated_image
 
-    def update_user_input_int(self, value, option_surface):
-        data = "{:,}".format(value["data"])
+    def rotate_pic_circle_organism(self):
+        self.pic_circle["organism_angle"] += 1
+        rotated_image = pygame.transform.rotate(
+            self.pic_circle["organism_image"], self.pic_circle["organism_angle"]
+        )
+        self.pic_circle["organism_rect"] = rotated_image.get_rect(
+            center=self.pic_circle["rect"].center
+        )
+        return rotated_image
+
+    def update_user_input(self, value, option_surface, input_type="str"):
+        data = value["data"]
+        if input_type == "int":
+            data = "{:,}".format(int(value["data"] or 0))
+        elif input_type == "color":
+            data = "#" + data.ljust(6, "-").upper()
+
         if value["selected"] and (self.time // 20) % 2 == 0:
             data += "_"
 
@@ -382,37 +421,35 @@ class LaboratoryComponent:
             self.traits_schema["bg_color"],
             self.traits_schema["text_color"],
         )
-        text_surface = pygame.Surface(
+        text_bg = pygame.Surface(
             (
-                text.get_width() + 15,
+                # text width of "_" is 9
+                text.get_width() + (11 if data.endswith("_") else 20),
                 self.traits_schema["highlight_width"],
             )
         )
-        text_surface.blit(text, (5, 0))
-        option_surface.blit(text_surface, (200, 0))
-
-    def update_user_input_str(self, value, option_surface):
-        data = value["data"]
-        if value["selected"] and (self.time // 20) % 2 == 0:
-            data += "_"
-
-        text = self.traits_schema["font"].render(
-            data, True, self.traits_schema["bg_color"], self.traits_schema["text_color"]
-        )
         text_surface = pygame.Surface(
             (
-                text.get_width() + 15,
+                800,
                 self.traits_schema["highlight_width"],
             )
         )
-        text_surface.blit(text, (5, 0))
+        text_bg.fill(self.traits_schema["text_color"])
+        text_bg.blit(text, (5, 0))
+        text_surface.fill(self.traits_schema["bg_color"])
+        text_surface.blit(text_bg, (0, 0))
         option_surface.blit(text_surface, (200, 0))
 
     def update(self, context=None):
         self.time += 1
         self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
         self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
-        self.surface.blit(self.rotated_pic_circle(), self.pic_circle["border_rect"])
+        self.surface.blit(
+            self.rotate_pic_circle_organism(), self.pic_circle["organism_rect"]
+        )
+        self.surface.blit(
+            self.rotate_pic_circle_border(), self.pic_circle["border_rect"]
+        )
         self.surface.blit(
             self.unleash_organism_button["current_image"],
             self.unleash_organism_button["rect"],
@@ -435,6 +472,8 @@ class LaboratoryComponent:
                         choice["rect"],
                     )
             elif value["type"] == "user_input_int":
-                self.update_user_input_int(value, value["surface"])
+                self.update_user_input(value, value["surface"], input_type="int")
             elif value["type"] == "user_input_str":
-                self.update_user_input_str(value, value["surface"])
+                self.update_user_input(value, value["surface"], input_type="str")
+            elif value["type"] == "user_input_color":
+                self.update_user_input(value, value["surface"], input_type="color")
