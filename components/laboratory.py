@@ -9,6 +9,7 @@ class LaboratoryComponent:
         self.surface = pygame.image.load(
             os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
         )
+        self.time = 0
 
         self.configure_back_button(main_surface)
         self.configure_dp_circle()
@@ -29,12 +30,12 @@ class LaboratoryComponent:
             "highlight_width": 25,
             "options": {
                 "Initial Population: ": {
-                    "choices": {"selected": False},
+                    "selected": True,
                     "type": "user_input_int",
                     "data": 100,
                 },
                 "Species: ": {
-                    "choices": {"selected": False},
+                    "selected": True,
                     "type": "user_input_str",
                     "data": "",
                 },
@@ -64,27 +65,27 @@ class LaboratoryComponent:
                     "type": "single_choice_list",
                 },
                 "Vision Radius: ": {
-                    "choices": {"selected": False},
+                    "selected": False,
                     "type": "user_input_int",
                     "data": 0,
                 },
                 "Size: ": {
-                    "choices": {"selected": False},
+                    "selected": False,
                     "type": "user_input_int",
                     "data": 0,
                 },
                 "Color: ": {
-                    "choices": {"selected": False},
+                    "selected": False,
                     "type": "user_input_color",
                     "data": 0,
                 },
                 "Speed: ": {
-                    "choices": {"selected": False},
+                    "selected": False,
                     "type": "user_input_int",
                     "data": 0,
                 },
                 "Max Energy: ": {
-                    "choices": {"selected": False},
+                    "selected": False,
                     "type": "user_input_int",
                     "data": 0,
                 },
@@ -140,6 +141,9 @@ class LaboratoryComponent:
 
     def configure_user_input_int(self, value, option_surface):
         data = "{:,}".format(value["data"])
+        if value["selected"] and (self.time // 20) % 2 == 0:
+            data += "_"
+
         text = self.traits_schema["font"].render(
             data,
             True,
@@ -148,7 +152,7 @@ class LaboratoryComponent:
         )
         text_surface = pygame.Surface(
             (
-                text.get_width() + 20,
+                text.get_width() + 15,
                 self.traits_schema["highlight_width"],
             )
         )
@@ -156,15 +160,19 @@ class LaboratoryComponent:
         option_surface.blit(text_surface, (200, 0))
 
     def configure_user_input_str(self, value, option_surface):
+        data = value["data"]
+        if value["selected"] and (self.time // 20) % 2 == 0:
+            data += "_"
+
         text = self.traits_schema["font"].render(
-            value["data"],
+            data,
             True,
             self.traits_schema["bg_color"],
             self.traits_schema["text_color"],
         )
         text_surface = pygame.Surface(
             (
-                text.get_width() + 20,
+                text.get_width() + 15,
                 self.traits_schema["highlight_width"],
             )
         )
@@ -333,6 +341,7 @@ class LaboratoryComponent:
         return rotated_image
 
     def update(self, context=None):
+        self.time += 1
         self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
         self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
         self.surface.blit(self.rotated_pic_circle(), self.pic_circle["border_rect"])
@@ -357,21 +366,7 @@ class LaboratoryComponent:
                         ),
                         choice["rect"],
                     )
-
-        pygame.draw.rect(
-            self.main_surface,
-            pygame.Color(255, 255, 255),
-            self.traits_schema["options"]["Blood Thirsty: "]["choices"][0][
-                "absolute_rect"
-            ],
-            2,
-        )
-
-        pygame.draw.rect(
-            self.main_surface,
-            pygame.Color(255, 255, 255),
-            self.traits_schema["options"]["Blood Thirsty: "]["choices"][1][
-                "absolute_rect"
-            ],
-            2,
-        )
+            elif value["type"] == "user_input_int":
+                self.configure_user_input_int(value, value["surface"])
+            elif value["type"] == "user_input_str":
+                self.configure_user_input_str(value, value["surface"])
