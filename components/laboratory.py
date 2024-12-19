@@ -11,15 +11,15 @@ class LaboratoryComponent:
         )
         self.time = 0
 
-        self.configure_back_button(main_surface)
+        self.configure_back_button()
         self.configure_dp_circle()
 
-        self.configure_traits_schema(main_surface)
-        self.configure_unleash_organism_button(main_surface)
+        self.configure_traits_schema()
+        self.configure_unleash_organism_button()
 
-    def configure_traits_schema(self, main_surface):
+    def configure_traits_schema(self):
         self.traits_schema = self.initialize_traits_schema()
-        self.create_option_surfaces(main_surface)
+        self.create_option_surfaces()
 
     def initialize_traits_schema(self):
         return {
@@ -35,7 +35,7 @@ class LaboratoryComponent:
                     "data": 100,
                 },
                 "Species: ": {
-                    "selected": True,
+                    "selected": False,
                     "type": "user_input_str",
                     "data": "",
                 },
@@ -99,11 +99,11 @@ class LaboratoryComponent:
             },
         }
 
-    def create_option_surfaces(self, main_surface):
+    def create_option_surfaces(self):
         x, y = 75, 350
         for option, value in self.traits_schema["options"].items():
             option_surface = self.create_option_surface(option)
-            self.configure_option_rhs(option, value, option_surface, x, y, main_surface)
+            self.configure_option_rhs(option, value, option_surface, x, y)
             self.traits_schema["options"][option]["surface"] = option_surface
             self.traits_schema["options"][option]["rect"] = option_surface.get_rect(
                 topleft=(x, y)
@@ -111,14 +111,10 @@ class LaboratoryComponent:
             y += self.traits_schema["yIncrement"]
 
     def create_option_surface(self, option):
-        option_surface = pygame.Surface(
-            (1000, self.traits_schema["highlight_width"]),
-        )
+        option_surface = pygame.Surface((1000, self.traits_schema["highlight_width"]))
         option_surface.fill(self.traits_schema["bg_color"])
 
-        text_surface = pygame.Surface(
-            (200, self.traits_schema["highlight_width"]),
-        )
+        text_surface = pygame.Surface((200, self.traits_schema["highlight_width"]))
         text_surface.fill(self.traits_schema["bg_color"])
         text = self.traits_schema["font"].render(
             option,
@@ -131,15 +127,15 @@ class LaboratoryComponent:
 
         return option_surface
 
-    def configure_option_rhs(self, option, value, option_surface, x, y, main_surface):
+    def configure_option_rhs(self, option, value, option_surface, x, y):
         if value["type"] == "user_input_int":
-            self.configure_user_input_int(value, option_surface)
+            self.configure_user_input_int(value, option_surface, x, y)
         elif value["type"] == "user_input_str":
-            self.configure_user_input_str(value, option_surface)
+            self.configure_user_input_str(value, option_surface, x, y)
         elif value["type"] == "single_choice_list":
-            self.configure_single_choice_list(value, option_surface, x, y, main_surface)
+            self.configure_single_choice_list(value, option_surface, x, y)
 
-    def configure_user_input_int(self, value, option_surface):
+    def configure_user_input_int(self, value, option_surface, x, y):
         data = "{:,}".format(value["data"])
         if value["selected"] and (self.time // 20) % 2 == 0:
             data += "_"
@@ -158,8 +154,16 @@ class LaboratoryComponent:
         )
         text_surface.blit(text, (5, 0))
         option_surface.blit(text_surface, (200, 0))
+        value["absolute_rect"] = text_surface.get_rect(
+            topleft=(
+                x
+                + 200
+                + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
+                y + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+            )
+        )
 
-    def configure_user_input_str(self, value, option_surface):
+    def configure_user_input_str(self, value, option_surface, x, y):
         data = value["data"]
         if value["selected"] and (self.time // 20) % 2 == 0:
             data += "_"
@@ -178,8 +182,16 @@ class LaboratoryComponent:
         )
         text_surface.blit(text, (5, 0))
         option_surface.blit(text_surface, (200, 0))
+        value["absolute_rect"] = text_surface.get_rect(
+            topleft=(
+                x
+                + 200
+                + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
+                y + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+            )
+        )
 
-    def configure_single_choice_list(self, value, option_surface, x, y, main_surface):
+    def configure_single_choice_list(self, value, option_surface, x, y):
         choice_x = 200
         for choice in value["choices"]:
             for state, color in [
@@ -211,13 +223,17 @@ class LaboratoryComponent:
                 topleft=(
                     x
                     + choice_x
-                    + ((main_surface.get_width() - self.surface.get_width()) // 2),
-                    y + ((main_surface.get_height() - self.surface.get_height()) // 2),
+                    + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
+                    y
+                    + (
+                        (self.main_surface.get_height() - self.surface.get_height())
+                        // 2
+                    ),
                 )
             )
             choice_x += choice["surface"].get_width() + 10
 
-    def configure_unleash_organism_button(self, main_surface):
+    def configure_unleash_organism_button(self):
         self.unleash_organism_button = {
             "current_image": None,
             "image": pygame.image.load(
@@ -238,10 +254,10 @@ class LaboratoryComponent:
             "absolute_rect"
         ] = self.unleash_organism_button.get("image").get_rect(
             topleft=(
-                70 + ((main_surface.get_width() - self.surface.get_width()) // 2),
+                70 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
                 self.surface.get_height()
                 - 150
-                + ((main_surface.get_height() - self.surface.get_height()) // 2),
+                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
             )
         )
 
@@ -271,7 +287,7 @@ class LaboratoryComponent:
         )
         self.pic_circle["border_rect"] = self.pic_circle["rect"]
 
-    def configure_back_button(self, main_surface):
+    def configure_back_button(self):
         self.back_button = {
             "current_image": None,
             "position": {"topleft": (50, 50)},
@@ -291,8 +307,9 @@ class LaboratoryComponent:
 
         self.back_button["absolute_rect"] = self.back_button["image"].get_rect(
             topleft=(
-                50 + ((main_surface.get_width() - self.surface.get_width()) // 2),
-                50 + ((main_surface.get_height() - self.surface.get_height()) // 2),
+                50 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
+                50
+                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
             )
         )
 
@@ -318,6 +335,8 @@ class LaboratoryComponent:
                 self.unleash_organism_button["current_image"] = (
                     self.unleash_organism_button["image"]
                 )
+
+            selected_option = None
             for option, value in self.traits_schema["options"].items():
                 if value["type"] == "single_choice_list":
                     selected_choice = None
@@ -330,6 +349,18 @@ class LaboratoryComponent:
                         for choice in value["choices"]:
                             choice["selected"] = choice["value"] == selected_choice
 
+                elif value["type"] in ["user_input_int", "user_input_str"]:
+                    if value["absolute_rect"].collidepoint(event.pos):
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            selected_option = option
+                            value["selected"] = True
+                    else:
+                        value["selected"] = False
+
+        elif event.type == pygame.KEYDOWN:
+            pass
+            
+
     def rotated_pic_circle(self):
         self.pic_circle["angle"] += 1
         rotated_image = pygame.transform.rotate(
@@ -339,6 +370,43 @@ class LaboratoryComponent:
             center=self.pic_circle["rect"].center
         )
         return rotated_image
+
+    def update_user_input_int(self, value, option_surface):
+        data = "{:,}".format(value["data"])
+        if value["selected"] and (self.time // 20) % 2 == 0:
+            data += "_"
+
+        text = self.traits_schema["font"].render(
+            data,
+            True,
+            self.traits_schema["bg_color"],
+            self.traits_schema["text_color"],
+        )
+        text_surface = pygame.Surface(
+            (
+                text.get_width() + 15,
+                self.traits_schema["highlight_width"],
+            )
+        )
+        text_surface.blit(text, (5, 0))
+        option_surface.blit(text_surface, (200, 0))
+
+    def update_user_input_str(self, value, option_surface):
+        data = value["data"]
+        if value["selected"] and (self.time // 20) % 2 == 0:
+            data += "_"
+
+        text = self.traits_schema["font"].render(
+            data, True, self.traits_schema["bg_color"], self.traits_schema["text_color"]
+        )
+        text_surface = pygame.Surface(
+            (
+                text.get_width() + 15,
+                self.traits_schema["highlight_width"],
+            )
+        )
+        text_surface.blit(text, (5, 0))
+        option_surface.blit(text_surface, (200, 0))
 
     def update(self, context=None):
         self.time += 1
@@ -367,6 +435,6 @@ class LaboratoryComponent:
                         choice["rect"],
                     )
             elif value["type"] == "user_input_int":
-                self.configure_user_input_int(value, value["surface"])
+                self.update_user_input_int(value, value["surface"])
             elif value["type"] == "user_input_str":
-                self.configure_user_input_str(value, value["surface"])
+                self.update_user_input_str(value, value["surface"])
