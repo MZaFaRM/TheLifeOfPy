@@ -22,14 +22,14 @@ class HomeComponent:
                 "name": "pause_time",
                 "image": os.path.join("home", "pause_time_button.svg"),
                 "clicked_image": os.path.join("home", "pause_time_button_clicked.svg"),
-                "clicked": False,
+                "clicked": True,
                 "x_position": 75,
             },
             "play_time": {
                 "name": "play_time",
                 "image": os.path.join("home", "play_time_button.svg"),
                 "clicked_image": os.path.join("home", "play_time_button_clicked.svg"),
-                "clicked": True,
+                "clicked": False,
                 "x_position": 125,
             },
             "fast_forward_time": {
@@ -77,6 +77,7 @@ class HomeComponent:
             if self.close_window_button_rect.collidepoint(event.pos):
                 pygame.quit()
                 exit()
+
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button, button_data in self.time_control_buttons.items():
                 if button_data["rect"].collidepoint(event.pos):

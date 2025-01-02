@@ -10,6 +10,20 @@ from enums import Base
 from uuid import uuid4
 
 
+class Brain:
+    def __init__(self, attrs):
+        pass
+
+
+class Sensor:
+    def __init__(self, _type, _func):
+        self.type = _type
+        self.observation = _func
+
+    def __str__(self):
+        return self.type
+
+
 class Creature(Sprite):
     def __init__(
         self,

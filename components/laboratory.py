@@ -302,6 +302,8 @@ class LaboratoryComponent:
         )
 
     def _event_handler(self, event):
+        selected_option = self.traits_schema.get("selected_option")
+        selected_option_type = self.traits_schema["options"][selected_option]["type"]
         if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
             if self.back_button["absolute_rect"].collidepoint(event.pos):
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -349,10 +351,6 @@ class LaboratoryComponent:
                         value["selected"] = False
 
         elif event.type == pygame.KEYDOWN:
-            selected_option = self.traits_schema.get("selected_option")
-            selected_option_type = (
-                self.traits_schema["options"].get(selected_option).get("type")
-            )
             if event.key == pygame.K_BACKSPACE:
                 self.traits_schema["options"][selected_option]["data"] = (
                     self.traits_schema["options"][selected_option]["data"][:-1]
@@ -384,6 +382,30 @@ class LaboratoryComponent:
                 self.traits_schema["selected_option"] = next_option
                 self.traits_schema["options"][selected_option]["selected"] = False
                 self.traits_schema["options"][next_option]["selected"] = True
+
+            elif event.key in [pygame.K_LEFT, pygame.K_RIGHT]:
+                if selected_option_type == "single_choice_list":
+                    selected_index = 0
+                    for i, choice in enumerate(
+                        self.traits_schema["options"][selected_option]["choices"]
+                    ):
+                        if choice["selected"]:
+                            selected_index = i
+                            break
+
+                    if event.key == pygame.K_LEFT:
+                        new_index = (selected_index - 1) % len(
+                            self.traits_schema["options"][selected_option]["choices"]
+                        )
+                    else:
+                        new_index = (selected_index + 1) % len(
+                            self.traits_schema["options"][selected_option]["choices"]
+                        )
+
+                    for i, choice in enumerate(
+                        self.traits_schema["options"][selected_option]["choices"]
+                    ):
+                        choice["selected"] = i == new_index
 
     def rotate_pic_circle_border(self):
         self.pic_circle["border_angle"] += 1

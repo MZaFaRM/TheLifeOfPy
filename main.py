@@ -61,8 +61,10 @@ class Nature:
         if "play_time" in updates:
             self.paused = False
         if "navigate_home" in updates:
+            self.paused = False
             self.ui_handler.initialize_screen(screen="home")
         if "navigate_laboratory" in updates:
+            self.paused = True
             self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:
