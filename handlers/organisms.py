@@ -27,9 +27,8 @@ from config import Colors, Fonts
 
 
 class PlantManager:
-    def __init__(self, env, env_surface) -> None:
-        self.env = env
-        self.env_surface = env_surface
+    def __init__(self, context=None) -> None:
+        self.env_surface = context["env_surface"]
         self.scale = 1000
         self.dx = random.uniform(0, 100)
         self.dy = random.uniform(0, 100)
@@ -44,7 +43,6 @@ class PlantManager:
             for x, y in cluster_points:
                 self.plants.add(
                     agents.Plant(
-                        self,
                         self.env_surface,
                         pos=(x, y),
                     )
@@ -90,13 +88,7 @@ class PlantManager:
     def create_plant_patch(self):
         cluster_points = self.get_coords_from_noise()
         for x, y in cluster_points:
-            self.plants.add(
-                agents.Plant(
-                    self,
-                    self.env_surface,
-                    pos=(x, y),
-                )
-            )
+            self.plants.add(agents.Plant(self.env_surface, pos=(x, y)))
 
     def get_plants(self):
         return self.plants
@@ -117,53 +109,29 @@ class CreatureManager:
     situations = ["Food in Vicinity", "Nothing"]
     behaviours = ["Eat Food", "Roam Random"]
 
-    def __init__(self, env, env_surface) -> None:
+    def __init__(self, context=None) -> None:
         self.creature_population = 0
-        self.env = env
-        self.env_window = env_surface
+        self.surface = context["env_surface"]
         self.alive_count = 0
         self.dead_count = 0
+        self.creatures = pygame.sprite.Group()
 
     def register_creature(self, creature):
         self.creature_population += 1
         return 1
         return self.generate_dna(creature)
 
-    def get_brain(self, input_size=5, hidden_size=10, output_size=4):
-        return 1
-
-    def get_creature_attributes(self, creature):
-        return
-        if creature.parent == None:
-            sensors = random.choices(list(SensorManager.sensors.keys()), k=5)
-        return "".join(sensor for sensor in sensors)
-
     def generate_creatures(self, n=50, *args, **kwargs):
-        self.creatures = pygame.sprite.Group()
         for _ in range(n):
             self.creatures.add(
                 agents.Creature(
-                    self.env,
-                    self.env_window,
-                    self,
+                    surface=self.surface,
+                    sensors=None,
                     *args,
                     **kwargs,
                 )
             )
 
-        return self.creatures
-
-    def add_creatures(self, n=1, *args, **kwargs):
-        for _ in range(n):
-            self.creatures.add(
-                agents.Creature(
-                    self.env,
-                    self.env_window,
-                    self,
-                    *args,
-                    **kwargs,
-                )
-            )
         return self.creatures
 
     def generate_id(self):
@@ -186,282 +154,6 @@ class CreatureManager:
 
     def get_creatures(self):
         return self.creatures
-
-
-TOTAL_SENSORS = 17
-
-
-class SensorManager:
-    sensors = {
-        "AAAAA": "Nfl",  # Food in Vicinity (Distance)
-        # "AAAAT": "Nfd",  # Nearest Food Direction (Angle)
-        # "AAATA": "Nhl",  # Nearest Home Location (Distance)
-        # "AAATT": "Nhd",  # Nearest Home Direction (Angle)
-        # "AATAA": "Cey",  # Current Energy (Amount)
-        # "AATAT": "Nfc",  # Number of Agents Trying to Eat the Nearest Food (Count)
-        # "AATTA": "Nrl",  # Nearest Carnivorous Creature Location (Distance)
-        # "AATTT": "Ncl",  # Nearest Creature Location (Distance)
-        # "ATAAA": "Ncd",  # Nearest Creature Direction (Angle)
-        # "ATAAT": "Tfs",  # Target Food Speed (Speed)
-        # "ATATA": "Dnp",  # Distance to Nearest Predator (Distance)
-        # "ATATT": "Age",  # Current Age
-        # "ATTAA": "Fdy",  # Food Density (Count)
-        # "ATTAT": "Csd",  # Current Speed (Speed)
-        # "ATTTA": "Pcn",  # Predator Count Nearby (Count)
-        # "ATTTT": "Eur",  # Current Energy Usage Rate (Rate)
-        # "TAAAA": "Nfs",  # Nearest Food Size
-        # "TAAAT": "Nft",  # Nearest Food Type
-    }
-
-    @classmethod
-    def obs_Nfl(cls, env, creature):
-        return
-        creature_pos = np.array(creature.rect.center)
-        food_positions = np.array([food.position for food in env.foods])
-
-        # Squared distances
-        distances = np.sum((food_positions - creature_pos) ** 2, axis=1)
-
-        # If there are no food objects
-        if len(distances) == 0:
-            # No food, so -1
-            return -1
-
-        # Find the distance to the nearest food
-        nearest_distance = np.min(distances) ** 0.5
-        return nearest_distance if nearest_distance < 100 else -1
-
-    @classmethod
-    def obs_Nfd(cls, env, creature):
-        creature_pos = np.array(creature.rect.center)
-        food_positions = np.array([food.position for food in env.foods])
-
-        # Squared distances
-        distances = np.sum((food_positions - creature_pos) ** 2, axis=1)
-
-        # If there are no food objects
-        if len(distances) == 0:
-            # No food, so -1
-            return -1
-
-        # Find the distance to the nearest food
-        nearest_food = np.argmin(distances)
-
-        if distances[nearest_food] ** 0.5 > 100:
-            return -1
-
-        co_ordinates = food_positions[nearest_food]
-
-        direction = np.arctan2(
-            co_ordinates[1] - creature.rect.center[1],
-            co_ordinates[0] - creature.rect.center[0],
-        )
-
-        return np.degrees(direction) % 360  # Return the angle in degrees
-
-    @classmethod
-    def obs_Nhl(cls, env, creature):
-        left = 0
-        up = 0
-        right = env.screen_width - 0
-        down = env.screen_height - 0
-
-        x, y = creature.rect.center
-
-        distance_up = y - up
-        distance_down = down - y
-        distance_left = x - left
-        distance_right = right - x
-
-        distances = {
-            "up": distance_up,
-            "down": distance_down,
-            "left": distance_left,
-            "right": distance_right,
-        }
-
-        closest_edge = min(distances, key=distances.get)
-
-        if closest_edge == "up":
-            closest_edge = (x, up)
-        elif closest_edge == "down":
-            closest_edge = (x, down)
-        elif closest_edge == "left":
-            closest_edge = (left, y)
-        elif closest_edge == "right":
-            closest_edge = (right, y)
-
-        return closest_edge
-
-    @classmethod
-    def obs_Nhd(cls, env, creature):
-        # Similar to obs_Nhl, but return the angle
-        left = 0
-        up = 0
-        right = env.screen_width - 0
-        down = env.screen_height - 0
-
-        x, y = creature.rect.center
-
-        distance_up = y - up
-        distance_down = down - y
-        distance_left = x - left
-        distance_right = right - x
-
-        distances = {
-            "up": distance_up,
-            "down": distance_down,
-            "left": distance_left,
-            "right": distance_right,
-        }
-
-        closest_edge = min(distances, key=distances.get)
-
-        if closest_edge == "up":
-            closest_edge = (x, up)
-        elif closest_edge == "down":
-            closest_edge = (x, down)
-        elif closest_edge == "left":
-            closest_edge = (left, y)
-        elif closest_edge == "right":
-            closest_edge = (right, y)
-
-        direction = np.arctan2(
-            closest_edge[1] - creature.rect.center[1],
-            closest_edge[0] - creature.rect.center[0],
-        )
-        return np.degrees(direction)
-
-    @classmethod
-    def obs_Cey(cls, env, creature):
-        return creature.energy  # Return the current energy of the creature
-
-    @classmethod
-    def obs_Nfc(cls, env, creature):
-        count = sum(
-            1 for food in env.foods if food.rect.collidepoint(creature.rect.center)
-        )
-        return count  # Return the number of agents trying to eat the nearest food
-
-    @classmethod
-    def obs_Nrl(cls, env, creature):
-        nearest = None
-        nearest_distance = float("inf")
-        for other in env.creatures:
-            if (
-                other is not creature and other.is_carnivorous
-            ):  # Check if the creature is carnivorous
-                distance = np.sum(
-                    (np.array(other.rect.center) - np.array(creature.rect.center)) ** 2
-                )
-                if distance < nearest_distance:
-                    nearest = other.rect.center
-                    nearest_distance = distance
-        return (
-            nearest_distance if nearest else float("inf")
-        )  # Return distance or infinity if no carnivore found
-
-    @classmethod
-    def obs_Ncl(cls, env, creature):
-        nearest = None
-        nearest_distance = float("inf")
-        for other in env.creatures:
-            if other is not creature:  # Ignore itself
-                distance = np.sum(
-                    (np.array(other.rect.center) - np.array(creature.rect.center)) ** 2
-                )
-                if distance < nearest_distance:
-                    nearest = other.rect.center
-                    nearest_distance = distance
-        return (
-            nearest_distance if nearest else float("inf")
-        )  # Return distance or infinity if no creature found
-
-    @classmethod
-    def obs_Ncd(cls, env, creature):
-        nearest = None
-        nearest_distance = float("inf")
-        for other in env.creatures:
-            if other is not creature:  # Ignore itself
-                distance = np.sum(
-                    (np.array(other.rect.center) - np.array(creature.rect.center)) ** 2
-                )
-                if distance < nearest_distance:
-                    nearest = other.rect.center
-                    nearest_distance = distance
-        if nearest:
-            direction = np.arctan2(
-                nearest[1] - creature.rect.center[1],
-                nearest[0] - creature.rect.center[0],
-            )
-            return np.degrees(direction)  # Return the angle in degrees
-        return 0  # Default angle if no creature found
-
-    @classmethod
-    def obs_Tfs(cls, env, creature):
-        # Assuming you have a method to get food's speed (or set it as a constant for simplicity)
-        target_food = env.nearest_food(creature.rect.center)
-        if target_food:
-            return target_food.speed  # Return speed of the nearest food
-        return 0  # Default if no food found
-
-    @classmethod
-    def obs_Dnp(cls, env, creature):
-        nearest_predator = None
-        nearest_distance = float("inf")
-        for other in env.creatures:
-            if (
-                other is not creature and other.is_predator
-            ):  # Check if the creature is a predator
-                distance = np.sum(
-                    (np.array(other.rect.center) - np.array(creature.rect.center)) ** 2
-                )
-                if distance < nearest_distance:
-                    nearest = other.rect.center
-                    nearest_distance = distance
-        return (
-            nearest_distance if nearest else float("inf")
-        )  # Return distance or infinity if no predator found
-
-    @classmethod
-    def obs_Age(cls, creature):
-        return creature.age  # Return current age
-
-    @classmethod
-    def obs_Fdy(cls, env, creature):
-        return len(
-            env.foods
-        )  # Return food density as the count of food items in the environment
-
-    @classmethod
-    def obs_Csd(cls, creature):
-        return creature.speed  # Return current speed
-
-    @classmethod
-    def obs_Pcn(cls, env, creature):
-        return sum(
-            1 for other in env.creatures if other.is_predator and other is not creature
-        )  # Count predators nearby
-
-    @classmethod
-    def obs_Eur(cls, creature):
-        return creature.energy_usage_rate  # Return current energy usage rate
-
-    @classmethod
-    def obs_Nfs(cls, env, creature):
-        # Assuming you have a method to get the size of the nearest food
-        nearest_food = env.nearest_food(creature.rect.center)
-        return (
-            nearest_food.size if nearest_food else 0
-        )  # Return size or zero if no food found
-
-    @classmethod
-    def obs_Nft(cls, env, creature):
-        # Assuming you have a way to determine food type
-        nearest_food = env.nearest_food(creature.rect.center)
-        return (
-            nearest_food.food_type if nearest_food else 0
-        )  # Return type or zero if no food found
 
 
 class Counter:

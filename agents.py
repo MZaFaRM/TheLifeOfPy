@@ -2,7 +2,7 @@ import math
 import pygame
 from pygame.sprite import Sprite
 import helper
-from handlers.organisms import SensorManager
+from handlers.neural import SensorManager
 import numpy as np
 import random
 import noise
@@ -10,26 +10,11 @@ from enums import Base
 from uuid import uuid4
 
 
-class Brain:
-    def __init__(self, attrs):
-        pass
-
-
-class Sensor:
-    def __init__(self, _type, _func):
-        self.type = _type
-        self.observation = _func
-
-    def __str__(self):
-        return self.type
-
-
 class Creature(Sprite):
     def __init__(
         self,
-        env,
-        env_window,
-        creature_manager,
+        surface,
+        sensors,
         radius=5,
         position=None,
         color=(124, 245, 255),
@@ -54,6 +39,7 @@ class Creature(Sprite):
             },
             "max_energy": 500,
             "max_speed": random.randint(1, 2),
+            "sensors" : sensors,
             "vision": {
                 "radius": 40,
                 "color": {
@@ -104,12 +90,10 @@ class Creature(Sprite):
             ),
         }
 
-        self.env_window = env_window
+        self.env_surface = surface
         self.noise = noise
-        self.env = env
 
         self.parents = parents
-        self.creature_manager = creature_manager
 
         self.done = False
         self.color = self.attrs["color"]
@@ -128,9 +112,7 @@ class Creature(Sprite):
 
         # Get rect for positioning
         self.rect = self.image.get_rect()
-        self.rect.center = position or helper.get_random_position(env_window)
-
-        self.DNA = self.creature_manager.register_creature(self)
+        self.rect.center = position or helper.get_random_position(surface)
 
     def draw(self, surface, vision_circle=False):
         if not self.states["alive"]:
@@ -177,6 +159,7 @@ class Creature(Sprite):
 
     def step(self):
         self.states["time"] += 1
+        return
 
         if not self.done:
             self.states["time_alive"] += 1
@@ -194,63 +177,9 @@ class Creature(Sprite):
             self.update_vision_state()
             self.states["angle"] = self.update_angle()
 
-            self.update_speed()
-
             if self.states["energy"] <= 0:
                 self.die()
                 return
-
-            if self.states["mating"]["state"] == Base.mating:
-                if self.states["mating"]["mate"].states["alive"] == False:
-                    self.remove_mate()
-                    return
-
-                self.move_towards(self.states["mating"]["mate"].rect.center, speed=0.8)
-
-                if self.rect.center == self.states["mating"]["mate"].rect.center:
-                    self.states["energy"] -= 250
-                    self.states["mating"]["mate"].states["energy"] -= 250
-
-                    self.creature_manager.add_creatures(
-                        n=1,
-                        parents=(self, self.states["mating"]["mate"]),
-                        position=self.rect.center,
-                        initial_energy=500,
-                    )
-
-                    self.states["mating"]["mate"].remove_mate()
-                    self.remove_mate()
-
-            elif (
-                # Check if the creature is ready to mate
-                (self.states["mating"]["state"] == Base.ready)
-                # Check if a mate is found
-                and (self.states["vision"]["mate"]["state"] == Base.found)
-                # Check if the mate is ready to mate
-                and (
-                    self.states["vision"]["mate"]["mate"].states["mating"]["state"]
-                    == Base.ready
-                )
-            ):
-                # Set the creature's mating state to mating
-                self.set_mate(mate=self.states["vision"]["mate"]["mate"])
-                # Set the mate's mating state to mating
-                self.states["vision"]["mate"]["mate"].set_mate(mate=self)
-
-                self.move_towards(self.states["mating"]["mate"].rect.center)
-
-            elif self.states["hunger"] > 0:
-                if self.states["vision"]["food"]["state"] == Base.found:
-                    if self.rect.center == self.states["vision"]["food"]["rect"].center:
-                        self.eat()
-                    else:
-                        self.move_towards(self.states["vision"]["food"]["rect"].center)
-                        pass
-
-                else:
-                    self.move_in_direction(self.states["angle"])
-            else:
-                self.move_in_direction(self.states["angle"])
 
         if not self.states["alive"]:
             if (self.states["time"] - self.states["time_alive"]) < 100:
@@ -264,13 +193,6 @@ class Creature(Sprite):
         self.states["mating"]["state"] = Base.not_ready
         self.states["mating"]["mate"] = None
         self.states["mating"]["timeout"] = self.attrs["mating_timeout"]
-
-    def update_speed(self):
-        self.states["speed"] += self.states["acceleration_factor"]
-        if (self.states["speed"] > self.attrs["max_speed"]) or (
-            self.states["speed"] < 0.7
-        ):
-            self.states["acceleration_factor"] = -self.states["acceleration_factor"]
 
     def update_vision_state(self):
         if rect := self.rect.collideobjects(
@@ -383,19 +305,23 @@ class Creature(Sprite):
                 observation = observation_func(self.env, self)
                 observations.append(observation)
             else:
-                # Handle the case where the sensor doesn't exist (optional)
+                # Handle the case where the sensor doesn't exist
                 raise Exception(f"Error: No method for sensor {sensor}")
         return observations
 
 
 class Plant(Sprite):
     def __init__(
-        self, env, env_window, pos=None, radius=4, n=200, color=(124, 176, 109)
+        self,
+        env_surface,
+        pos=None,
+        radius=4,
+        n=200,
+        color=(124, 176, 109),
     ):
         super().__init__()
 
-        self.env_window = env_window
-        self.env = env
+        self.env_surface = env_surface
 
         self.radius = radius
         self.n = n
@@ -405,8 +331,8 @@ class Plant(Sprite):
 
         # Random position within env_window bounds
         self.position = pos or (
-            random.randint(radius + 75, env_window.get_width() - radius - 75),
-            random.randint(radius + 75, env_window.get_height() - radius - 75),
+            random.randint(radius + 75, env_surface.get_width() - radius - 75),
+            random.randint(radius + 75, env_surface.get_height() - radius - 75),
         )
 
         # Create the circle on the image surface (center of the surface)

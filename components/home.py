@@ -1,7 +1,9 @@
 import os
+
 import pygame
 
 from config import Colors, image_assets
+from enums import EventType, MessagePacket, MessagePackets
 from handlers.organisms import Counter
 
 
@@ -85,9 +87,8 @@ class HomeComponent:
                     for other_button in self.time_control_buttons:
                         if other_button != button:
                             self.time_control_buttons[other_button]["clicked"] = False
+                    yield (button,)
                     break
-
-            yield button
 
     def update(self, context=None):
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
@@ -203,7 +204,12 @@ class SidebarComponent:
                     button = self.buttons["create_organism"]
                     button["current_image"] = button["clicked_image"]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield "navigate_laboratory"
+                    yield MessagePackets(
+                        MessagePacket(
+                            EventType.NAVIGATION,
+                            "laboratory",
+                        ),
+                    )
             else:
                 button = self.buttons["create_organism"]
                 button["current_image"] = button["image"]

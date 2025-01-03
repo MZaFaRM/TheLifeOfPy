@@ -1,7 +1,10 @@
 import os
 import re
+
 import pygame
+
 from config import Fonts, image_assets
+from enums import EventType, MessagePacket, MessagePackets
 
 
 class LaboratoryComponent:
@@ -21,6 +24,13 @@ class LaboratoryComponent:
     def configure_traits_schema(self):
         self.traits_schema = self.initialize_traits_schema()
         self.create_option_surfaces()
+
+    def get_user_input(self):
+        return {
+            "initial_population": int(
+                self.traits_schema["options"]["Initial Population: "]["data"]
+            ),
+        }
 
     def initialize_traits_schema(self):
         return {
@@ -311,7 +321,7 @@ class LaboratoryComponent:
                         "clicked_image"
                     ]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield "navigate_home"
+                    yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
 
             elif self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
                 if event.type == pygame.MOUSEBUTTONDOWN:
@@ -319,7 +329,17 @@ class LaboratoryComponent:
                         self.unleash_organism_button["clicked_image"]
                     )
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield "navigate_home"
+                    yield MessagePackets(
+                        MessagePacket(
+                            EventType.NAVIGATION,
+                            "home",
+                        ),
+                        MessagePacket(
+                            EventType.OTHER,
+                            "create_organism",
+                            context=self.get_user_input(),
+                        ),
+                    )
             else:
                 self.back_button["current_image"] = self.back_button["image"]
                 self.unleash_organism_button["current_image"] = (

@@ -3,6 +3,7 @@ import pygame
 from gym.spaces import MultiDiscrete
 
 import agents
+from enums import EventType, MessagePacket
 import handlers.organisms as organisms
 from handlers.ui import UIHandler
 
@@ -30,14 +31,16 @@ class Nature:
         env_surface = self.ui_handler.get_component(name="env").surface
 
         self.creature_manager = organisms.CreatureManager(
-            env=self,
-            env_surface=env_surface,
+            context={
+                "env_surface": env_surface,
+            }
         )
         self.plant_manager = organisms.PlantManager(
-            env=self,
-            env_surface=env_surface,
+            context={
+                "env_surface": env_surface,
+            }
         )
-        self.creatures = self.creature_manager.generate_creatures(n=100)
+        self.creatures = self.creature_manager.generate_creatures(n=0)
         self.plant_manager.bulk_generate_plants_patch(n=10)
 
     def remove_food(self, position):
@@ -55,17 +58,22 @@ class Nature:
         self.time_steps += 1
         if updates:
             print("Updates: ", *updates)
-
-        if "pause_time" in updates:
-            self.paused = True
-        if "play_time" in updates:
-            self.paused = False
-        if "navigate_home" in updates:
-            self.paused = False
-            self.ui_handler.initialize_screen(screen="home")
-        if "navigate_laboratory" in updates:
-            self.paused = True
-            self.ui_handler.initialize_screen(screen="laboratory")
+            for packets in updates:
+                if "pause_time" in packets:
+                    self.paused = True
+                if "play_time" in packets:
+                    self.paused = False
+                if MessagePacket(EventType.NAVIGATION, "home") in packets:
+                    self.paused = False
+                    self.ui_handler.initialize_screen(screen="home")
+                if MessagePacket(EventType.NAVIGATION, "laboratory") in packets:
+                    self.paused = True
+                    self.ui_handler.initialize_screen(screen="laboratory")
+                if MessagePacket(EventType.OTHER, "create_organism") in packets:
+                    i = packets.index(MessagePacket(EventType.OTHER, "create_organism"))
+                    self.creature_manager.generate_creatures(
+                        n=packets[i].context.pop("initial_population")
+                    )
 
         if self.paused:
             return self.get_observation(), reward, self.done, self.truncated
