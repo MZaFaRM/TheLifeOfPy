@@ -10,10 +10,42 @@ from enums import EventType, MessagePacket, MessagePackets
 class LaboratoryComponent:
     def __init__(self, main_surface, context=None):
         self.main_surface = main_surface
-        self.surface = pygame.image.load(
+        self.bg_image = pygame.image.load(
             os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
         )
+        self.surface = pygame.Surface(size=(self.bg_image.get_size()))
+        self.attributes_lab = AttributesLab(main_surface, context)
+
+    def update(self, context=None):
+        self.surface.blit(self.bg_image, (0, 0))
+
+        self.attributes_lab.update(context)
+        self.surface.blit(self.attributes_lab.surface, (0, 0))
+
+    def _event_handler(self, event):
+        yield from self.attributes_lab._event_handler(event)
+
+
+class AttributesLab:
+    def __init__(self, main_surface, context=None):
         self.time = 0
+        self.main_surface = main_surface
+        self.surface = pygame.Surface(
+            size=(
+                pygame.image.load(
+                    os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
+                ).get_size()
+            ),
+            flags=pygame.SRCALPHA,
+        )
+
+        self.attrs_lab_text = pygame.image.load(
+            os.path.join(image_assets, "laboratory", "lab_intro_text.svg")
+        )
+        self.surface.blit(
+            self.attrs_lab_text,
+            self.attrs_lab_text.get_rect(topleft=(75, 225)),
+        )
 
         self.configure_back_button()
         self.configure_dp_circle()
@@ -62,10 +94,10 @@ class LaboratoryComponent:
                 },
                 "Domain: ": {
                     "choices": [
-                        {"value": "Square", "selected": True},
-                        {"value": "Circle", "selected": False},
-                        {"value": "Triangle", "selected": False},
-                        {"value": "Rhombus", "selected": False},
+                        {"value": "Squarionidae", "selected": True},
+                        {"value": "Circulonidae", "selected": False},
+                        {"value": "Trigonidae", "selected": False},
+                        {"value": "Rhombronidae", "selected": False},
                     ],
                     "type": "single_choice_list",
                 },
