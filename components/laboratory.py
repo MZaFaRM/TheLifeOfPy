@@ -1,6 +1,7 @@
 import os
 import re
 
+import numpy as np
 import pygame
 
 from config import Fonts, image_assets
@@ -13,17 +14,73 @@ class LaboratoryComponent:
         self.bg_image = pygame.image.load(
             os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
         )
+        self.sub_component_states = {
+            "sub_components": ["attributes_lab"],
+            "current_sub_component": "attributes_lab",
+        }
         self.surface = pygame.Surface(size=(self.bg_image.get_size()))
+        self.configure_back_button()
         self.attributes_lab = AttributesLab(main_surface, context)
 
     def update(self, context=None):
         self.surface.blit(self.bg_image, (0, 0))
-
+        self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
         self.attributes_lab.update(context)
         self.surface.blit(self.attributes_lab.surface, (0, 0))
 
+    def configure_back_button(self):
+        self.back_button = {
+            "current_image": None,
+            "position": {"topleft": (50, 50)},
+            "absolute_rect": None,
+            "image": pygame.image.load(
+                os.path.join(image_assets, "laboratory", "back_button.svg")
+            ),
+            "clicked_image": pygame.image.load(
+                os.path.join(image_assets, "laboratory", "back_button_clicked.svg")
+            ),
+        }
+
+        self.back_button["rect"] = self.back_button["image"].get_rect(
+            **self.back_button["position"]
+        )
+        self.back_button["current_image"] = self.back_button["image"]
+
+        self.back_button["absolute_rect"] = self.back_button["image"].get_rect(
+            topleft=(
+                50 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
+                50
+                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+            )
+        )
+
     def _event_handler(self, event):
+        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+            if self.back_button["absolute_rect"].collidepoint(event.pos):
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.back_button["current_image"] = self.back_button[
+                        "clicked_image"
+                    ]
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
+
         yield from self.attributes_lab._event_handler(event)
+
+
+class NeuralLab:
+    def __init__(self, main_surface, context=None):
+        self.main_surface = main_surface
+        self.surface = pygame.Surface(
+            size=(
+                pygame.image.load(
+                    os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
+                ).get_size()
+            ),
+            flags=pygame.SRCALPHA,
+        )
+
+    def _event_handler(self, main_surface):
+        pass
 
 
 class AttributesLab:
@@ -47,11 +104,10 @@ class AttributesLab:
             self.attrs_lab_text.get_rect(topleft=(75, 225)),
         )
 
-        self.configure_back_button()
         self.configure_dp_circle()
 
         self.configure_traits_schema()
-        self.configure_unleash_organism_button()
+        self.configure_neural_network_button()
 
     def configure_traits_schema(self):
         self.traits_schema = self.initialize_traits_schema()
@@ -101,13 +157,6 @@ class AttributesLab:
                     ],
                     "type": "single_choice_list",
                 },
-                "Kingdom: ": {
-                    "choices": [
-                        {"value": "Predator", "selected": False},
-                        {"value": "Prey", "selected": True},
-                    ],
-                    "type": "single_choice_list",
-                },
                 "Vision Radius: ": {
                     "selected": False,
                     "type": "user_input_int",
@@ -132,13 +181,6 @@ class AttributesLab:
                     "selected": False,
                     "type": "user_input_int",
                     "data": "0",
-                },
-                "Blood Thirsty: ": {
-                    "choices": [
-                        {"value": "False", "selected": True},
-                        {"value": "True", "selected": False},
-                    ],
-                    "type": "single_choice_list",
                 },
             },
         }
@@ -256,36 +298,45 @@ class AttributesLab:
             )
             choice_x += choice["surface"].get_width() + 10
 
-    def configure_unleash_organism_button(self):
-        self.unleash_organism_button = {
+    def configure_neural_network_button(self):
+        self.neural_network_button = {
             "current_image": None,
             "image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "unleash_organism_button.svg")
+                os.path.join(image_assets, "laboratory", "neural_network_button.svg")
             ),
             "clicked_image": pygame.image.load(
                 os.path.join(
-                    image_assets, "laboratory", "unleash_organism_button_clicked.svg"
+                    image_assets, "laboratory", "neural_network_button_clicked.svg"
                 )
             ),
-            "position": {"topleft": (70, self.surface.get_height() - 150)},
+            "position": {
+                "topright": (
+                    self.surface.get_width() - 50,
+                    self.surface.get_height() - 150,
+                )
+            },
         }
-        self.unleash_organism_button["rect"] = self.unleash_organism_button.get(
+        self.neural_network_button["rect"] = self.neural_network_button.get(
             "image"
-        ).get_rect(**self.unleash_organism_button["position"])
+        ).get_rect(**self.neural_network_button["position"])
 
-        self.unleash_organism_button[
-            "absolute_rect"
-        ] = self.unleash_organism_button.get("image").get_rect(
+        self.neural_network_button["absolute_rect"] = self.neural_network_button.get(
+            "image"
+        ).get_rect(
             topleft=(
-                70 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                self.surface.get_height()
-                - 150
-                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+                np.array(self.neural_network_button["rect"].topleft)
+                + np.array(
+                    (
+                        (self.main_surface.get_width() - self.surface.get_width()) // 2,
+                        (self.main_surface.get_height() - self.surface.get_height())
+                        // 2,
+                    )
+                )
             )
         )
 
-        self.unleash_organism_button["current_image"] = (
-            self.unleash_organism_button.get("image")
+        self.neural_network_button["current_image"] = self.neural_network_button.get(
+            "image"
         )
 
     def configure_dp_circle(self):
@@ -317,48 +368,14 @@ class AttributesLab:
             **self.pic_circle["position"]
         )
 
-    def configure_back_button(self):
-        self.back_button = {
-            "current_image": None,
-            "position": {"topleft": (50, 50)},
-            "absolute_rect": None,
-            "image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "back_button.svg")
-            ),
-            "clicked_image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "back_button_clicked.svg")
-            ),
-        }
-
-        self.back_button["rect"] = self.back_button["image"].get_rect(
-            **self.back_button["position"]
-        )
-        self.back_button["current_image"] = self.back_button["image"]
-
-        self.back_button["absolute_rect"] = self.back_button["image"].get_rect(
-            topleft=(
-                50 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                50
-                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
-            )
-        )
-
     def _event_handler(self, event):
         selected_option = self.traits_schema.get("selected_option")
         selected_option_type = self.traits_schema["options"][selected_option]["type"]
         if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
-            if self.back_button["absolute_rect"].collidepoint(event.pos):
+            if self.neural_network_button["absolute_rect"].collidepoint(event.pos):
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.back_button["current_image"] = self.back_button[
-                        "clicked_image"
-                    ]
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
-
-            elif self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.unleash_organism_button["current_image"] = (
-                        self.unleash_organism_button["clicked_image"]
+                    self.neural_network_button["current_image"] = (
+                        self.neural_network_button["clicked_image"]
                     )
                 elif event.type == pygame.MOUSEBUTTONUP:
                     yield MessagePackets(
@@ -374,8 +391,8 @@ class AttributesLab:
                     )
             else:
                 self.back_button["current_image"] = self.back_button["image"]
-                self.unleash_organism_button["current_image"] = (
-                    self.unleash_organism_button["image"]
+                self.neural_network_button["current_image"] = (
+                    self.neural_network_button["image"]
                 )
 
             for option, value in self.traits_schema["options"].items():
@@ -516,7 +533,6 @@ class AttributesLab:
 
     def update(self, context=None):
         self.time += 1
-        self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
         self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
         self.surface.blit(
             self.rotate_pic_circle_organism(), self.pic_circle["organism_rect"]
@@ -525,8 +541,8 @@ class AttributesLab:
             self.rotate_pic_circle_border(), self.pic_circle["border_rect"]
         )
         self.surface.blit(
-            self.unleash_organism_button["current_image"],
-            self.unleash_organism_button["rect"],
+            self.neural_network_button["current_image"],
+            self.neural_network_button["rect"],
         )
 
         for option, value in self.traits_schema["options"].items():

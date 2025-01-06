@@ -111,7 +111,7 @@ class EnvComponent:
         self.surface.blit(self.env_image, (0, 0))
 
     def _event_handler(self, event):
-        pass
+        return
 
     def update(self, context=None):
         plants = context.get("plants")

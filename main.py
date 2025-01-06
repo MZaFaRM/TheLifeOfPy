@@ -116,8 +116,8 @@ try:
     done = False
     truncated = False
 
-    while not (done or truncated):
-        observation, reward, done, truncated = env.step()
+    while 1 + 1 == 2:
+        env.step()
         env.render()
 
         # if truncated:
