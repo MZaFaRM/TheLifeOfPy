@@ -1,3 +1,4 @@
+import contextlib
 import os
 import re
 
@@ -14,19 +15,22 @@ class LaboratoryComponent:
         self.bg_image = pygame.image.load(
             os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
         )
-        self.sub_component_states = {
-            "sub_components": ["attributes_lab"],
-            "current_sub_component": "attributes_lab",
-        }
+        self.user_inputs = {}
         self.surface = pygame.Surface(size=(self.bg_image.get_size()))
         self.configure_back_button()
-        self.attributes_lab = AttributesLab(main_surface, context)
+
+        self.curr_sub_component = "attrs_lab"
+        self.sub_component_states = {
+            "attrs_lab": AttributesLab(main_surface, context),
+            "neural_lab": NeuralLab(main_surface, context),
+        }
 
     def update(self, context=None):
         self.surface.blit(self.bg_image, (0, 0))
         self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
-        self.attributes_lab.update(context)
-        self.surface.blit(self.attributes_lab.surface, (0, 0))
+        sub_component = self.sub_component_states[self.curr_sub_component]
+        sub_component.update(context)
+        self.surface.blit(sub_component.surface, (0, 0))
 
     def configure_back_button(self):
         self.back_button = {
@@ -64,7 +68,20 @@ class LaboratoryComponent:
                 elif event.type == pygame.MOUSEBUTTONUP:
                     yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
 
-        yield from self.attributes_lab._event_handler(event)
+        packets = self.sub_component_states[self.curr_sub_component]._event_handler(
+            event
+        )
+
+        if packets is not None:
+            packet = next(packets, None)
+            if packet:
+                if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
+                    self.curr_sub_component = "neural_lab"
+                    self.user_inputs = packet.context
+                else:
+                    yield MessagePackets(packet)
+        else:
+            packet = None
 
 
 class NeuralLab:
@@ -80,6 +97,9 @@ class NeuralLab:
         )
 
     def _event_handler(self, main_surface):
+        pass
+
+    def update(self, context=None):
         pass
 
 
@@ -186,7 +206,7 @@ class AttributesLab:
         }
 
     def create_option_surfaces(self):
-        x, y = 75, 350
+        x, y = 75, 400
         for option, value in self.traits_schema["options"].items():
             option_surface = self.create_option_surface(option)
             self.configure_option_rhs(option, value, option_surface, x, y)
@@ -378,19 +398,12 @@ class AttributesLab:
                         self.neural_network_button["clicked_image"]
                     )
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield MessagePackets(
-                        MessagePacket(
-                            EventType.NAVIGATION,
-                            "home",
-                        ),
-                        MessagePacket(
-                            EventType.OTHER,
-                            "create_organism",
-                            context=self.get_user_input(),
-                        ),
+                    yield MessagePacket(
+                        EventType.NAVIGATION,
+                        "neural_lab",
+                        context=self.get_user_input(),
                     )
             else:
-                self.back_button["current_image"] = self.back_button["image"]
                 self.neural_network_button["current_image"] = (
                     self.neural_network_button["image"]
                 )

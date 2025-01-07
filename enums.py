@@ -30,6 +30,12 @@ class MessagePacket:
         self.value = value
         self.context = context or {}
 
+    def __eq__(self, value):
+        try:
+            return self.msg_type == value.msg_type and self.value == value.value
+        except Exception:
+            return False
+
     def __str__(self):
         return f"{self.msg_type}_{self.value}".lower()
 
@@ -54,12 +60,12 @@ class MessagePackets:
         if not isinstance(packet, MessagePacket):
             raise TypeError("Argument must be an instance of MessagePacket.")
         for i, existing_packet in enumerate(self.packets):
-            if (
-                existing_packet.msg_type == packet.msg_type
-                and existing_packet.value == packet.value
-            ):
+            if existing_packet == packet:
                 return i
         raise ValueError("Packet not found in MessagePackets.")
+
+    def pop(self, index):
+        return self.packets.pop(index)
 
     def __getitem__(self, index):
         return self.packets[index]
