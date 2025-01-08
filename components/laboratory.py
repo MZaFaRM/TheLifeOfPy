@@ -110,7 +110,24 @@ class NeuralLab:
 
         self.surface = surface
         self.__configure_sensors(
-            sensors=["Nil", "Dfd", "Bfs", "Cfl", "Dia", "Fwa", "Car", "Nil"]
+            sensors=[
+                {"name": "Nil", "desc": "Something simple"},
+                {"name": "Dfd", "desc": "Something simple"},
+                {"name": "Bfs", "desc": "Something simple"},
+                {"name": "Cfl", "desc": "Something simple"},
+                {"name": "Dia", "desc": "Something simple"},
+                {"name": "Fwa", "desc": "Something simple"},
+                {"name": "Car", "desc": "Something simple"},
+                {"name": "Nil", "desc": "Something simple"},
+            ]
+        )
+
+        neural_frame = pygame.image.load(
+            os.path.join(image_assets, "laboratory", "neural_lab", "neural_frame.svg")
+        )
+        self.surface.blit(
+            neural_frame,
+            neural_frame.get_rect(center=(main_surface.get_width() // 2, 600)),
         )
 
     def event_handler(self, event):
@@ -169,17 +186,17 @@ class NeuralLab:
         font = pygame.font.Font(Fonts.PixelifySansMedium, 20)
         num_sensors = len(sensors)
         self.sensors = []  # Use this list to store sensor data
-        columns = [120 + (i * 65) for i in range(3)]
-        y_start = 480
+        columns = [100 + (i * 65) for i in range(5)]  # x-coordinates for each column
+        y_start = 500
         spacing = 60
 
         # Adjust y_offset if the number of sensors is odd
         y_offset = spacing // 2 if num_sensors % 2 != 0 else 0
 
         for i in range(num_sensors):
-            column_index = i % 3
+            column_index = i % 5
             x = columns[column_index]
-            y = y_start + (i // 3) * spacing + (y_offset if column_index != 1 else 0)
+            y = y_start + (i // 5) * spacing + (y_offset if column_index != 1 else 0)
 
             # Create a new surface for each sensor
             sensor_surface = pygame.Surface((50, 50))
@@ -188,23 +205,25 @@ class NeuralLab:
             pygame.draw.circle(sensor_surface, Colors.primary, (25, 25), 22)
 
             # Render title text for each sensor
-            text = font.render(sensors[i], True, Colors.bg_color)
+            text = font.render(sensors[i]["name"], True, Colors.bg_color)
             sensor_surface.blit(text, text.get_rect(center=(25, 25)))
 
-            # Create a new surface clicked look for each sensor
+            # Create a new surface for the clicked look for each sensor
             clicked_sensor_surface = pygame.Surface((50, 50))
             clicked_sensor_surface.fill(color=Colors.primary)
             pygame.draw.circle(clicked_sensor_surface, Colors.primary, (25, 25), 25)
             pygame.draw.circle(clicked_sensor_surface, Colors.bg_color, (25, 25), 22)
 
-            # Render title text for each sensor
-            text = font.render(sensors[i], True, Colors.primary)
+            # Render title text for the clicked sensor
+            text = font.render(sensors[i]["name"], True, Colors.primary)
             clicked_sensor_surface.blit(text, text.get_rect(center=(25, 25)))
 
             # Add sensor data to the self.sensors list
             self.sensors.append(
                 {
-                    "name": sensors[i],
+                    "name": sensors[i][
+                        "name"
+                    ],  # Use the name from the sensor dictionary
                     "current_surface": sensor_surface,
                     "surface": sensor_surface,
                     "clicked_surface": clicked_sensor_surface,
@@ -213,7 +232,7 @@ class NeuralLab:
                         topleft=(
                             x
                             - 25
-                            + +(
+                            + (
                                 (
                                     self.main_surface.get_width()
                                     - self.surface.get_width()
@@ -222,7 +241,7 @@ class NeuralLab:
                             ),
                             y
                             - 25
-                            + +(
+                            + (
                                 (
                                     self.main_surface.get_height()
                                     - self.surface.get_height()
@@ -249,7 +268,7 @@ class AttributesLab:
         )
 
         self.attrs_lab_text = pygame.image.load(
-            os.path.join(image_assets, "laboratory", "lab_intro_text.svg")
+            os.path.join(image_assets, "laboratory", "attrs_lab", "lab_intro_text.svg")
         )
         self.surface.blit(
             self.attrs_lab_text,
@@ -314,7 +333,7 @@ class AttributesLab:
             # Handle keyboard events (backspace, alphanumeric, navigation)
             self.__handle_keydown_event(event, selected_option, selected_option_type)
 
-    def get_user_input(self):
+    def __get_user_input(self):
         return {
             "initial_population": int(
                 self.traits_schema["options"]["Initial Population: "]["data"]
@@ -507,11 +526,16 @@ class AttributesLab:
         self.neural_network_button = {
             "current_image": None,
             "image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "neural_network_button.svg")
+                os.path.join(
+                    image_assets, "laboratory", "attrs_lab", "neural_network_button.svg"
+                )
             ),
             "clicked_image": pygame.image.load(
                 os.path.join(
-                    image_assets, "laboratory", "neural_network_button_clicked.svg"
+                    image_assets,
+                    "laboratory",
+                    "attrs_lab",
+                    "neural_network_button_clicked.svg",
                 )
             ),
             "position": {
@@ -552,10 +576,14 @@ class AttributesLab:
             "organism_angle": 0,
             "border_angle": 0,
             "border_image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "pic_circle_border.svg")
+                os.path.join(
+                    image_assets, "laboratory", "attrs_lab", "pic_circle_border.svg"
+                )
             ),
             "bg_image": pygame.image.load(
-                os.path.join(image_assets, "laboratory", "pic_circle_bg.svg")
+                os.path.join(
+                    image_assets, "laboratory", "attrs_lab", "pic_circle_bg.svg"
+                )
             ),
             "position": {
                 "center": (
@@ -594,7 +622,7 @@ class AttributesLab:
         return MessagePacket(
             EventType.NAVIGATION,
             "neural_lab",
-            context=self.get_user_input(),
+            context=self.__get_user_input(),
         )
 
     def __handle_traits_options(self, event, selected_option):
