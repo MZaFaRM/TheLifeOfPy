@@ -17,7 +17,7 @@ class LaboratoryComponent:
         )
         self.user_inputs = {}
         self.surface = pygame.Surface(size=(self.bg_image.get_size()))
-        self.configure_back_button()
+        self.__configure_back_button()
 
         self.curr_sub_component = "attrs_lab"
         self.sub_component_states = {
@@ -32,7 +32,49 @@ class LaboratoryComponent:
         sub_component.update(context)
         self.surface.blit(sub_component.surface, (0, 0))
 
-    def configure_back_button(self):
+    def event_handler(self, event):
+        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+            # Check if the back button is clicked
+            if self.back_button["absolute_rect"].collidepoint(event.pos):
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # Set the back button to its clicked image when the button is pressed
+                    self.back_button["current_image"] = self.back_button[
+                        "clicked_image"
+                    ]
+
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    # Handle the action when the button is released
+                    if self.curr_sub_component == "neural_lab":
+                        # If in the "neural_lab", go back to "attrs_lab"
+                        self.curr_sub_component = "attrs_lab"
+                        self.back_button["current_image"] = self.back_button["image"]
+                    else:
+                        # If not in "neural_lab", navigate to home
+                        yield MessagePackets(
+                            MessagePacket(EventType.NAVIGATION, "home")
+                        )
+
+        # Handle the events for the current subcomponent
+        packets = self.sub_component_states.get(self.curr_sub_component).event_handler(
+            event
+        )
+
+        if packets is not None:
+            # Process each packet received from the subcomponent handler
+            packet = next(packets, None)
+            if packet:
+                if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
+                    # Navigate to "neural_lab" subcomponent and store its context
+                    self.curr_sub_component = "neural_lab"
+                    self.user_inputs = packet.context
+                else:
+                    # Yield the packet as is
+                    yield MessagePackets(packet)
+        else:
+            # If no packets were returned, set packet to None
+            packet = None
+
+    def __configure_back_button(self):
         self.back_button = {
             "current_image": None,
             "position": {"topleft": (50, 50)},
@@ -58,53 +100,47 @@ class LaboratoryComponent:
             )
         )
 
-    def _event_handler(self, event):
-        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
-            # Check if the back button is clicked
-            if self.back_button["absolute_rect"].collidepoint(event.pos):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    # Set the back button to its clicked image when the button is pressed
-                    self.back_button["current_image"] = self.back_button[
-                        "clicked_image"
-                    ]
-
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    # Handle the action when the button is released
-                    if self.curr_sub_component == "neural_lab":
-                        # If in the "neural_lab", go back to "attrs_lab"
-                        self.curr_sub_component = "attrs_lab"
-                        self.back_button["current_image"] = self.back_button["image"]
-                    else:
-                        # If not in "neural_lab", navigate to home
-                        yield MessagePackets(
-                            MessagePacket(EventType.NAVIGATION, "home")
-                        )
-
-        # Handle the events for the current subcomponent
-        packets = self.sub_component_states[self.curr_sub_component]._event_handler(
-            event
-        )
-
-        if packets is not None:
-            # Process each packet received from the subcomponent handler
-            packet = next(packets, None)
-            if packet:
-                if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
-                    # Navigate to "neural_lab" subcomponent and store its context
-                    self.curr_sub_component = "neural_lab"
-                    self.user_inputs = packet.context
-                else:
-                    # Yield the packet as is
-                    yield MessagePackets(packet)
-        else:
-            # If no packets were returned, set packet to None
-            packet = None
-
 
 class NeuralLab:
     def __init__(self, main_surface, context=None):
         self.main_surface = main_surface
-        self.surface = pygame.Surface(
+        self.selected_sensor = None
+
+        surface = self.__setup_surface()
+
+        self.surface = surface
+        self.__configure_sensors(
+            sensors=["Nil", "Dfd", "Bfs", "Cfl", "Dia", "Fwa", "Car", "Nil"]
+        )
+
+    def event_handler(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for sensor in self.sensors:
+                if sensor["absolute_rect"].collidepoint(event.pos):
+                    # Select the sensor if clicked
+                    self.selected_sensor = sensor
+                    sensor["current_surface"] = sensor["clicked_surface"]
+                    break  # No need to check other sensors after selection
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if self.selected_sensor:
+                for sensor in self.sensors:
+                    if sensor != self.selected_sensor:
+                        # Reset all non-selected sensors to their origi nal surface
+                        sensor["current_surface"] = sensor["surface"]
+                # If the mouse is not on the selected sensor, unselect it
+                if not self.selected_sensor["absolute_rect"].collidepoint(event.pos):
+                    self.selected_sensor["current_surface"] = self.selected_sensor[
+                        "surface"
+                    ]
+                self.selected_sensor = None  # Deselect the sensor
+
+    def update(self, context=None):
+        for sensor in self.sensors:
+            self.surface.blit(sensor["current_surface"], sensor["rect"])
+
+    def __setup_surface(self):
+        surface = pygame.Surface(
             size=(
                 pygame.image.load(
                     os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
@@ -112,28 +148,24 @@ class NeuralLab:
             ),
             flags=pygame.SRCALPHA,
         )
-        self.intro_text = pygame.image.load(
+        intro_text = pygame.image.load(
             os.path.join(
                 image_assets, "laboratory", "neural_lab", "neural_lab_intro.svg"
             )
         )
-        self.surface.blit(
-            self.intro_text,
-            self.intro_text.get_rect(topleft=(75, 225)),
+        surface.blit(
+            intro_text,
+            intro_text.get_rect(topleft=(75, 225)),
         )
 
-        self.sensor_title = pygame.image.load(
+        sensor_title = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "sensor_title.svg")
         )
-        self.surface.blit(
-            self.sensor_title, self.sensor_title.get_rect(topleft=(75, 400))
-        )
+        surface.blit(sensor_title, sensor_title.get_rect(topleft=(75, 400)))
 
-        self.configure_sensors(
-            sensors=["Nil", "Dfd", "Bfs", "Cfl", "Dia", "Fwa", "Car", "Nil"]
-        )
+        return surface
 
-    def configure_sensors(self, sensors):
+    def __configure_sensors(self, sensors):
         font = pygame.font.Font(Fonts.PixelifySansMedium, 20)
         num_sensors = len(sensors)
         self.sensors = []  # Use this list to store sensor data
@@ -202,32 +234,6 @@ class NeuralLab:
                 }
             )
 
-    def _event_handler(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            for sensor in self.sensors:
-                if sensor["absolute_rect"].collidepoint(event.pos):
-                    # Select the sensor if clicked
-                    self.selected_sensor = sensor
-                    sensor["current_surface"] = sensor["clicked_surface"]
-                    break  # No need to check other sensors after selection
-
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if self.selected_sensor:
-                for sensor in self.sensors:
-                    if sensor != self.selected_sensor:
-                        # Reset all non-selected sensors to their original surface
-                        sensor["current_surface"] = sensor["surface"]
-                # If the mouse is not on the selected sensor, unselect it
-                if not self.selected_sensor["absolute_rect"].collidepoint(event.pos):
-                    self.selected_sensor["current_surface"] = self.selected_sensor[
-                        "surface"
-                    ]
-                self.selected_sensor = None  # Deselect the sensor
-
-    def update(self, context=None):
-        for sensor in self.sensors:
-            self.surface.blit(sensor["current_surface"], sensor["rect"])
-
 
 class AttributesLab:
     def __init__(self, main_surface, context=None):
@@ -250,14 +256,63 @@ class AttributesLab:
             self.attrs_lab_text.get_rect(topleft=(75, 225)),
         )
 
-        self.configure_dp_circle()
+        self.__configure_dp_circle()
 
-        self.configure_traits_schema()
-        self.configure_neural_network_button()
+        self.__configure_traits_schema()
+        self.__configure_neural_network_button()
 
-    def configure_traits_schema(self):
-        self.traits_schema = self.initialize_traits_schema()
-        self.create_option_surfaces()
+    def update(self, context=None):
+        self.time += 1
+        self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
+        self.surface.blit(
+            self.__rotate_pic_circle_organism(), self.pic_circle["organism_rect"]
+        )
+        self.surface.blit(
+            self.__rotate_pic_circle_border(), self.pic_circle["border_rect"]
+        )
+        self.surface.blit(
+            self.neural_network_button["current_image"],
+            self.neural_network_button["rect"],
+        )
+
+        for option, value in self.traits_schema["options"].items():
+            self.surface.blit(
+                value["surface"],
+                value["rect"],
+            )
+
+            if value["type"] == "single_choice_list":
+                for choice in value["choices"]:
+                    self.surface.blit(
+                        (
+                            choice["surface_selected"]
+                            if choice["selected"]
+                            else choice["surface"]
+                        ),
+                        choice["rect"],
+                    )
+            elif value["type"] == "user_input_int":
+                self.__update_user_input(value, value["surface"], input_type="int")
+            elif value["type"] == "user_input_str":
+                self.__update_user_input(value, value["surface"], input_type="str")
+            elif value["type"] == "user_input_color":
+                self.__update_user_input(value, value["surface"], input_type="color")
+
+    def event_handler(self, event):
+        selected_option = self.traits_schema.get("selected_option")
+        selected_option_type = self.traits_schema["options"][selected_option]["type"]
+
+        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+            # Handle the button click events
+            if self.__handle_neural_network_button(event):
+                yield self.__navigate_to_neural_lab()
+
+            # Handle interaction with traits options
+            self.__handle_traits_options(event, selected_option)
+
+        elif event.type == pygame.KEYDOWN:
+            # Handle keyboard events (backspace, alphanumeric, navigation)
+            self.__handle_keydown_event(event, selected_option, selected_option_type)
 
     def get_user_input(self):
         return {
@@ -266,7 +321,11 @@ class AttributesLab:
             ),
         }
 
-    def initialize_traits_schema(self):
+    def __configure_traits_schema(self):
+        self.traits_schema = self.__initialize_traits_schema()
+        self.__create_option_surfaces()
+
+    def __initialize_traits_schema(self):
         return {
             "font": pygame.font.Font(Fonts.PixelifySansMedium, 21),
             "text_color": pygame.Color(0, 0, 0),
@@ -331,18 +390,18 @@ class AttributesLab:
             },
         }
 
-    def create_option_surfaces(self):
+    def __create_option_surfaces(self):
         x, y = 75, 400
         for option, value in self.traits_schema["options"].items():
-            option_surface = self.create_option_surface(option)
-            self.configure_option_rhs(option, value, option_surface, x, y)
+            option_surface = self.__create_option_surface(option)
+            self.__configure_option_rhs(option, value, option_surface, x, y)
             self.traits_schema["options"][option]["surface"] = option_surface
             self.traits_schema["options"][option]["rect"] = option_surface.get_rect(
                 topleft=(x, y)
             )
             y += self.traits_schema["yIncrement"]
 
-    def create_option_surface(self, option):
+    def __create_option_surface(self, option):
         option_surface = pygame.Surface((1000, self.traits_schema["highlight_width"]))
         option_surface.fill(self.traits_schema["bg_color"])
 
@@ -359,17 +418,17 @@ class AttributesLab:
 
         return option_surface
 
-    def configure_option_rhs(self, option, value, option_surface, x, y):
+    def __configure_option_rhs(self, option, value, option_surface, x, y):
         if value["type"] == "user_input_int":
-            self.configure_user_input(value, option_surface, x, y, input_type="int")
+            self.__configure_user_input(value, option_surface, x, y, input_type="int")
         elif value["type"] == "user_input_str":
-            self.configure_user_input(value, option_surface, x, y, input_type="str")
+            self.__configure_user_input(value, option_surface, x, y, input_type="str")
         elif value["type"] == "user_input_color":
-            self.configure_user_input(value, option_surface, x, y, input_type="color")
+            self.__configure_user_input(value, option_surface, x, y, input_type="color")
         elif value["type"] == "single_choice_list":
-            self.configure_single_choice_list(value, option_surface, x, y)
+            self.__configure_single_choice_list(value, option_surface, x, y)
 
-    def configure_user_input(self, value, option_surface, x, y, input_type="str"):
+    def __configure_user_input(self, value, option_surface, x, y, input_type="str"):
         data = value["data"]
         if input_type == "int":
             data = "{:,}".format(int(value["data"]))
@@ -402,7 +461,7 @@ class AttributesLab:
             )
         )
 
-    def configure_single_choice_list(self, value, option_surface, x, y):
+    def __configure_single_choice_list(self, value, option_surface, x, y):
         choice_x = 200
         for choice in value["choices"]:
             for state, color in [
@@ -444,7 +503,7 @@ class AttributesLab:
             )
             choice_x += choice["surface"].get_width() + 10
 
-    def configure_neural_network_button(self):
+    def __configure_neural_network_button(self):
         self.neural_network_button = {
             "current_image": None,
             "image": pygame.image.load(
@@ -485,7 +544,7 @@ class AttributesLab:
             "image"
         )
 
-    def configure_dp_circle(self):
+    def __configure_dp_circle(self):
         self.pic_circle = {
             "organism_image": pygame.image.load(
                 os.path.join(image_assets, "creatures", "triangle.svg"),
@@ -513,22 +572,6 @@ class AttributesLab:
         self.pic_circle["organism_rect"] = self.pic_circle["organism_image"].get_rect(
             **self.pic_circle["position"]
         )
-
-    def _event_handler(self, event):
-        selected_option = self.traits_schema.get("selected_option")
-        selected_option_type = self.traits_schema["options"][selected_option]["type"]
-
-        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
-            # Handle the button click events
-            if self.__handle_neural_network_button(event):
-                yield self.__navigate_to_neural_lab()
-
-            # Handle interaction with traits options
-            self.__handle_traits_options(event, selected_option)
-
-        elif event.type == pygame.KEYDOWN:
-            # Handle keyboard events (backspace, alphanumeric, navigation)
-            self.__handle_keydown_event(event, selected_option, selected_option_type)
 
     def __handle_neural_network_button(self, event):
         """Handle neural network button clicks."""
@@ -666,7 +709,7 @@ class AttributesLab:
             ):
                 choice["selected"] = i == new_index
 
-    def rotate_pic_circle_border(self):
+    def __rotate_pic_circle_border(self):
         self.pic_circle["border_angle"] += 1
         rotated_image = pygame.transform.rotate(
             self.pic_circle["border_image"], self.pic_circle["border_angle"]
@@ -676,7 +719,7 @@ class AttributesLab:
         )
         return rotated_image
 
-    def rotate_pic_circle_organism(self):
+    def __rotate_pic_circle_organism(self):
         self.pic_circle["organism_angle"] += 1
         rotated_image = pygame.transform.rotate(
             self.pic_circle["organism_image"], self.pic_circle["organism_angle"]
@@ -686,7 +729,7 @@ class AttributesLab:
         )
         return rotated_image
 
-    def update_user_input(self, value, option_surface, input_type="str"):
+    def __update_user_input(self, value, option_surface, input_type="str"):
         data = value["data"]
         if input_type == "int":
             data = "{:,}".format(int(value["data"] or 0))
@@ -720,40 +763,3 @@ class AttributesLab:
         text_surface.fill(self.traits_schema["bg_color"])
         text_surface.blit(text_bg, (0, 0))
         option_surface.blit(text_surface, (200, 0))
-
-    def update(self, context=None):
-        self.time += 1
-        self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
-        self.surface.blit(
-            self.rotate_pic_circle_organism(), self.pic_circle["organism_rect"]
-        )
-        self.surface.blit(
-            self.rotate_pic_circle_border(), self.pic_circle["border_rect"]
-        )
-        self.surface.blit(
-            self.neural_network_button["current_image"],
-            self.neural_network_button["rect"],
-        )
-
-        for option, value in self.traits_schema["options"].items():
-            self.surface.blit(
-                value["surface"],
-                value["rect"],
-            )
-
-            if value["type"] == "single_choice_list":
-                for choice in value["choices"]:
-                    self.surface.blit(
-                        (
-                            choice["surface_selected"]
-                            if choice["selected"]
-                            else choice["surface"]
-                        ),
-                        choice["rect"],
-                    )
-            elif value["type"] == "user_input_int":
-                self.update_user_input(value, value["surface"], input_type="int")
-            elif value["type"] == "user_input_str":
-                self.update_user_input(value, value["surface"], input_type="str")
-            elif value["type"] == "user_input_color":
-                self.update_user_input(value, value["surface"], input_type="color")

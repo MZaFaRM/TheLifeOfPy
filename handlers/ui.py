@@ -67,14 +67,14 @@ class UIHandler:
                 "handler": rendered_component,
             }
 
-    def _event_handler(self, events):
+    def event_handler(self, events):
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
 
             for name, info in self.screen_states["rendered_components"].items():
-                yield from info["handler"]._event_handler(event) or []
+                yield from info["handler"].event_handler(event) or []
 
     def update_screen(self, context=None):
         self.surface.fill((26, 26, 26))

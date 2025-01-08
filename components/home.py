@@ -74,7 +74,7 @@ class HomeComponent:
                 }
             )
 
-    def _event_handler(self, event):
+    def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONUP:
             if self.close_window_button_rect.collidepoint(event.pos):
                 pygame.quit()
@@ -110,7 +110,7 @@ class EnvComponent:
         )
         self.surface.blit(self.env_image, (0, 0))
 
-    def _event_handler(self, event):
+    def event_handler(self, event):
         return
 
     def update(self, context=None):
@@ -193,7 +193,7 @@ class SidebarComponent:
                 position=button.pop("position"),
             )
 
-    def _event_handler(self, event):
+    def event_handler(self, event):
         if event.type in [pygame.MOUSEBUTTONUP, pygame.MOUSEBUTTONDOWN]:
             # Get mouse position relative to the sidebar
             mouse_x, mouse_y = event.pos

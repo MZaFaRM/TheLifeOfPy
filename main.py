@@ -54,7 +54,7 @@ class Nature:
         reward = 0
 
         events = pygame.event.get()
-        updates = list(self.ui_handler._event_handler(events))
+        updates = list(self.ui_handler.event_handler(events))
         self.time_steps += 1
         if updates:
             print("Updates: ", *updates)
