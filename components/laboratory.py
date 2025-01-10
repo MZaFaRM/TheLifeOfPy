@@ -18,6 +18,20 @@ class LaboratoryComponent:
         )
         self.user_inputs = {}
         self.surface = pygame.Surface(size=(self.bg_image.get_size()))
+        self.surface_x_offset = (
+            self.main_surface.get_width() - self.surface.get_width()
+        ) // 2
+        self.surface_y_offset = (
+            self.main_surface.get_height() - self.surface.get_height()
+        ) // 2
+
+        context.update(
+            {
+                "surface_x_offset": self.surface_x_offset,
+                "surface_y_offset": self.surface_y_offset,
+            }
+        )
+
         self.__configure_back_button()
 
         self.curr_sub_component = "attrs_lab"
@@ -85,9 +99,8 @@ class LaboratoryComponent:
 
         self.back_button["absolute_rect"] = self.back_button["image"].get_rect(
             topleft=(
-                50 + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                50
-                + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+                50 + self.surface_x_offset,
+                50 + self.surface_y_offset,
             )
         )
 
@@ -97,6 +110,9 @@ class NeuralLab:
         self.main_surface = main_surface
         self.selected_sensor = None
         self.selected_actuator = None
+
+        self.surface_x_offset = context.get("surface_x_offset", 0)
+        self.surface_y_offset = context.get("surface_y_offset", 0)
 
         surface = self.__setup_surface()
 
@@ -177,15 +193,92 @@ class NeuralLab:
             ]
         )
 
+        self.__configure_neural_frame()
+        self.__configure_unleash_organism_click()
+
+    def __configure_neural_frame(self):
         neural_frame = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "neural_frame.svg")
         )
+
+        # Position fetched from figma
+        self.neural_network = {
+            "sensor_info": {
+                "default_bg": (221, 185, 103),
+                "text_color": (0, 0, 0),
+                "filled_bg": (219, 235, 137),
+            },
+            "actuator_info": {
+                "default_bg": (152, 95, 153),
+                "text_color": (0, 0, 0),
+                "filled_bg": (192, 156, 255),
+            },
+            "sensors": [
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (236, 134)},
+                },
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (236, 193)},
+                },
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (236, 252)},
+                },
+            ],
+            "actuators": [
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (436, 134)},
+                },
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (436, 193)},
+                },
+                {
+                    "name": "",
+                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "position": {"center": (436, 252)},
+                },
+            ],
+        }
+
+        for sensor in self.neural_network["sensors"]:
+            pygame.draw.circle(sensor["surface"], Colors.bg_color, (25, 25), 25)
+            pygame.draw.circle(
+                sensor["surface"],
+                self.neural_network["sensor_info"]["default_bg"],
+                (25, 25),
+                22,
+            )
+            neural_frame.blit(
+                sensor["surface"],
+                sensor["surface"].get_rect(**sensor["position"]),
+            )
+
+        for actuator in self.neural_network["actuators"]:
+            pygame.draw.circle(actuator["surface"], Colors.bg_color, (25, 25), 25)
+            pygame.draw.circle(
+                actuator["surface"],
+                self.neural_network["actuator_info"]["default_bg"],
+                (25, 25),
+                22,
+            )
+            neural_frame.blit(
+                actuator["surface"],
+                actuator["surface"].get_rect(**actuator["position"]),
+            )
+
         self.surface.blit(
             neural_frame,
             neural_frame.get_rect(center=(self.surface.get_width() // 2, 600)),
         )
-
-        self.__configure_unleash_organism_click()
 
     def __configure_unleash_organism_click(self):
         self.unleash_organism_button = {
@@ -223,9 +316,8 @@ class NeuralLab:
                 np.array(self.unleash_organism_button["rect"].topleft)
                 + np.array(
                     (
-                        (self.main_surface.get_width() - self.surface.get_width()) // 2,
-                        (self.main_surface.get_height() - self.surface.get_height())
-                        // 2,
+                        self.surface_x_offset,
+                        self.surface_y_offset,
                     )
                 )
             )
@@ -368,6 +460,7 @@ class NeuralLab:
             "surface": pygame.Surface((450, 100)),
             "position": {"topleft": (75, 450)},
             "rect": None,
+            "absolute_rect": None,
             "default_text": helper.split_text(
                 "Sensors allow your creatures to experience the World. Select a sensor from the list below to view more details."
             ),
@@ -423,24 +516,8 @@ class NeuralLab:
                     "rect": sensor_surface.get_rect(center=(x, y)),
                     "absolute_rect": sensor_surface.get_rect(
                         topleft=(
-                            x
-                            - 25
-                            + (
-                                (
-                                    self.main_surface.get_width()
-                                    - self.surface.get_width()
-                                )
-                                // 2
-                            ),
-                            y
-                            - 25
-                            + (
-                                (
-                                    self.main_surface.get_height()
-                                    - self.surface.get_height()
-                                )
-                                // 2
-                            ),
+                            x - 25 + self.surface_x_offset,
+                            y - 25 + self.surface_y_offset,
                         )
                     ),
                 }
@@ -523,24 +600,8 @@ class NeuralLab:
                     "rect": actuator_surface.get_rect(center=(x, y)),
                     "absolute_rect": actuator_surface.get_rect(
                         topleft=(
-                            x
-                            - 25
-                            + (
-                                (
-                                    self.main_surface.get_width()
-                                    - self.surface.get_width()
-                                )
-                                // 2
-                            ),
-                            y
-                            - 25
-                            + (
-                                (
-                                    self.main_surface.get_height()
-                                    - self.surface.get_height()
-                                )
-                                // 2
-                            ),
+                            x - 25 + self.surface_x_offset,
+                            y - 25 + self.surface_y_offset,
                         )
                     ),
                 }
@@ -574,6 +635,8 @@ class AttributesLab:
             ),
             flags=pygame.SRCALPHA,
         )
+        self.surface_x_offset = context.get("surface_x_offset", 0)
+        self.surface_y_offset = context.get("surface_y_offset", 0)
 
         self.attrs_lab_text = pygame.image.load(
             os.path.join(image_assets, "laboratory", "attrs_lab", "lab_intro_text.svg")
@@ -781,10 +844,8 @@ class AttributesLab:
         option_surface.blit(text_surface, (200, 0))
         value["absolute_rect"] = text_surface.get_rect(
             topleft=(
-                x
-                + 200
-                + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                y + ((self.main_surface.get_height() - self.surface.get_height()) // 2),
+                x + 200 + self.surface_x_offset,
+                y + self.surface_y_offset,
             )
         )
 
@@ -818,14 +879,8 @@ class AttributesLab:
             choice["rect"] = choice["surface"].get_rect(topleft=(x + choice_x, y))
             choice["absolute_rect"] = choice["surface"].get_rect(
                 topleft=(
-                    x
-                    + choice_x
-                    + ((self.main_surface.get_width() - self.surface.get_width()) // 2),
-                    y
-                    + (
-                        (self.main_surface.get_height() - self.surface.get_height())
-                        // 2
-                    ),
+                    x + choice_x + self.surface_x_offset,
+                    y + self.surface_y_offset,
                 )
             )
             choice_x += choice["surface"].get_width() + 10
@@ -864,9 +919,8 @@ class AttributesLab:
                 np.array(self.neural_network_button["rect"].topleft)
                 + np.array(
                     (
-                        (self.main_surface.get_width() - self.surface.get_width()) // 2,
-                        (self.main_surface.get_height() - self.surface.get_height())
-                        // 2,
+                        self.surface_x_offset,
+                        self.surface_y_offset,
                     )
                 )
             )
