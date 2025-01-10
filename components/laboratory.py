@@ -7,6 +7,7 @@ import pygame
 
 from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket, MessagePackets
+import helper
 
 
 class LaboratoryComponent:
@@ -33,46 +34,36 @@ class LaboratoryComponent:
         self.surface.blit(sub_component.surface, (0, 0))
 
     def event_handler(self, event):
-        if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+        if event.type == pygame.MOUSEBUTTONDOWN:
             # Check if the back button is clicked
             if self.back_button["absolute_rect"].collidepoint(event.pos):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    # Set the back button to its clicked image when the button is pressed
-                    self.back_button["current_image"] = self.back_button[
-                        "clicked_image"
-                    ]
+                # Set the back button to its clicked image when the button is pressed
+                self.back_button["current_image"] = self.back_button["clicked_image"]
 
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    # Handle the action when the button is released
-                    if self.curr_sub_component == "neural_lab":
-                        # If in the "neural_lab", go back to "attrs_lab"
-                        self.curr_sub_component = "attrs_lab"
-                        self.back_button["current_image"] = self.back_button["image"]
-                    else:
-                        # If not in "neural_lab", navigate to home
-                        yield MessagePackets(
-                            MessagePacket(EventType.NAVIGATION, "home")
-                        )
-
-        # Handle the events for the current subcomponent
-        packets = self.sub_component_states.get(self.curr_sub_component).event_handler(
-            event
-        )
-
-        if packets is not None:
-            # Process each packet received from the subcomponent handler
-            packet = next(packets, None)
-            if packet:
-                if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
-                    # Navigate to "neural_lab" subcomponent and store its context
-                    self.curr_sub_component = "neural_lab"
-                    self.user_inputs = packet.context
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if self.back_button["absolute_rect"].collidepoint(event.pos):
+                if self.curr_sub_component == "neural_lab":
+                    # If in the "neural_lab", go back to "attrs_lab"
+                    self.curr_sub_component = "attrs_lab"
+                    self.back_button["current_image"] = self.back_button["image"]
                 else:
-                    # Yield the packet as is
-                    yield MessagePackets(packet)
-        else:
-            # If no packets were returned, set packet to None
-            packet = None
+                    # If not in "neural_lab", navigate to home
+                    yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
+            else:
+                self.back_button["current_image"] = self.back_button["image"]
+
+        # Handle the events for the current sub-component
+        # Process the packet received from the sub-component handler
+        if packet := self.sub_component_states.get(
+            self.curr_sub_component,
+        ).event_handler(event):
+            if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
+                # Navigate to "neural_lab" sub-component and store its context
+                self.curr_sub_component = "neural_lab"
+                self.user_inputs = packet.context
+            else:
+                # Yield the packet as is
+                yield MessagePackets(packet)
 
     def __configure_back_button(self):
         self.back_button = {
@@ -105,20 +96,84 @@ class NeuralLab:
     def __init__(self, main_surface, context=None):
         self.main_surface = main_surface
         self.selected_sensor = None
+        self.selected_actuator = None
 
         surface = self.__setup_surface()
 
         self.surface = surface
+        self.body_font = pygame.font.Font(Fonts.PixelifySansMedium, 21)
+
         self.__configure_sensors(
             sensors=[
-                {"name": "Nil", "desc": "Something simple"},
-                {"name": "Dfd", "desc": "Something simple"},
-                {"name": "Bfs", "desc": "Something simple"},
-                {"name": "Cfl", "desc": "Something simple"},
-                {"name": "Dia", "desc": "Something simple"},
-                {"name": "Fwa", "desc": "Something simple"},
-                {"name": "Car", "desc": "Something simple"},
-                {"name": "Nil", "desc": "Something simple"},
+                {
+                    "name": "Nil",
+                    "description": "A basic sensory organ with minimal input detection.",
+                },
+                {
+                    "name": "Dfd",
+                    "description": "A directional detector helping the creature sense movement patterns.",
+                },
+                {
+                    "name": "Bfs",
+                    "description": "A biochemical sensor for detecting pheromones and chemical traces.",
+                },
+                {
+                    "name": "Cfl",
+                    "description": "A current flow sensor for detecting changes in nearby fluid dynamics.",
+                },
+                {
+                    "name": "Dia",
+                    "description": "A light-sensitive organ for basic image formation and light detection.",
+                },
+                {
+                    "name": "Fwa",
+                    "description": "A vibration sensor for detecting distant sound or surface vibrations.",
+                },
+                {
+                    "name": "Car",
+                    "description": "A scent-based sensor for identifying environmental chemicals and food sources.",
+                },
+                {
+                    "name": "Nil",
+                    "description": "A simple placeholder sensory organ with limited functionality.",
+                },
+            ]
+        )
+
+        self.__configure_actuators(
+            actuators=[
+                {
+                    "name": "Psh",
+                    "description": "A basic actuator for applying force to nearby objects.",
+                },
+                {
+                    "name": "Grb",
+                    "description": "An appendage allowing the creature to grasp and manipulate objects.",
+                },
+                {
+                    "name": "Kck",
+                    "description": "A leg-based actuator for powerful thrusts and rapid movement.",
+                },
+                {
+                    "name": "Spn",
+                    "description": "A rotational actuator for spinning parts of the body rapidly.",
+                },
+                {
+                    "name": "Emt",
+                    "description": "An actuator for releasing pheromones or other signals into the environment.",
+                },
+                {
+                    "name": "Flx",
+                    "description": "A muscle-like actuator for bending and contracting movements.",
+                },
+                {
+                    "name": "Wve",
+                    "description": "A fin or limb movement actuator designed for fluid locomotion.",
+                },
+                {
+                    "name": "Nil",
+                    "description": "A placeholder actuator with minimal interaction capabilities.",
+                },
             ]
         )
 
@@ -127,34 +182,146 @@ class NeuralLab:
         )
         self.surface.blit(
             neural_frame,
-            neural_frame.get_rect(center=(main_surface.get_width() // 2, 600)),
+            neural_frame.get_rect(center=(self.surface.get_width() // 2, 600)),
+        )
+
+        self.__configure_unleash_organism_click()
+
+    def __configure_unleash_organism_click(self):
+        self.unleash_organism_button = {
+            "current_image": None,
+            "image": pygame.image.load(
+                os.path.join(
+                    image_assets,
+                    "laboratory",
+                    "neural_lab",
+                    "unleash_organism_button.svg",
+                )
+            ),
+            "clicked_image": pygame.image.load(
+                os.path.join(
+                    image_assets,
+                    "laboratory",
+                    "neural_lab",
+                    "unleash_organism_button_clicked.svg",
+                )
+            ),
+            "position": {"center": (self.surface.get_width() // 2, 875)},
+            "rect": None,
+            "absolute_rect": None,
+        }
+        self.unleash_organism_button["current_image"] = self.unleash_organism_button[
+            "image"
+        ]
+        self.unleash_organism_button["rect"] = self.unleash_organism_button[
+            "image"
+        ].get_rect(**self.unleash_organism_button["position"])
+        self.unleash_organism_button["absolute_rect"] = self.unleash_organism_button[
+            "image"
+        ].get_rect(
+            topleft=(
+                np.array(self.unleash_organism_button["rect"].topleft)
+                + np.array(
+                    (
+                        (self.main_surface.get_width() - self.surface.get_width()) // 2,
+                        (self.main_surface.get_height() - self.surface.get_height())
+                        // 2,
+                    )
+                )
+            )
         )
 
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            for sensor in self.sensors:
-                if sensor["absolute_rect"].collidepoint(event.pos):
-                    # Select the sensor if clicked
-                    self.selected_sensor = sensor
-                    sensor["current_surface"] = sensor["clicked_surface"]
-                    break  # No need to check other sensors after selection
-
+            return self.__handle_mouse_down(event)
         elif event.type == pygame.MOUSEBUTTONUP:
-            if self.selected_sensor:
-                for sensor in self.sensors:
-                    if sensor != self.selected_sensor:
-                        # Reset all non-selected sensors to their origi nal surface
-                        sensor["current_surface"] = sensor["surface"]
-                # If the mouse is not on the selected sensor, unselect it
-                if not self.selected_sensor["absolute_rect"].collidepoint(event.pos):
-                    self.selected_sensor["current_surface"] = self.selected_sensor[
-                        "surface"
-                    ]
-                self.selected_sensor = None  # Deselect the sensor
+            return self.__handle_mouse_up(event)
+
+    def __handle_mouse_down(self, event):
+        self.__handle_sensor_click(event)
+        self.__handle_actuator_click(event)
+        self.__handle_unleash_organism_on_mouse_down(event)
+
+    def __handle_unleash_organism_on_mouse_down(self, event):
+        if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
+            self.unleash_organism_button["current_image"] = (
+                self.unleash_organism_button["clicked_image"]
+            )
+
+    def __handle_mouse_up(self, event):
+        return next(
+            filter(
+                lambda packet: packet is not None,
+                (
+                    self.__reset_sensors_on_mouse_up(event),
+                    self.__reset_actuators_on_mouse_up(event),
+                    self.__handle_unleash_organism_on_mouse_up(event),
+                ),
+            ),
+            None,
+        )
+
+    def __handle_unleash_organism_on_mouse_up(self, event):
+        if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
+            return MessagePacket(EventType.NAVIGATION, "home")
+        elif not self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
+            self.unleash_organism_button["current_image"] = (
+                self.unleash_organism_button["image"]
+            )
+
+    def __handle_sensor_click(self, event):
+        for sensor in self.sensors:
+            if sensor["absolute_rect"].collidepoint(event.pos):
+                self.selected_sensor = sensor
+                sensor["current_surface"] = sensor["clicked_surface"]
+                self.__update_sensor_text(sensor_desc_text=sensor["description"])
+                break
+
+    def __handle_actuator_click(self, event):
+        for actuator in self.actuators:
+            if actuator["absolute_rect"].collidepoint(event.pos):
+                self.selected_actuator = actuator
+                actuator["current_surface"] = actuator["clicked_surface"]
+                self.__update_actuator_text(actuator_desc_text=actuator["description"])
+                break
+
+    def __reset_sensors_on_mouse_up(self, event):
+        if self.selected_sensor:
+            for sensor in self.sensors:
+                if sensor != self.selected_sensor:
+                    sensor["current_surface"] = sensor["surface"]
+            if not self.selected_sensor["absolute_rect"].collidepoint(event.pos):
+                self.__update_sensor_text()
+                self.selected_sensor["current_surface"] = self.selected_sensor[
+                    "surface"
+                ]
+                self.selected_sensor = None
+
+    def __reset_actuators_on_mouse_up(self, event):
+        if self.selected_actuator:
+            for actuator in self.actuators:
+                if actuator != self.selected_actuator:
+                    actuator["current_surface"] = actuator["surface"]
+            if not self.selected_actuator["absolute_rect"].collidepoint(event.pos):
+                self.__update_actuator_text()
+                self.selected_actuator["current_surface"] = self.selected_actuator[
+                    "surface"
+                ]
+                self.selected_actuator = None
 
     def update(self, context=None):
         for sensor in self.sensors:
             self.surface.blit(sensor["current_surface"], sensor["rect"])
+
+        for actuator in self.actuators:
+            self.surface.blit(actuator["current_surface"], actuator["rect"])
+
+        self.surface.blit(self.sensor_desc["surface"], self.sensor_desc["rect"])
+        self.surface.blit(self.actuator_desc["surface"], self.actuator_desc["rect"])
+        self.surface.blit(
+            self.unleash_organism_button["current_image"],
+            self.unleash_organism_button["rect"],
+        )
 
     def __setup_surface(self):
         surface = pygame.Surface(
@@ -178,16 +345,43 @@ class NeuralLab:
         sensor_title = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "sensor_title.svg")
         )
-        surface.blit(sensor_title, sensor_title.get_rect(topleft=(75, 400)))
+        surface.blit(
+            sensor_title,
+            sensor_title.get_rect(
+                topleft=(75, 400),
+            ),
+        )
 
+        actuator_title = pygame.image.load(
+            os.path.join(image_assets, "laboratory", "neural_lab", "actuator_title.svg")
+        )
+        surface.blit(
+            actuator_title,
+            actuator_title.get_rect(
+                topright=(surface.get_width() - 75, 400),
+            ),
+        )
         return surface
 
     def __configure_sensors(self, sensors):
-        font = pygame.font.Font(Fonts.PixelifySansMedium, 20)
+        self.sensor_desc = {
+            "surface": pygame.Surface((450, 100)),
+            "position": {"topleft": (75, 450)},
+            "rect": None,
+            "default_text": helper.split_text(
+                "Sensors allow your creatures to experience the World. Select a sensor from the list below to view more details."
+            ),
+        }
+        self.sensor_desc["rect"] = self.sensor_desc["surface"].get_rect(
+            **self.sensor_desc["position"]
+        )
+
+        self.__update_sensor_text()
+
         num_sensors = len(sensors)
         self.sensors = []  # Use this list to store sensor data
         columns = [100 + (i * 65) for i in range(5)]  # x-coordinates for each column
-        y_start = 500
+        y_start = 600
         spacing = 60
 
         # Adjust y_offset if the number of sensors is odd
@@ -205,25 +399,24 @@ class NeuralLab:
             pygame.draw.circle(sensor_surface, Colors.primary, (25, 25), 22)
 
             # Render title text for each sensor
-            text = font.render(sensors[i]["name"], True, Colors.bg_color)
+            text = self.body_font.render(sensors[i]["name"], True, Colors.bg_color)
             sensor_surface.blit(text, text.get_rect(center=(25, 25)))
 
             # Create a new surface for the clicked look for each sensor
             clicked_sensor_surface = pygame.Surface((50, 50))
             clicked_sensor_surface.fill(color=Colors.primary)
-            pygame.draw.circle(clicked_sensor_surface, Colors.primary, (25, 25), 25)
+            pygame.draw.circle(clicked_sensor_surface, Colors.bg_color, (25, 25), 25)
             pygame.draw.circle(clicked_sensor_surface, Colors.bg_color, (25, 25), 22)
 
             # Render title text for the clicked sensor
-            text = font.render(sensors[i]["name"], True, Colors.primary)
+            text = self.body_font.render(sensors[i]["name"], True, Colors.primary)
             clicked_sensor_surface.blit(text, text.get_rect(center=(25, 25)))
 
             # Add sensor data to the self.sensors list
             self.sensors.append(
                 {
-                    "name": sensors[i][
-                        "name"
-                    ],  # Use the name from the sensor dictionary
+                    "name": sensors[i]["name"],
+                    "description": helper.split_text(sensors[i]["description"]),
                     "current_surface": sensor_surface,
                     "surface": sensor_surface,
                     "clicked_surface": clicked_sensor_surface,
@@ -252,6 +445,121 @@ class NeuralLab:
                     ),
                 }
             )
+
+    def __update_sensor_text(
+        self,
+        sensor_desc_text: list = None,
+    ):
+        if not sensor_desc_text:
+            sensor_desc_text = self.sensor_desc["default_text"]
+
+        self.sensor_desc["surface"].fill(Colors.primary)
+
+        text_y = 0
+        for text in sensor_desc_text:
+            text = self.body_font.render(text, True, Colors.bg_color, Colors.primary)
+            self.sensor_desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
+            text_y += 25
+
+    def __configure_actuators(self, actuators):
+        self.actuator_desc = {
+            "surface": pygame.Surface((450, 100)),
+            "position": {"topright": (self.surface.get_width() - 75, 450)},
+            "rect": None,
+            "default_text": helper.split_text(
+                "Actuators allow your creatures to interact with the World. Select an actuator from the list below to view more details."
+            ),
+        }
+        self.actuator_desc["rect"] = self.actuator_desc["surface"].get_rect(
+            **self.actuator_desc["position"]
+        )
+
+        self.__update_actuator_text()
+
+        num_actuators = len(actuators)
+        self.actuators = []  # Use this list to store actuator data
+        columns = [
+            self.surface.get_width() - 100 - (i * 65) for i in range(5)
+        ]  # x-coordinates for each column
+        y_start = 600
+        spacing = 60
+
+        # Adjust y_offset if the number of actuators is odd
+        y_offset = spacing // 2 if num_actuators % 2 != 0 else 0
+
+        for i in range(num_actuators):
+            column_index = i % 5
+            x = columns[column_index]
+            y = y_start + (i // 5) * spacing + (y_offset if column_index != 1 else 0)
+
+            # Create a new surface for each actuator
+            actuator_surface = pygame.Surface((50, 50))
+            actuator_surface.fill(color=Colors.primary)
+            pygame.draw.circle(actuator_surface, Colors.bg_color, (25, 25), 25)
+            pygame.draw.circle(actuator_surface, Colors.primary, (25, 25), 22)
+
+            # Render title text for each actuator
+            text = self.body_font.render(actuators[i]["name"], True, Colors.bg_color)
+            actuator_surface.blit(text, text.get_rect(center=(25, 25)))
+
+            # Create a new surface for the clicked look for each actuator
+            clicked_actuator_surface = pygame.Surface((50, 50))
+            clicked_actuator_surface.fill(color=Colors.primary)
+            pygame.draw.circle(clicked_actuator_surface, Colors.bg_color, (25, 25), 25)
+            pygame.draw.circle(clicked_actuator_surface, Colors.bg_color, (25, 25), 22)
+
+            # Render title text for the clicked actuator
+            text = self.body_font.render(actuators[i]["name"], True, Colors.primary)
+            clicked_actuator_surface.blit(text, text.get_rect(center=(25, 25)))
+
+            # Add actuator data to the self.actuators list
+            self.actuators.append(
+                {
+                    "name": actuators[i]["name"],
+                    "description": helper.split_text(actuators[i]["description"]),
+                    "current_surface": actuator_surface,
+                    "surface": actuator_surface,
+                    "clicked_surface": clicked_actuator_surface,
+                    "rect": actuator_surface.get_rect(center=(x, y)),
+                    "absolute_rect": actuator_surface.get_rect(
+                        topleft=(
+                            x
+                            - 25
+                            + (
+                                (
+                                    self.main_surface.get_width()
+                                    - self.surface.get_width()
+                                )
+                                // 2
+                            ),
+                            y
+                            - 25
+                            + (
+                                (
+                                    self.main_surface.get_height()
+                                    - self.surface.get_height()
+                                )
+                                // 2
+                            ),
+                        )
+                    ),
+                }
+            )
+
+    def __update_actuator_text(
+        self,
+        actuator_desc_text: list = None,
+    ):
+        if not actuator_desc_text:
+            actuator_desc_text = self.actuator_desc["default_text"]
+
+        self.actuator_desc["surface"].fill(Colors.primary)
+
+        text_y = 0
+        for text in actuator_desc_text:
+            text = self.body_font.render(text, True, Colors.bg_color, Colors.primary)
+            self.actuator_desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
+            text_y += 25
 
 
 class AttributesLab:
@@ -324,7 +632,7 @@ class AttributesLab:
         if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
             # Handle the button click events
             if self.__handle_neural_network_button(event):
-                yield self.__navigate_to_neural_lab()
+                return self.__navigate_to_neural_lab()
 
             # Handle interaction with traits options
             self.__handle_traits_options(event, selected_option)

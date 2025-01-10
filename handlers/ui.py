@@ -75,7 +75,7 @@ class UIHandler:
 
             for name, info in self.screen_states["rendered_components"].items():
                 yield from info["handler"].event_handler(event) or []
-
+    
     def update_screen(self, context=None):
         self.surface.fill((26, 26, 26))
 

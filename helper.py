@@ -5,40 +5,35 @@ import pygame
 from functools import lru_cache
 
 
-def map_value(value, start1, stop1, start2, stop2):
-    return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1))
+def split_text(text, char_limit=42):
+    """
+    Splits the input text into lines with a maximum of `char_limit` characters per line.
+    It ensures words are not cut off in the middle unless a single word exceeds the limit.
 
+    :param text: The input string to be split.
+    :param char_limit: The maximum number of characters per line.
+    :return: A list of lines with the specified character limit.
+    """
+    words = text.split()
+    lines = []
+    current_line = []
 
-def generate_noise_map(width, height, octaves=4, scale=100.0, cutoff=0.02):
-    noise_map = np.zeros((width, height))
-    for x in range(width):
-        for y in range(height):
-            # Generate noise value for this position
-            noise_value = noise.pnoise2(x / scale, y / scale, octaves=octaves)
+    for word in words:
+        # If adding the word would exceed the limit, start a new line
+        if (
+            sum(len(w) for w in current_line) + len(current_line) + len(word)
+            > char_limit
+        ):
+            lines.append(" ".join(current_line))
+            current_line = [word]
+        else:
+            current_line.append(word)
 
-            # Apply cutoff: If noise_value is lesser than cutoff, add terrain
-            if noise_value < cutoff:
-                noise_map[x][y] = True  # Grass is present
-            else:
-                noise_map[x][y] = False  # No grass here
-    return noise_map
+    # Add the remaining words as the last line
+    if current_line:
+        lines.append(" ".join(current_line))
 
-
-def create_gradient(surface, top_color, bottom_color):
-    height = surface.get_height()
-    width = surface.get_width()
-
-    for row in range(height):
-        # Calculate the interpolation factor (0.0 at the top, 1.0 at the bottom)
-        blend_factor = row / height
-
-        # Interpolate between the top and bottom colors (green to yellow)
-        r = top_color[0] * (1 - blend_factor) + bottom_color[0] * blend_factor
-        g = top_color[1] * (1 - blend_factor) + bottom_color[1] * blend_factor
-        b = top_color[2] * (1 - blend_factor) + bottom_color[2] * blend_factor
-
-        # Draw the gradient line inside the rectangle
-        pygame.draw.line(surface, (int(r), int(g), int(b)), (0, row), (width, row))
+    return lines
 
 
 def get_random_position(env_window):
@@ -61,12 +56,12 @@ def normalize_position(rect, env_window):
         x = x_range[1] - 1
     elif x > x_range[1]:
         x = x_range[0] + 1
-        
+
     if y < y_range[0]:
         y = y_range[1] - 1
     elif y > y_range[1]:
         y = y_range[0] + 1
-        
+
     rect.topleft = x, y
     return rect
 
