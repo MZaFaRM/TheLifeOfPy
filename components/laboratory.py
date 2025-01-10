@@ -197,8 +197,11 @@ class NeuralLab:
         self.__configure_unleash_organism_click()
 
     def __configure_neural_frame(self):
-        neural_frame = pygame.image.load(
+        self.neural_frame_surface = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "neural_frame.svg")
+        )
+        self.neural_frame_rect = self.neural_frame_surface.get_rect(
+            center=(self.surface.get_width() // 2, 600)
         )
 
         # Position fetched from figma
@@ -217,39 +220,88 @@ class NeuralLab:
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 134)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 134 - 25,
+                        50,
+                        50,
+                    ),
                 },
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 193)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 193 - 25,
+                        50,
+                        50,
+                    ),
                 },
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 252)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 252 - 25,
+                        50,
+                        50,
+                    ),
                 },
             ],
             "actuators": [
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 134)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 134 - 25,
+                        50,
+                        50,
+                    ),
                 },
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 193)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 193 - 25,
+                        50,
+                        50,
+                    ),
                 },
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 252)},
+                    "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "absolute_rect": pygame.rect.Rect(
+                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
+                        self.surface_y_offset + self.neural_frame_rect.y + 252 - 25,
+                        50,
+                        50,
+                    ),
                 },
             ],
         }
 
         for sensor in self.neural_network["sensors"]:
+            sensor["rect"] = sensor["surface"].get_rect(**sensor["position"])
             pygame.draw.circle(sensor["surface"], Colors.bg_color, (25, 25), 25)
             pygame.draw.circle(
                 sensor["surface"],
@@ -257,12 +309,18 @@ class NeuralLab:
                 (25, 25),
                 22,
             )
-            neural_frame.blit(
-                sensor["surface"],
-                sensor["surface"].get_rect(**sensor["position"]),
+            self.neural_frame_surface.blit(sensor["surface"], sensor["rect"])
+
+            pygame.draw.circle(sensor["filled_surface"], Colors.bg_color, (25, 25), 25)
+            pygame.draw.circle(
+                sensor["filled_surface"],
+                self.neural_network["sensor_info"]["filled_bg"],
+                (25, 25),
+                22,
             )
 
         for actuator in self.neural_network["actuators"]:
+            actuator["rect"] = actuator["surface"].get_rect(**actuator["position"])
             pygame.draw.circle(actuator["surface"], Colors.bg_color, (25, 25), 25)
             pygame.draw.circle(
                 actuator["surface"],
@@ -270,15 +328,19 @@ class NeuralLab:
                 (25, 25),
                 22,
             )
-            neural_frame.blit(
-                actuator["surface"],
-                actuator["surface"].get_rect(**actuator["position"]),
-            )
 
-        self.surface.blit(
-            neural_frame,
-            neural_frame.get_rect(center=(self.surface.get_width() // 2, 600)),
-        )
+            pygame.draw.circle(
+                actuator["filled_surface"], Colors.bg_color, (25, 25), 25
+            )
+            pygame.draw.circle(
+                actuator["filled_surface"],
+                self.neural_network["actuator_info"]["filled_bg"],
+                (25, 25),
+                22,
+            )
+            self.neural_frame_surface.blit(actuator["surface"], actuator["rect"])
+
+        self.surface.blit(self.neural_frame_surface, self.neural_frame_rect)
 
     def __configure_unleash_organism_click(self):
         self.unleash_organism_button = {
@@ -333,6 +395,22 @@ class NeuralLab:
         self.__handle_sensor_click(event)
         self.__handle_actuator_click(event)
         self.__handle_unleash_organism_on_mouse_down(event)
+        for i in range(len(self.neural_network["sensors"])):
+            if self.neural_network["sensors"][i]["absolute_rect"].collidepoint(
+                event.pos
+            ):
+                if self.selected_sensor:
+                    self.neural_network["sensors"][i]["name"] = self.selected_sensor[
+                        "name"
+                    ]
+
+        for i in range(len(self.neural_network["actuators"])):
+            if self.neural_network["actuators"][i]["absolute_rect"].collidepoint(
+                event.pos
+            ):
+                self.neural_network["actuators"][i]["name"] = self.selected_actuator[
+                    "name"
+                ]
 
     def __handle_unleash_organism_on_mouse_down(self, event):
         if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
@@ -415,6 +493,28 @@ class NeuralLab:
             self.unleash_organism_button["rect"],
         )
 
+        for sensor in self.neural_network["sensors"]:
+            if sensor["name"]:
+                sensor_surface = sensor["filled_surface"].copy()
+                text = self.body_font.render(sensor["name"], True, Colors.bg_color)
+                sensor_surface.blit(text, text.get_rect(center=(25, 25)))
+            else:
+                sensor_surface = sensor["surface"]
+
+            self.neural_frame_surface.blit(sensor_surface, sensor["rect"])
+
+        for actuator in self.neural_network["actuators"]:
+            if actuator["name"]:
+                actuator_surface = actuator["filled_surface"].copy()
+                text = self.body_font.render(actuator["name"], True, Colors.bg_color)
+                actuator_surface.blit(text, text.get_rect(center=(25, 25)))
+            else:
+                actuator_surface = actuator["surface"]
+
+            self.neural_frame_surface.blit(actuator_surface, actuator["rect"])
+
+        self.surface.blit(self.neural_frame_surface, self.neural_frame_rect)
+
     def __setup_surface(self):
         surface = pygame.Surface(
             size=(
@@ -456,6 +556,14 @@ class NeuralLab:
         return surface
 
     def __configure_sensors(self, sensors):
+        sensors.extend(
+            [
+                {
+                    "name": "",
+                    "description": "Use this to remove added sensors.",
+                }
+            ]
+        )
         self.sensor_desc = {
             "surface": pygame.Surface((450, 100)),
             "position": {"topleft": (75, 450)},
@@ -477,13 +585,10 @@ class NeuralLab:
         y_start = 600
         spacing = 60
 
-        # Adjust y_offset if the number of sensors is odd
-        y_offset = spacing // 2 if num_sensors % 2 != 0 else 0
-
         for i in range(num_sensors):
             column_index = i % 5
             x = columns[column_index]
-            y = y_start + (i // 5) * spacing + (y_offset if column_index != 1 else 0)
+            y = y_start + (i // 5) * spacing
 
             # Create a new surface for each sensor
             sensor_surface = pygame.Surface((50, 50))
@@ -510,6 +615,7 @@ class NeuralLab:
                 {
                     "name": sensors[i]["name"],
                     "description": helper.split_text(sensors[i]["description"]),
+                    "selected": False,
                     "current_surface": sensor_surface,
                     "surface": sensor_surface,
                     "clicked_surface": clicked_sensor_surface,
@@ -539,6 +645,14 @@ class NeuralLab:
             text_y += 25
 
     def __configure_actuators(self, actuators):
+        actuators.extend(
+            [
+                {
+                    "name": "",
+                    "description": "Use this to remove added actuators",
+                }
+            ]
+        )
         self.actuator_desc = {
             "surface": pygame.Surface((450, 100)),
             "position": {"topright": (self.surface.get_width() - 75, 450)},
@@ -561,13 +675,10 @@ class NeuralLab:
         y_start = 600
         spacing = 60
 
-        # Adjust y_offset if the number of actuators is odd
-        y_offset = spacing // 2 if num_actuators % 2 != 0 else 0
-
         for i in range(num_actuators):
             column_index = i % 5
             x = columns[column_index]
-            y = y_start + (i // 5) * spacing + (y_offset if column_index != 1 else 0)
+            y = y_start + (i // 5) * spacing
 
             # Create a new surface for each actuator
             actuator_surface = pygame.Surface((50, 50))
@@ -593,6 +704,7 @@ class NeuralLab:
             self.actuators.append(
                 {
                     "name": actuators[i]["name"],
+                    "selected": False,
                     "description": helper.split_text(actuators[i]["description"]),
                     "current_surface": actuator_surface,
                     "surface": actuator_surface,
