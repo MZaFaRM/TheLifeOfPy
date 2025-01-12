@@ -114,12 +114,12 @@ class NeuralLab:
         self.surface_x_offset = context.get("surface_x_offset", 0)
         self.surface_y_offset = context.get("surface_y_offset", 0)
 
-        surface = self.__setup_surface()
+        surface = self._setup_surface()
 
         self.surface = surface
         self.body_font = pygame.font.Font(Fonts.PixelifySansMedium, 21)
 
-        self.__configure_sensors(
+        self._configure_sensors(
             sensors=[
                 {
                     "name": "Nil",
@@ -193,10 +193,10 @@ class NeuralLab:
             ]
         )
 
-        self.__configure_neural_frame()
-        self.__configure_unleash_organism_click()
+        self._configure_neural_frame()
+        self._configure_unleash_organism_click()
 
-    def __configure_neural_frame(self):
+    def _configure_neural_frame(self):
         self.neural_frame_surface = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "neural_frame.svg")
         )
@@ -206,23 +206,33 @@ class NeuralLab:
 
         # Position fetched from figma
         self.neural_network = {
+            "scale_factor": 1.2,
             "sensor_info": {
                 "default_bg": (221, 185, 103),
                 "text_color": (0, 0, 0),
                 "filled_bg": (219, 235, 137),
+                "selected_bg": (0, 0, 0),
             },
             "actuator_info": {
                 "default_bg": (152, 95, 153),
                 "text_color": (0, 0, 0),
                 "filled_bg": (192, 156, 255),
+                "selected_bg": (0, 0, 0),
             },
+            "connections": [],
+            "lines": [],
+            "selected_sensor": None,
+            "selected_actuator": None,
             "sensors": [
                 {
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 134)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "selected": False,
                     "absolute_rect": pygame.rect.Rect(
                         self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
                         self.surface_y_offset + self.neural_frame_rect.y + 134 - 25,
@@ -234,8 +244,10 @@ class NeuralLab:
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 193)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "selected": False,
                     "absolute_rect": pygame.rect.Rect(
                         self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
                         self.surface_y_offset + self.neural_frame_rect.y + 193 - 25,
@@ -247,8 +259,10 @@ class NeuralLab:
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (236, 252)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
+                    "selected": False,
                     "absolute_rect": pygame.rect.Rect(
                         self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
                         self.surface_y_offset + self.neural_frame_rect.y + 252 - 25,
@@ -262,6 +276,7 @@ class NeuralLab:
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 134)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
                     "absolute_rect": pygame.rect.Rect(
@@ -275,6 +290,7 @@ class NeuralLab:
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 193)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
                     "absolute_rect": pygame.rect.Rect(
@@ -288,6 +304,7 @@ class NeuralLab:
                     "name": "",
                     "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
                     "position": {"center": (436, 252)},
                     "rect": pygame.rect.Rect(0, 0, 50, 50),
                     "absolute_rect": pygame.rect.Rect(
@@ -299,6 +316,7 @@ class NeuralLab:
                 },
             ],
         }
+        neural_frame_surface = self.neural_frame_surface.copy()
 
         for sensor in self.neural_network["sensors"]:
             sensor["rect"] = sensor["surface"].get_rect(**sensor["position"])
@@ -309,11 +327,21 @@ class NeuralLab:
                 (25, 25),
                 22,
             )
-            self.neural_frame_surface.blit(sensor["surface"], sensor["rect"])
+            neural_frame_surface.blit(sensor["surface"], sensor["rect"])
 
             pygame.draw.circle(sensor["filled_surface"], Colors.bg_color, (25, 25), 25)
             pygame.draw.circle(
                 sensor["filled_surface"],
+                self.neural_network["sensor_info"]["filled_bg"],
+                (25, 25),
+                22,
+            )
+
+            pygame.draw.circle(
+                sensor["selected_surface"], (255, 255, 255), (25, 25), 25
+            )
+            pygame.draw.circle(
+                sensor["selected_surface"],
                 self.neural_network["sensor_info"]["filled_bg"],
                 (25, 25),
                 22,
@@ -329,6 +357,7 @@ class NeuralLab:
                 22,
             )
 
+            neural_frame_surface.blit(actuator["surface"], actuator["rect"])
             pygame.draw.circle(
                 actuator["filled_surface"], Colors.bg_color, (25, 25), 25
             )
@@ -338,11 +367,20 @@ class NeuralLab:
                 (25, 25),
                 22,
             )
-            self.neural_frame_surface.blit(actuator["surface"], actuator["rect"])
 
-        self.surface.blit(self.neural_frame_surface, self.neural_frame_rect)
+            pygame.draw.circle(
+                actuator["selected_surface"], (255, 255, 255), (25, 25), 25
+            )
+            pygame.draw.circle(
+                actuator["selected_surface"],
+                self.neural_network["actuator_info"]["filled_bg"],
+                (25, 25),
+                22,
+            )
 
-    def __configure_unleash_organism_click(self):
+        self.surface.blit(neural_frame_surface, self.neural_frame_rect)
+
+    def _configure_unleash_organism_click(self):
         self.unleash_organism_button = {
             "current_image": None,
             "image": pygame.image.load(
@@ -387,30 +425,93 @@ class NeuralLab:
 
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            return self.__handle_mouse_down(event)
+            return self._handle_mouse_down(event)
         elif event.type == pygame.MOUSEBUTTONUP:
-            return self.__handle_mouse_up(event)
+            return self._handle_mouse_up(event)
 
-    def __handle_mouse_down(self, event):
+    def _handle_mouse_down(self, event):
         self.__handle_sensor_click(event)
         self.__handle_actuator_click(event)
         self.__handle_unleash_organism_on_mouse_down(event)
+        self.__handle_neuron_on_mouse_down(event)
+
+    def __handle_neuron_on_mouse_down(self, event):
         for i in range(len(self.neural_network["sensors"])):
             if self.neural_network["sensors"][i]["absolute_rect"].collidepoint(
                 event.pos
             ):
                 if self.selected_sensor:
+                    # sensor change, hence, trigger a deletion of the connections to this sensor
+                    indices_to_remove = [
+                        j
+                        for j, conn in enumerate(self.neural_network["lines"])
+                        if conn[0] == self.neural_network["sensors"][i]["rect"].center
+                    ]
+
+                    # Remove elements in reverse order to avoid shifting issues
+                    for index in reversed(indices_to_remove):
+                        self.neural_network["connections"].pop(index)
+                        self.neural_network["lines"].pop(index)
+
+                    # Then change the sensor name
                     self.neural_network["sensors"][i]["name"] = self.selected_sensor[
                         "name"
                     ]
+
+                elif self.neural_network["sensors"][i]["name"]:
+                    self.neural_network["selected_sensor"] = i
+                break
 
         for i in range(len(self.neural_network["actuators"])):
             if self.neural_network["actuators"][i]["absolute_rect"].collidepoint(
                 event.pos
             ):
-                self.neural_network["actuators"][i]["name"] = self.selected_actuator[
-                    "name"
-                ]
+                if self.selected_actuator:
+                    # actuator change, hence, trigger a deletion of the all connections to this actuator
+                    indices_to_remove = [
+                        j
+                        for j, conn in enumerate(self.neural_network["lines"])
+                        if conn[1] == self.neural_network["actuators"][i]["rect"].center
+                    ]
+
+                    # Remove elements in reverse order to avoid shifting issues
+                    for index in reversed(indices_to_remove):
+                        self.neural_network["connections"].pop(index)
+                        self.neural_network["lines"].pop(index)
+
+                    # Then change the actuator name
+                    self.neural_network["actuators"][i]["name"] = (
+                        self.selected_actuator["name"]
+                    )
+
+                elif self.neural_network["actuators"][i]["name"]:
+                    self.neural_network["selected_actuator"] = i
+                break
+
+        if (
+            self.neural_network["selected_sensor"] is not None
+            and self.neural_network["selected_actuator"] is not None
+        ):
+            sensor = self.neural_network["sensors"][
+                self.neural_network["selected_sensor"]
+            ]
+            actuator = self.neural_network["actuators"][
+                self.neural_network["selected_actuator"]
+            ]
+            self.neural_network["connections"].append(
+                (
+                    sensor["name"],
+                    actuator["name"],
+                )
+            )
+            self.neural_network["lines"].append(
+                (
+                    sensor["rect"].center,
+                    actuator["rect"].center,
+                )
+            )
+            self.neural_network["selected_sensor"] = None
+            self.neural_network["selected_actuator"] = None
 
     def __handle_unleash_organism_on_mouse_down(self, event):
         if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
@@ -418,7 +519,7 @@ class NeuralLab:
                 self.unleash_organism_button["clicked_image"]
             )
 
-    def __handle_mouse_up(self, event):
+    def _handle_mouse_up(self, event):
         return next(
             filter(
                 lambda packet: packet is not None,
@@ -480,6 +581,7 @@ class NeuralLab:
                 self.selected_actuator = None
 
     def update(self, context=None):
+
         for sensor in self.sensors:
             self.surface.blit(sensor["current_surface"], sensor["rect"])
 
@@ -493,6 +595,11 @@ class NeuralLab:
             self.unleash_organism_button["rect"],
         )
 
+        neural_frame_surface = self.neural_frame_surface.copy()
+
+        for line in self.neural_network["lines"]:
+            pygame.draw.line(neural_frame_surface, Colors.primary, *line, 3)
+
         for sensor in self.neural_network["sensors"]:
             if sensor["name"]:
                 sensor_surface = sensor["filled_surface"].copy()
@@ -501,7 +608,7 @@ class NeuralLab:
             else:
                 sensor_surface = sensor["surface"]
 
-            self.neural_frame_surface.blit(sensor_surface, sensor["rect"])
+            neural_frame_surface.blit(sensor_surface, sensor["rect"])
 
         for actuator in self.neural_network["actuators"]:
             if actuator["name"]:
@@ -511,11 +618,11 @@ class NeuralLab:
             else:
                 actuator_surface = actuator["surface"]
 
-            self.neural_frame_surface.blit(actuator_surface, actuator["rect"])
+            neural_frame_surface.blit(actuator_surface, actuator["rect"])
 
-        self.surface.blit(self.neural_frame_surface, self.neural_frame_rect)
+        self.surface.blit(neural_frame_surface, self.neural_frame_rect)
 
-    def __setup_surface(self):
+    def _setup_surface(self):
         surface = pygame.Surface(
             size=(
                 pygame.image.load(
@@ -555,7 +662,7 @@ class NeuralLab:
         )
         return surface
 
-    def __configure_sensors(self, sensors):
+    def _configure_sensors(self, sensors):
         sensors.extend(
             [
                 {
