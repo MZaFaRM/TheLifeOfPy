@@ -3,7 +3,7 @@ import os
 import pygame
 
 from config import Colors, image_assets
-from enums import EventType, MessagePacket, MessagePackets
+from enums import EventType, MessagePacket
 from handlers.organisms import Counter
 
 
@@ -204,11 +204,9 @@ class SidebarComponent:
                     button = self.buttons["create_organism"]
                     button["current_image"] = button["clicked_image"]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield MessagePackets(
-                        MessagePacket(
-                            EventType.NAVIGATION,
-                            "laboratory",
-                        ),
+                    yield MessagePacket(
+                        EventType.NAVIGATION,
+                        "laboratory",
                     )
             else:
                 button = self.buttons["create_organism"]

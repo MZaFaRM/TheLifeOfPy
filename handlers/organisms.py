@@ -1,3 +1,4 @@
+import math
 import random
 
 import noise
@@ -29,17 +30,22 @@ from config import Colors, Fonts
 class PlantManager:
     def __init__(self, context=None) -> None:
         self.env_surface = context["env_surface"]
-        self.scale = 1000
-        self.dx = random.uniform(0, 100)
-        self.dy = random.uniform(0, 100)
-        self.dz = random.uniform(0, 100)
-        self.perlin_frequency = 0.02
+        self.origins = np.array(
+            [
+                (
+                    random.randrange(0, self.env_surface.get_width()),
+                    random.randrange(0, self.env_surface.get_height()),
+                )
+                for _ in range(5)
+            ]
+        )
+        self.radii = np.array([random.randint(50, 100) for _ in range(5)])
         self.plants = pygame.sprite.Group()
 
-    def bulk_generate_plants_patch(self, n=100):
+    def bulk_generate_plants_patch(self, n):
+        cluster_points = self.get_random_coords(n)
         for _ in range(n):
             # Use single-layer Perlin noise for simplicity
-            cluster_points = self.get_coords_from_noise()
             for x, y in cluster_points:
                 self.plants.add(
                     agents.Plant(
@@ -50,43 +56,22 @@ class PlantManager:
 
         return self.plants
 
-    def get_coords_from_noise(self):
-        # Increment dx and dy for smooth noise
-        self.dx += self.perlin_frequency
-        self.dy += self.perlin_frequency
+    def get_random_coords(self, n):
+        for _ in range(n):
+            origin_x, origin_y = random.choice(self.origins)
+            radius = random.choice(self.radii)
 
-        x_noise = snoise2(self.dx, self.dy)
-        y_noise = snoise2(self.dx + 100, self.dy + 100)
+            r = radius * math.sqrt(random.random())
+            theta = random.uniform(0, 2 * math.pi)
 
-        # Scale and normalize noise values to environment dimensions
-        center_x = int(((x_noise + 1) / 2) * (self.env_surface.get_width() - 75))
-        center_y = int(((y_noise + 1) / 2) * (self.env_surface.get_height() - 75))
+            x = origin_x + int(r * math.cos(theta))
+            y = origin_y + int(r * math.sin(theta))
 
-        cluster_points = []
-        cluster_radius = 50
-        for _ in range(5):
-            offset_x = random.uniform(-cluster_radius, cluster_radius)
-            offset_y = random.uniform(-cluster_radius, cluster_radius)
-            cluster_x = max(
-                0,
-                min(
-                    self.env_surface.get_width() - 75,
-                    center_x + offset_x,
-                ),
-            )
-            cluster_y = max(
-                0,
-                min(
-                    self.env_surface.get_height() - 75,
-                    center_y + offset_y,
-                ),
-            )
-            cluster_points.append((int(cluster_x), int(cluster_y)))
-
-        return cluster_points
+            yield x, y
 
     def create_plant_patch(self):
-        cluster_points = self.get_coords_from_noise()
+        self.radii += 10
+        cluster_points = self.get_random_coords(10)
         for x, y in cluster_points:
             self.plants.add(agents.Plant(self.env_surface, pos=(x, y)))
 

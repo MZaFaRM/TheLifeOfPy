@@ -41,7 +41,7 @@ class Nature:
             }
         )
         self.creatures = self.creature_manager.generate_creatures(n=0)
-        self.plant_manager.bulk_generate_plants_patch(n=10)
+        self.plant_manager.bulk_generate_plants_patch(n=20)
 
     def remove_food(self, position):
         for plant in self.plant_manager.get_plants():
@@ -54,26 +54,28 @@ class Nature:
         reward = 0
 
         events = pygame.event.get()
-        updates = list(self.ui_handler.event_handler(events))
+        packet = list(self.ui_handler.event_handler(events))
         self.time_steps += 1
-        if updates:
-            print("Updates: ", *updates)
-            for packets in updates:
-                if "pause_time" in packets:
-                    self.paused = True
-                if "play_time" in packets:
-                    self.paused = False
-                if MessagePacket(EventType.NAVIGATION, "home") in packets:
-                    self.paused = False
-                    self.ui_handler.initialize_screen(screen="home")
-                if MessagePacket(EventType.NAVIGATION, "laboratory") in packets:
-                    self.paused = True
-                    self.ui_handler.initialize_screen(screen="laboratory")
-                if MessagePacket(EventType.OTHER, "create_organism") in packets:
-                    i = packets.index(MessagePacket(EventType.OTHER, "create_organism"))
-                    self.creature_manager.generate_creatures(
-                        n=packets[i].context.pop("initial_population")
+        if packet:
+            packet = packet[0]
+            print("Packet: ", str(packet))
+            if "pause_time" == packet:
+                self.paused = True
+            if "play_time" == packet:
+                self.paused = False
+            if MessagePacket(EventType.NAVIGATION, "home") == packet:
+                self.paused = False
+                self.ui_handler.initialize_screen(screen="home")
+
+                if EventType.GENESIS in packet.context:
+                    data = packet.context[EventType.GENESIS]
+                    self.creatures = self.creature_manager.generate_creatures(
+                        n=data["initial_population"]
                     )
+
+            if packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
+                self.paused = True
+                self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:
             return self.get_observation(), reward, self.done, self.truncated
@@ -87,7 +89,7 @@ class Nature:
         # self.done = all(creature.done for creature in creatures)
         self.truncated = False  # or len(self.creatures) == 0
 
-        if self.time_steps % 100 == 0:
+        if self.time_steps % 75 == 0:
             self.plant_manager.create_plant_patch()
 
         return self.get_observation(), reward, self.done, self.truncated

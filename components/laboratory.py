@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 
 from config import Colors, Fonts, image_assets
-from enums import EventType, MessagePacket, MessagePackets
+from enums import EventType, MessagePacket
 import helper
 
 
@@ -62,7 +62,7 @@ class LaboratoryComponent:
                     self.back_button["current_image"] = self.back_button["image"]
                 else:
                     # If not in "neural_lab", navigate to home
-                    yield MessagePackets(MessagePacket(EventType.NAVIGATION, "home"))
+                    yield MessagePacket(EventType.NAVIGATION, "home")
             else:
                 self.back_button["current_image"] = self.back_button["image"]
 
@@ -73,11 +73,24 @@ class LaboratoryComponent:
         ).event_handler(event):
             if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
                 # Navigate to "neural_lab" sub-component and store its context
+                self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
                 self.curr_sub_component = "neural_lab"
-                self.user_inputs = packet.context
+
+            elif packet == MessagePacket(EventType.NAVIGATION, "home"):
+                self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
+
+                user_input = {
+                    "initial_population": self.user_inputs.get("initial_population", 0),
+                }
+
+                yield MessagePacket(
+                    EventType.NAVIGATION,
+                    "home",
+                    context={EventType.GENESIS: user_input},
+                )
             else:
                 # Yield the packet as is
-                yield MessagePackets(packet)
+                yield packet
 
     def __configure_back_button(self):
         self.back_button = {
@@ -432,8 +445,8 @@ class NeuralLab:
     def _handle_mouse_down(self, event):
         self.__handle_sensor_click(event)
         self.__handle_actuator_click(event)
-        self.__handle_unleash_organism_on_mouse_down(event)
         self.__handle_neuron_on_mouse_down(event)
+        self.__handle_unleash_organism_on_mouse_down(event)
 
     def __handle_neuron_on_mouse_down(self, event):
         for i in range(len(self.neural_network["sensors"])):
@@ -518,6 +531,26 @@ class NeuralLab:
             self.unleash_organism_button["current_image"] = (
                 self.unleash_organism_button["clicked_image"]
             )
+            yield MessagePacket(
+                EventType.NAVIGATION,
+                "home",
+                context={EventType.GENESIS: self.__get_user_input()},
+            )
+
+    def __get_user_input(self):
+        return {
+            "sensors": [
+                sensor["name"]
+                for sensor in self.neural_network["sensors"]
+                if sensor["name"]
+            ],
+            "actuators": [
+                actuator["name"]
+                for actuator in self.neural_network["actuators"]
+                if actuator["name"]
+            ],
+            "connections": self.neural_network["connections"],
+        }
 
     def _handle_mouse_up(self, event):
         return next(
@@ -1203,7 +1236,7 @@ class AttributesLab:
         return MessagePacket(
             EventType.NAVIGATION,
             "neural_lab",
-            context=self.__get_user_input(),
+            context={EventType.GENESIS: self.__get_user_input()},
         )
 
     def __handle_traits_options(self, event, selected_option):
