@@ -1,26 +1,113 @@
 from abc import ABC, abstractmethod
 from typing import Any
+import uuid
 import numpy as np
 
 
-# Base Sensor Class
-class Sensor(ABC):
-    def __init__(self, name: str):
-        self.name = name
+class ConnectionGene:
+    def __init__(self, in_node, out_node, weight, enabled, innovation):
+        self.in_node = in_node
+        self.out_node = out_node
+        self.weight = weight
+        self.enabled = enabled
+        self.innovation = innovation
 
-    @abstractmethod
-    def observation(self) -> Any:
-        pass
+
+class NodeGene:
+    def __init__(self, node_id, node_type):
+        self.node_id = node_id
+        self.node_type = node_type
 
 
-# Base Actuator Class
-class Actuator(ABC):
-    def __init__(self, name: str):
-        self.name = name
+class Genome:
+    def __init__(self):
+        self.node_genes = []
+        self.connection_genes = []
+        self.fitness = 0
+        self.adjusted_fitness = 0
+        self.species = None
+        self.id = uuid.uuid4()
 
-    @abstractmethod
-    def execute(self, command: Any) -> None:
-        pass
+    def add_connection_gene(self, in_node, out_node, weight):
+        innovation = self.species.innovation_history.get_innovation(in_node, out_node)
+        connection = ConnectionGene(in_node, out_node, weight, True, innovation)
+        self.connection_genes.append(connection)
+
+    def add_node_gene(self, node_type):
+        node_id = len(self.node_genes)
+        node = NodeGene(node_id, node_type)
+        self.node_genes.append(node)
+        return node
+
+    def mutate(self):
+
+        # Mutate connection weights with a probability of 80%
+        for connection in self.connection_genes:
+            if np.random.rand() < 0.8:
+                connection.weight += np.random.uniform(-0.1, 0.1)
+                connection.weight = np.clip(connection.weight, -1, 1)
+
+        # Mutate add connection with a probability of 10%
+        if np.random.rand() < 0.1:
+            in_node = np.random.choice(self.node_genes)
+            out_node = np.random.choice(self.node_genes)
+            if in_node.node_id != out_node.node_id:
+                self.add_connection_gene(
+                    in_node.node_id, out_node.node_id, np.random.uniform(-1, 1)
+                )
+                
+        # Mutate add node with a probability of 5%
+        if np.random.rand() < 0.05:
+            connection = np.random.choice(self.connection_genes)
+            connection.enabled = False
+            new_node = self.add_node_gene("hidden")
+            self.add_connection_gene(
+                connection.in_node,
+                new_node,
+                1,
+            )
+            self.add_connection_gene(
+                len(self.node_genes) - 1,
+                connection.out_node,
+                connection.weight,
+            )
+            
+    def crossover(self, parent1, parent2):
+        child = Genome()
+        child.species = self.species
+        child.node_genes = parent1.node_genes.copy()
+        child.connection_genes = parent1.connection_genes.copy()
+
+        # Crossover connection genes
+        for connection1 in parent1.connection_genes:
+            matching = False
+            for connection2 in parent2.connection_genes:
+                if connection1.innovation == connection2.innovation:
+                    matching = True
+                    if np.random.rand() < 0.5:
+                        child.connection_genes.append(connection2)
+                    else:
+                        child.connection_genes.append(connection1)
+                    break
+            if not matching:
+                child.connection_genes.append(connection1)
+
+        return child
+
+
+class InnovationHistory:
+    def __init__(self):
+        self.innovation = 0
+        self.innovation_map = {}
+
+    def get_innovation(self, in_node, out_node):
+        connection_key = (in_node, out_node)
+        if connection_key in self.innovation_map:
+            return self.innovation_map[connection_key]
+        else:
+            self.innovation += 1
+            self.innovation_map[connection_key] = self.innovation
+            return self.innovation
 
 
 class SensorManager:

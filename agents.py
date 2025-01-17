@@ -2,7 +2,7 @@ import math
 import pygame
 from pygame.sprite import Sprite
 import helper
-from handlers.neural import SensorManager
+from handlers.neural import Genome, SensorManager
 import numpy as np
 import random
 import noise
@@ -113,6 +113,11 @@ class Creature(Sprite):
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
+        
+        self.genome = Genome()
+        
+    def evaluate(self):
+        return 1
 
     def draw(self, surface, vision_circle=False):
         if not self.states["alive"]:

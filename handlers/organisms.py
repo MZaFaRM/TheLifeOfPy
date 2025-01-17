@@ -118,6 +118,10 @@ class CreatureManager:
             )
 
         return self.creatures
+    
+    def evaluate_creatures(self):
+        for creature in self.creatures:
+            creature.evaluate()
 
     def generate_id(self):
         number = self.creature_population
