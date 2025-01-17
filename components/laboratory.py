@@ -236,99 +236,67 @@ class NeuralLab:
             "lines": [],
             "selected_sensor": None,
             "selected_actuator": None,
-            "sensors": [
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (236, 134)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "selected": False,
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 134 - 25,
-                        50,
-                        50,
-                    ),
-                },
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (236, 193)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "selected": False,
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 193 - 25,
-                        50,
-                        50,
-                    ),
-                },
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (236, 252)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "selected": False,
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 236 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 252 - 25,
-                        50,
-                        50,
-                    ),
-                },
-            ],
-            "actuators": [
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (436, 134)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 134 - 25,
-                        50,
-                        50,
-                    ),
-                },
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (436, 193)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 193 - 25,
-                        50,
-                        50,
-                    ),
-                },
-                {
-                    "name": "",
-                    "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
-                    "position": {"center": (436, 252)},
-                    "rect": pygame.rect.Rect(0, 0, 50, 50),
-                    "absolute_rect": pygame.rect.Rect(
-                        self.surface_x_offset + self.neural_frame_rect.x + 436 - 25,
-                        self.surface_y_offset + self.neural_frame_rect.y + 252 - 25,
-                        50,
-                        50,
-                    ),
-                },
-            ],
+            "sensors": [],
+            "actuators": [],
         }
+
+        sensor_positions = [
+            (138, 76),
+            (138, 154),
+            (138, 232),
+            (138, 310),
+            (206 + 25, 113),
+            (206 + 25, 191),
+            (206 + 25, 269),
+        ]
+        actuator_positions = [
+            (529, 76),
+            (529, 154),
+            (529, 232),
+            (529, 310),
+            (461 - 25, 113),
+            (461 - 25, 191),
+            (461 - 25, 269),
+        ]
+
+        self.neural_network["sensors"] = [
+            {
+                "name": "",
+                "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "position": {"center": pos},
+                "rect": pygame.rect.Rect(0, 0, 50, 50),
+                "selected": False,
+                "absolute_rect": pygame.rect.Rect(
+                    self.surface_x_offset + self.neural_frame_rect.x + pos[0] - 25,
+                    self.surface_y_offset + self.neural_frame_rect.y + pos[1] - 25,
+                    50,
+                    50,
+                ),
+            }
+            for pos in sensor_positions
+        ]
+
+        self.neural_network["actuators"] = [
+            {
+                "name": "",
+                "surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "filled_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "selected_surface": pygame.Surface((50, 50), pygame.SRCALPHA),
+                "position": {"center": pos},
+                "rect": pygame.rect.Rect(0, 0, 50, 50),
+                "selected": False,
+                "absolute_rect": pygame.rect.Rect(
+                    self.surface_x_offset + self.neural_frame_rect.x + pos[0] - 25,
+                    self.surface_y_offset + self.neural_frame_rect.y + pos[1] - 25,
+                    50,
+                    50,
+                ),
+            }
+            for pos in actuator_positions
+        ]
+
         neural_frame_surface = self.neural_frame_surface.copy()
 
         for sensor in self.neural_network["sensors"]:
