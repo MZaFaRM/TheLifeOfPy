@@ -30,7 +30,7 @@ class Nature:
         self.ui_handler.initialize_screen(screen="home")
         env_surface = self.ui_handler.get_component(name="env").surface
 
-        self.creature_manager = organisms.CreatureManager(
+        self.creature_manager = organisms.Species(
             context={
                 "env_surface": env_surface,
             }
@@ -40,7 +40,7 @@ class Nature:
                 "env_surface": env_surface,
             }
         )
-        self.creatures = self.creature_manager.generate_creatures(n=0)
+        self.creatures = []
         self.plant_manager.bulk_generate_plants_patch(n=20)
 
     def remove_food(self, position):
@@ -70,7 +70,7 @@ class Nature:
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
                     self.creatures = self.creature_manager.generate_creatures(
-                        n=data["initial_population"]
+                        n=data.pop("base_pop"), context=data
                     )
 
             if packet == MessagePacket(EventType.NAVIGATION, "laboratory"):

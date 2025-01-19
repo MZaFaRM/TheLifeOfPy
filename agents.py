@@ -2,7 +2,7 @@ import math
 import pygame
 from pygame.sprite import Sprite
 import helper
-from handlers.neural import Genome, SensorManager
+from handlers.neural import Genome
 import numpy as np
 import random
 import noise
@@ -11,23 +11,19 @@ from uuid import uuid4
 
 
 class Creature(Sprite):
-    def __init__(
-        self,
-        surface,
-        sensors,
-        radius=5,
-        position=None,
-        color=(124, 245, 255),
-        parents=None,
-        initial_energy=None,
-    ):
+    def __init__(self, surface, context):
         super().__init__()
+        position = context.get("position", None)
+        color = context.get("color", (124, 245, 255))
+        parents = context.get("parents", None)
+        initial_energy = context.get("initial_energy", None)
 
         self.attrs = {
             "id": uuid4(),
             "color": color,
-            "radius": radius,
+            "radius": context.get("radius", 5),
             "mating_timeout": random.randint(150, 300),
+            "genome" : Genome(context.get("genome")),
             "colors": {
                 "alive": color,
                 "dead": (0, 0, 0),
@@ -39,7 +35,6 @@ class Creature(Sprite):
             },
             "max_energy": 500,
             "max_speed": random.randint(1, 2),
-            "sensors" : sensors,
             "vision": {
                 "radius": 40,
                 "color": {
@@ -113,9 +108,7 @@ class Creature(Sprite):
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
-        
-        self.genome = Genome()
-        
+
     def evaluate(self):
         return 1
 
@@ -304,14 +297,14 @@ class Creature(Sprite):
             self.parsed_dna = self.creature_manager.get_parsed_dna(self.DNA)
 
         observations = []
-        for sensor in self.parsed_dna:
-            observation_func = getattr(SensorManager, f"obs_{sensor}", None)
-            if observation_func is not None:
-                observation = observation_func(self.env, self)
-                observations.append(observation)
-            else:
-                # Handle the case where the sensor doesn't exist
-                raise Exception(f"Error: No method for sensor {sensor}")
+        # for sensor in self.parsed_dna:
+        #     observation_func = getattr(SensorManager, f"obs_{sensor}", None)
+        #     if observation_func is not None:
+        #         observation = observation_func(self.env, self)
+        #         observations.append(observation)
+        #     else:
+        #         # Handle the case where the sensor doesn't exist
+        #         raise Exception(f"Error: No method for sensor {sensor}")
         return observations
 
 

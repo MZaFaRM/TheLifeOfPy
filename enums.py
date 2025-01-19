@@ -1,5 +1,10 @@
 from enum import Enum
 
+class NeuronType(Enum):
+    SENSOR = "sensor"
+    HIDDEN = "hidden"
+    ACTUATOR = "actuator"
+    BIAS = "bias"
 
 class Base(Enum):
     food = "food"

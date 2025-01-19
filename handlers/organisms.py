@@ -1,10 +1,8 @@
 import math
 import random
 
-import noise
 import numpy as np
 import pygame
-from noise import pnoise1, pnoise2, snoise2
 
 import agents
 from config import Colors, Fonts
@@ -82,7 +80,7 @@ class PlantManager:
         self.plants.remove(plant)
 
 
-class CreatureManager:
+class Species:
     base = 4  # Since Adenine, Thymine, Guanine, Cytosine
     dna_value = {
         0: "A",
@@ -106,19 +104,17 @@ class CreatureManager:
         return 1
         return self.generate_dna(creature)
 
-    def generate_creatures(self, n=50, *args, **kwargs):
+    def generate_creatures(self, n, context):
         for _ in range(n):
             self.creatures.add(
                 agents.Creature(
                     surface=self.surface,
-                    sensors=None,
-                    *args,
-                    **kwargs,
+                    context=context,
                 )
             )
 
         return self.creatures
-    
+
     def evaluate_creatures(self):
         for creature in self.creatures:
             creature.evaluate()

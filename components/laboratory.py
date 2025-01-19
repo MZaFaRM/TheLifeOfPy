@@ -1,5 +1,6 @@
 import contextlib
 import os
+import random
 import re
 
 import numpy as np
@@ -7,6 +8,7 @@ import pygame
 
 from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket
+from handlers.neural import NeuronManager
 import helper
 
 
@@ -34,8 +36,8 @@ class LaboratoryComponent:
 
         self.__configure_back_button()
 
-        self.curr_sub_component = "attrs_lab"
-        self.sub_component_states = {
+        self.curr_sub_comp = "attrs_lab"
+        self.sub_comp_states = {
             "attrs_lab": AttributesLab(main_surface, context),
             "neural_lab": NeuralLab(main_surface, context),
         }
@@ -43,7 +45,7 @@ class LaboratoryComponent:
     def update(self, context=None):
         self.surface.blit(self.bg_image, (0, 0))
         self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
-        sub_component = self.sub_component_states[self.curr_sub_component]
+        sub_component = self.sub_comp_states[self.curr_sub_comp]
         sub_component.update(context)
         self.surface.blit(sub_component.surface, (0, 0))
 
@@ -56,9 +58,9 @@ class LaboratoryComponent:
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if self.back_button["absolute_rect"].collidepoint(event.pos):
-                if self.curr_sub_component == "neural_lab":
+                if self.curr_sub_comp == "neural_lab":
                     # If in the "neural_lab", go back to "attrs_lab"
-                    self.curr_sub_component = "attrs_lab"
+                    self.curr_sub_comp = "attrs_lab"
                     self.back_button["current_image"] = self.back_button["image"]
                 else:
                     # If not in "neural_lab", navigate to home
@@ -68,19 +70,18 @@ class LaboratoryComponent:
 
         # Handle the events for the current sub-component
         # Process the packet received from the sub-component handler
-        if packet := self.sub_component_states.get(
-            self.curr_sub_component,
+        if packet := self.sub_comp_states.get(
+            self.curr_sub_comp,
         ).event_handler(event):
             if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
                 # Navigate to "neural_lab" sub-component and store its context
                 self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
-                self.curr_sub_component = "neural_lab"
+                self.curr_sub_comp = "neural_lab"
 
             elif packet == MessagePacket(EventType.NAVIGATION, "home"):
-                self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
-
                 user_input = {
-                    "initial_population": self.user_inputs.get("initial_population", 0),
+                    "base_pop": self.user_inputs.get("base_pop", 0),
+                    "genome": packet.context.get(EventType.GENESIS, {}),
                 }
 
                 yield MessagePacket(
@@ -132,79 +133,13 @@ class NeuralLab:
         self.surface = surface
         self.body_font = pygame.font.Font(Fonts.PixelifySansMedium, 21)
 
-        self._configure_sensors(
-            sensors=[
-                {
-                    "name": "Nil",
-                    "description": "A basic sensory organ with minimal input detection.",
-                },
-                {
-                    "name": "Dfd",
-                    "description": "A directional detector helping the creature sense movement patterns.",
-                },
-                {
-                    "name": "Bfs",
-                    "description": "A biochemical sensor for detecting pheromones and chemical traces.",
-                },
-                {
-                    "name": "Cfl",
-                    "description": "A current flow sensor for detecting changes in nearby fluid dynamics.",
-                },
-                {
-                    "name": "Dia",
-                    "description": "A light-sensitive organ for basic image formation and light detection.",
-                },
-                {
-                    "name": "Fwa",
-                    "description": "A vibration sensor for detecting distant sound or surface vibrations.",
-                },
-                {
-                    "name": "Car",
-                    "description": "A scent-based sensor for identifying environmental chemicals and food sources.",
-                },
-                {
-                    "name": "Nil",
-                    "description": "A simple placeholder sensory organ with limited functionality.",
-                },
-            ]
-        )
+        sensors = NeuronManager.sensors.items()
+        sensors = [{"name": key, "desc": value["desc"]} for key, value in sensors]
+        self._configure_sensors(sensors=sensors)
 
-        self.__configure_actuators(
-            actuators=[
-                {
-                    "name": "Psh",
-                    "description": "A basic actuator for applying force to nearby objects.",
-                },
-                {
-                    "name": "Grb",
-                    "description": "An appendage allowing the creature to grasp and manipulate objects.",
-                },
-                {
-                    "name": "Kck",
-                    "description": "A leg-based actuator for powerful thrusts and rapid movement.",
-                },
-                {
-                    "name": "Spn",
-                    "description": "A rotational actuator for spinning parts of the body rapidly.",
-                },
-                {
-                    "name": "Emt",
-                    "description": "An actuator for releasing pheromones or other signals into the environment.",
-                },
-                {
-                    "name": "Flx",
-                    "description": "A muscle-like actuator for bending and contracting movements.",
-                },
-                {
-                    "name": "Wve",
-                    "description": "A fin or limb movement actuator designed for fluid locomotion.",
-                },
-                {
-                    "name": "Nil",
-                    "description": "A placeholder actuator with minimal interaction capabilities.",
-                },
-            ]
-        )
+        actuators = NeuronManager.actuators.items()
+        actuators = [{"name": key, "desc": value["desc"]} for key, value in actuators]
+        self.__configure_actuators(actuators=actuators)
 
         self._configure_neural_frame()
         self._configure_unleash_organism_click()
@@ -219,7 +154,7 @@ class NeuralLab:
 
         # Position fetched from figma
         self.neural_network = {
-            "scale_factor": 1.2,
+            "line_color": lambda: random.choices(range(256), k=3),
             "sensor_info": {
                 "default_bg": (221, 185, 103),
                 "text_color": (0, 0, 0),
@@ -411,10 +346,16 @@ class NeuralLab:
             return self._handle_mouse_up(event)
 
     def _handle_mouse_down(self, event):
-        self.__handle_sensor_click(event)
-        self.__handle_actuator_click(event)
-        self.__handle_neuron_on_mouse_down(event)
-        self.__handle_unleash_organism_on_mouse_down(event)
+        response = None
+        for res in (
+            self.__handle_sensor_click(event),
+            self.__handle_actuator_click(event),
+            self.__handle_neuron_on_mouse_down(event),
+            self.__handle_unleash_organism_on_mouse_down(event),
+        ):
+            if res:
+                response = res
+        return response
 
     def __handle_neuron_on_mouse_down(self, event):
         for i in range(len(self.neural_network["sensors"])):
@@ -499,7 +440,7 @@ class NeuralLab:
             self.unleash_organism_button["current_image"] = (
                 self.unleash_organism_button["clicked_image"]
             )
-            yield MessagePacket(
+            return MessagePacket(
                 EventType.NAVIGATION,
                 "home",
                 context={EventType.GENESIS: self.__get_user_input()},
@@ -507,16 +448,16 @@ class NeuralLab:
 
     def __get_user_input(self):
         return {
-            "sensors": [
+            "sensors": (
                 sensor["name"]
                 for sensor in self.neural_network["sensors"]
                 if sensor["name"]
-            ],
-            "actuators": [
+            ),
+            "actuators": (
                 actuator["name"]
                 for actuator in self.neural_network["actuators"]
                 if actuator["name"]
-            ],
+            ),
             "connections": self.neural_network["connections"],
         }
 
@@ -546,7 +487,7 @@ class NeuralLab:
             if sensor["absolute_rect"].collidepoint(event.pos):
                 self.selected_sensor = sensor
                 sensor["current_surface"] = sensor["clicked_surface"]
-                self.__update_sensor_text(sensor_desc_text=sensor["description"])
+                self.__update_sensor_text(sensor_desc_text=sensor["desc"])
                 break
 
     def __handle_actuator_click(self, event):
@@ -554,7 +495,7 @@ class NeuralLab:
             if actuator["absolute_rect"].collidepoint(event.pos):
                 self.selected_actuator = actuator
                 actuator["current_surface"] = actuator["clicked_surface"]
-                self.__update_actuator_text(actuator_desc_text=actuator["description"])
+                self.__update_actuator_text(actuator_desc_text=actuator["desc"])
                 break
 
     def __reset_sensors_on_mouse_up(self, event):
@@ -599,7 +540,11 @@ class NeuralLab:
         neural_frame_surface = self.neural_frame_surface.copy()
 
         for line in self.neural_network["lines"]:
-            pygame.draw.line(neural_frame_surface, Colors.primary, *line, 3)
+            line_color = self.neural_network["line_color"]
+            if callable(line_color):
+                line_color = line_color()
+
+            pygame.draw.line(neural_frame_surface, line_color, *line, 3)
 
         for sensor in self.neural_network["sensors"]:
             if sensor["name"]:
@@ -668,7 +613,7 @@ class NeuralLab:
             [
                 {
                     "name": "",
-                    "description": "Use this to remove added sensors.",
+                    "desc": "Use this to remove added sensors.",
                 }
             ]
         )
@@ -722,7 +667,7 @@ class NeuralLab:
             self.sensors.append(
                 {
                     "name": sensors[i]["name"],
-                    "description": helper.split_text(sensors[i]["description"]),
+                    "desc": helper.split_text(sensors[i]["desc"]),
                     "selected": False,
                     "current_surface": sensor_surface,
                     "surface": sensor_surface,
@@ -757,7 +702,7 @@ class NeuralLab:
             [
                 {
                     "name": "",
-                    "description": "Use this to remove added actuators",
+                    "desc": "Use this to remove added actuators",
                 }
             ]
         )
@@ -813,7 +758,7 @@ class NeuralLab:
                 {
                     "name": actuators[i]["name"],
                     "selected": False,
-                    "description": helper.split_text(actuators[i]["description"]),
+                    "desc": helper.split_text(actuators[i]["desc"]),
                     "current_surface": actuator_surface,
                     "surface": actuator_surface,
                     "clicked_surface": clicked_actuator_surface,
@@ -926,7 +871,7 @@ class AttributesLab:
 
     def __get_user_input(self):
         return {
-            "initial_population": int(
+            "base_pop": int(
                 self.traits_schema["options"]["Initial Population: "]["data"]
             ),
         }
