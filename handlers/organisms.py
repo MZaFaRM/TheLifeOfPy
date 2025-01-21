@@ -81,18 +81,9 @@ class PlantManager:
 
 
 class Species:
-    base = 4  # Since Adenine, Thymine, Guanine, Cytosine
-    dna_value = {
-        0: "A",
-        1: "T",
-        2: "G",
-        3: "C",
-    }
-
-    situations = ["Food in Vicinity", "Nothing"]
-    behaviours = ["Eat Food", "Roam Random"]
-
     def __init__(self, context=None) -> None:
+        self.name = context.get("name", "Species 1")
+        self.neuron_manager = context["neuron_manager"]
         self.creature_population = 0
         self.surface = context["env_surface"]
         self.alive_count = 0
@@ -105,6 +96,7 @@ class Species:
         return self.generate_dna(creature)
 
     def generate_creatures(self, n, context):
+        context["genome"]["neuron_manager"] = self.neuron_manager
         for _ in range(n):
             self.creatures.add(
                 agents.Creature(

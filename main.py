@@ -4,6 +4,7 @@ from gym.spaces import MultiDiscrete
 
 import agents
 from enums import EventType, MessagePacket
+from handlers import genetics
 import handlers.organisms as organisms
 from handlers.ui import UIHandler
 
@@ -29,10 +30,12 @@ class Nature:
         # self.graph_manager = PopulationPlot([1, 2], 200)
         self.ui_handler.initialize_screen(screen="home")
         env_surface = self.ui_handler.get_component(name="env").surface
+        self.neuron_manager = genetics.NeuronManager()
 
         self.creature_manager = organisms.Species(
             context={
                 "env_surface": env_surface,
+                "neuron_manager": self.neuron_manager,
             }
         )
         self.plant_manager = organisms.PlantManager(
@@ -41,7 +44,7 @@ class Nature:
             }
         )
         self.creatures = []
-        self.plant_manager.bulk_generate_plants_patch(n=20)
+        self.plants = self.plant_manager.bulk_generate_plants_patch(n=20)
 
     def remove_food(self, position):
         for plant in self.plant_manager.get_plants():
@@ -80,6 +83,8 @@ class Nature:
         if self.paused:
             return self.get_observation(), reward, self.done, self.truncated
 
+        self.neuron_manager.update(self.creatures, self.plants)
+
         # Batch all steps before rendering
         for creature in self.creatures:
             creature.step()
@@ -93,9 +98,6 @@ class Nature:
             self.plant_manager.create_plant_patch()
 
         return self.get_observation(), reward, self.done, self.truncated
-
-    def reset(self):
-        return
 
     def render(self):
         self.ui_handler.update_screen(
@@ -113,7 +115,6 @@ try:
     env = Nature()
 
     # while True:
-    env.reset()
     env.render()
     done = False
     truncated = False

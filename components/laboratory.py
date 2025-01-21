@@ -8,7 +8,7 @@ import pygame
 
 from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket
-from handlers.neural import NeuronManager
+from handlers.genetics import NeuronManager
 import helper
 
 
@@ -448,12 +448,12 @@ class NeuralLab:
 
     def __get_user_input(self):
         return {
-            "sensors": (
+            "sensors": tuple(
                 sensor["name"]
                 for sensor in self.neural_network["sensors"]
                 if sensor["name"]
             ),
-            "actuators": (
+            "actuators": tuple(
                 actuator["name"]
                 for actuator in self.neural_network["actuators"]
                 if actuator["name"]

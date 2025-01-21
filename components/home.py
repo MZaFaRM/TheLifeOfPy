@@ -235,7 +235,7 @@ class SidebarComponent:
         alive = 0
         dead = 0
         for creature in creatures:
-            if creature.states["alive"]:
+            if creature.alive:
                 alive += 1
             else:
                 dead += 1
