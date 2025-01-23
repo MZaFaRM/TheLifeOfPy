@@ -32,24 +32,24 @@ class Nature:
         env_surface = self.ui_handler.get_component(name="env").surface
         self.neuron_manager = genetics.NeuronManager()
 
-        self.creature_manager = organisms.Species(
+        self.species = organisms.Species(
             context={
                 "env_surface": env_surface,
                 "neuron_manager": self.neuron_manager,
             }
         )
-        self.plant_manager = organisms.PlantManager(
+        self.forest = organisms.Forest(
             context={
                 "env_surface": env_surface,
             }
         )
         self.creatures = []
-        self.plants = self.plant_manager.bulk_generate_plants_patch(n=20)
+        self.plants = self.forest.bulk_generate_plants_patch(n=20)
 
     def remove_food(self, position):
-        for plant in self.plant_manager.get_plants():
+        for plant in self.forest.get_plants():
             if plant.rect.collidepoint(position):
-                self.plant_manager.remove_plant(plant)
+                self.forest.remove_plant(plant)
                 return True
         return False
 
@@ -72,7 +72,7 @@ class Nature:
 
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
-                    self.creatures = self.creature_manager.generate_creatures(
+                    self.creatures = self.species.generate_creatures(
                         n=data.pop("base_pop"), context=data
                     )
 
@@ -84,10 +84,7 @@ class Nature:
             return self.get_observation(), reward, self.done, self.truncated
 
         self.neuron_manager.update(self.creatures, self.plants)
-
-        # Batch all steps before rendering
-        for creature in self.creatures:
-            creature.step()
+        self.species.step()
 
         # self.graph_manager.update_population(self.time_steps, creature_data)
         self.clock.tick(1000)
@@ -95,15 +92,15 @@ class Nature:
         self.truncated = False  # or len(self.creatures) == 0
 
         if self.time_steps % 75 == 0:
-            self.plant_manager.create_plant_patch()
+            self.forest.create_plant_patch()
 
         return self.get_observation(), reward, self.done, self.truncated
 
     def render(self):
         self.ui_handler.update_screen(
             context={
-                "creatures": self.creature_manager.get_creatures(),
-                "plants": self.plant_manager.get_plants(),
+                "creatures": self.species.get_creatures(),
+                "plants": self.forest.get_plants(),
             }
         )
 

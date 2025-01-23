@@ -28,7 +28,7 @@ class Creature(Sprite):
             context.get("genome")
         )  # Assuming Genome is defined elsewhere
         self.max_energy = 500
-        self.max_speed = random.randint(1, 2)
+        self.speed = 1
 
         # Keeping deep dictionaries
         self.colors = {
@@ -52,21 +52,10 @@ class Creature(Sprite):
             "mate": {"state": Base.looking, "mate": None},
         }
 
-        colors = [
-            "#f94144",
-            "#f3722c",
-            "#f8961e",
-            "#f9c74f",
-            "#90be6d",
-            "#43aa8b",
-            "#577590",
-        ]
-
-        self.color = colors[self.max_speed - 1]
+        color = "#f94144"
 
         self.angle = 0  # degrees
         self.hunger = 2
-        self.speed = random.randint(1, 2)
         self.alive = True
         self.time = 0
         self.time_alive = 0
@@ -166,7 +155,8 @@ class Creature(Sprite):
                 return
 
             obs = self.genome.observe(self)
-            print(obs)
+            outputs = self.genome.forward(obs)
+            self.genome.step(outputs, self)
             return
             self.time_alive += 1
             self.mating["timeout"] -= 1

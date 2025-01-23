@@ -25,7 +25,7 @@ from config import Colors, Fonts
 # Current Energy Usage Rate (Rate)
 
 
-class PlantManager:
+class Forest:
     def __init__(self, context=None) -> None:
         self.env_surface = context["env_surface"]
         self.origins = np.array(
@@ -124,6 +124,10 @@ class Species:
             result.insert(0, 0)
 
         return "".join(self.dna_value[digit] for digit in result)
+
+    def step(self):
+        for creature in self.creatures:
+            creature.step()
 
     def get_parsed_dna(self, DNA):
         creature_sensors = [DNA[i : i + 5] for i in range(6, len(DNA), 5)]

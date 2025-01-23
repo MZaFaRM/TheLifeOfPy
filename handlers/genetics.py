@@ -17,8 +17,9 @@ class ConnectionGene:
 
 
 class NodeGene:
-    def __init__(self, node_id, node_type):
+    def __init__(self, node_id, node_type, node_name=None):
         self.node_id = node_id
+        self.node_name = node_id or node_name
         self.node_type = node_type
 
     def __eq__(self, value):
@@ -41,23 +42,79 @@ class Genome:
         self.neuron_manager = genome_data.get("neuron_manager")
 
         if self.genome_data:
-            for sensor in genome_data["sensors"]:
-                self.add_node_gene(node_type=NeuronType.SENSOR, node_id=sensor)
-            for actuator in genome_data["actuators"]:
-                self.add_node_gene(node_type=NeuronType.ACTUATOR, node_id=actuator)
+            for sensor_id in genome_data["sensors"]:
+                self.add_node_gene(node_type=NeuronType.SENSOR, node_id=sensor_id)
+            for actuator_id in genome_data["actuators"]:
+                self.add_node_gene(node_type=NeuronType.ACTUATOR, node_id=actuator_id)
 
             for n1, n2 in genome_data["connections"]:
                 self.add_connection_gene(n1, n2, np.random.uniform(-1, 1))
 
     def observe(self, creature):
         observations = []
-        for sensor in self.genome_data["sensors"]:
-            if sensor in self.neuron_manager.sensors:
-                sensor_method = getattr(self.neuron_manager, f"obs_{sensor}")
+        for sensor_id in self.genome_data["sensors"]:
+            if sensor_id in self.neuron_manager.sensors:
+                sensor_method = getattr(self.neuron_manager, f"obs_{sensor_id}")
                 observations.append(sensor_method(creature))
             else:
-                raise ValueError(f"Unknown sensor: {sensor}")
+                raise ValueError(f"Unknown sensor: {sensor_id}")
         return observations
+
+    def forward(self, inputs):
+        activations = {}
+
+        # Step 1: Initialize sensor nodes with input values
+        sensor_nodes = [
+            node for node in self.node_genes if node.node_type == NeuronType.SENSOR
+        ]
+        if len(inputs) != len(sensor_nodes):
+            raise ValueError(
+                f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}."
+            )
+
+        for node, value in zip(sensor_nodes, inputs):
+            activations[node.node_id] = value
+
+        # Step 2: Initialize hidden & output nodes to 0
+        for node in self.node_genes:
+            if node.node_type != NeuronType.SENSOR:
+                activations[node.node_id] = 0
+
+        # Step 3: Process connections in a feed-forward manner
+        for connection in sorted(
+            self.connection_genes, key=lambda c: c.in_node
+        ):  # Sort for consistency
+            if connection.enabled:
+                activations[connection.out_node] += (
+                    activations[connection.in_node] * connection.weight
+                )
+
+        # Step 4: Apply activation function (sigmoid/tanh/ReLU) to hidden & output nodes
+        def activation_function(x):
+            return np.tanh(x)  # Normalize outputs to [-1, 1]
+
+        for node in self.node_genes:
+            if (
+                node.node_type != NeuronType.SENSOR
+            ):  # Apply activation only to non-input nodes
+                activations[node.node_id] = activation_function(
+                    activations[node.node_id]
+                )
+
+        # Step 5: Return output node activations
+        output_nodes = [
+            node for node in self.node_genes if node.node_type == NeuronType.ACTUATOR
+        ]
+        return {node.node_id: activations[node.node_id] for node in output_nodes}
+
+    def step(self, outputs, creature):
+        context = {}
+        for actuator_id in self.genome_data["actuators"]:
+            if actuator_id in self.neuron_manager.actuators:
+                actuator_method = getattr(self.neuron_manager, f"act_{actuator_id}")
+                actuator_method(creature, outputs[actuator_id])
+            else:
+                raise ValueError(f"Unknown actuator: {actuator_id}")
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node, out_node)
@@ -85,6 +142,18 @@ class Genome:
                 self.add_connection_gene(
                     in_node.node_id, out_node.node_id, np.random.uniform(-1, 1)
                 )
+
+        if np.random.rand() < 0.1:
+            out_node = np.random.choice(
+                [
+                    n
+                    for n in self.node_genes
+                    if n.node_type in {NeuronType.HIDDEN, NeuronType.ACTUATOR}
+                ]
+            )
+            self.add_connection_gene(
+                self.bias_node_id, out_node.node_id, np.random.uniform(-1, 1)
+            )
 
         # Mutate add node with a probability of 5%
         if np.random.rand() < 0.05:
@@ -158,23 +227,18 @@ class NeuronManager:
     sensors = {
         "RNs": {
             "desc": "Generates random noise",
-            "requires": [],
         },
         "FD": {
             "desc": "Distance to nearest food in vision",
-            "requires": ["creature_pos", "nearest_food", "vision_radius"],
         },
         "FA": {
             "desc": "Angle to nearest food",
-            "requires": ["creature_pos", "creature_angle", "nearest_food"],
         },
         # "TSF": {
         #     "desc": "Time since last food",
-        #     "requires": ["last_eaten_time", "current_time", "max_time"],
         # },
         "CD": {
             "desc": "Current direction angle",
-            "requires": ["creature_angle"],
         },
     }
 
@@ -188,14 +252,6 @@ class NeuronManager:
             "requires": ["speed"],
         },
     }
-    
-    # class CreatureData(Enum):
-    #     RandomNoise = "_random_noise"
-    #     NearestFoodInVision = "_nearest_food_in_vision"
-    #     AngleNearestFoodInVision = 
-    #     LastEatenTime = "_last_eaten_time"
-        
-        
 
     def __init__(self, creatures=None, plants=None):
         self.creatures = creatures or []
@@ -207,29 +263,6 @@ class NeuronManager:
 
         self._update_nearest_food()
         self._precompute_trig_values()
-
-    def get_required_context(self, *selected_sensors):
-        """
-        Returns a set of all required context fields based on selected sensors.
-        """
-        required_context = set()
-        for sensor in selected_sensors:
-            if sensor in self.sensors:
-                required_context.update(self.sensors[sensor]["requires"])
-        return required_context
-
-    def process_sensors(self, context, *sensors):
-        """
-        Processes a single sensor by extracting required context and computing its value.
-        """
-        observations = []
-        for sensor in sensors:
-            if sensor not in self.sensors:
-                raise ValueError(f"Unknown sensor: {sensor}")
-            else:
-                sensor_method = getattr(self, f"obs_{sensor}")
-                observations.append(sensor_method(context))
-        return observations
 
     def _update_nearest_food(self):
         """Precompute nearest food for all creatures to avoid redundant calculations."""
@@ -291,11 +324,13 @@ class NeuronManager:
 
     # --- ACTUATOR FUNCTIONS ---
 
-    def act_Chd(self, creature, context):
+    def act_Chd(self, creature, angle):
         """Sets the creature's direction based on the neural network output."""
-        creature.angle = context["direction"] * math.pi
+        turn_angle = angle * math.pi
+        creature.angle = (creature.angle + turn_angle) % (2 * math.pi)
 
-    def act_Mv(self, creature, context):
-        """Moves the creature in its current direction at the given speed."""
-        creature.rect.x += context["speed"] * math.cos(creature.angle)
-        creature.rect.y += context["speed"] * math.sin(creature.angle)
+    def act_Mv(self, creature, activation_strength):
+        """Moves the creature in its current direction if activation greater than 0."""
+        if activation_strength > 0:
+            creature.rect.x += creature.speed * math.cos(creature.angle)
+            creature.rect.y += creature.speed * math.sin(creature.angle)
