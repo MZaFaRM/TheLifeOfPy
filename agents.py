@@ -20,17 +20,16 @@ class Creature(Sprite):
         initial_energy = context.get("initial_energy", None)
 
         color = context.get("color", (124, 245, 255))
-        # self.phenome = Phenome(context.get("phenome"))  # Uncomment if needed
+        # self.phenome = Phenome(context.get("phenome"))
         self.color = color
         self.radius = context.get("radius", 5)
         self.mating_timeout = random.randint(150, 300)
-        self.genome = Genome(
-            context.get("genome")
-        )  # Assuming Genome is defined elsewhere
+        self.genome = Genome(context.get("genome"))
         self.max_energy = 500
         self.speed = 1
+        self.fitness = 0
+        self.seed = random.randint(0, 1000000)
 
-        # Keeping deep dictionaries
         self.colors = {
             "alive": color,
             "dead": (0, 0, 0),
@@ -58,12 +57,11 @@ class Creature(Sprite):
         self.hunger = 2
         self.alive = True
         self.time = 0
-        self.time_alive = 0
+        self.age = 0
         self.acceleration_factor = 0.1
         self.td = random.randint(0, 1000)  # for pnoise generation
         self.energy = initial_energy if initial_energy else self.max_energy
 
-        # Grouped states in a dictionary
         self.mating = {
             "state": Base.not_ready,
             "mate": None,
@@ -78,8 +76,6 @@ class Creature(Sprite):
         self.done = False
         self.color = self.color
 
-        # Create a transparent surface for the creature
-        # +4 for radius
         surface_size = (
             (2 * self.radius) + self.border["thickness"] + (2 * self.vision["radius"])
         )
@@ -146,6 +142,7 @@ class Creature(Sprite):
 
     def step(self):
         self.time += 1
+        self.age += 1
 
         if not self.done:
             self.energy -= 1
@@ -155,10 +152,13 @@ class Creature(Sprite):
                 return
 
             obs = self.genome.observe(self)
-            outputs = self.genome.forward(obs)
-            self.genome.step(outputs, self)
+            output = self.genome.forward(obs)
+            self.genome.step(output, self)
+
+            self.rect.x %= self.env_surface.get_width()
+            self.rect.y %= self.env_surface.get_height()
             return
-            self.time_alive += 1
+            self.age += 1
             self.mating["timeout"] -= 1
 
             if self.mating["timeout"] <= 0:
@@ -171,7 +171,7 @@ class Creature(Sprite):
             self.angle = self.update_angle()
 
         if not self.alive:
-            if (self.time - self.time_alive) < 100:
+            if (self.time - self.age) < 100:
                 return
 
     def set_mate(self, mate):
