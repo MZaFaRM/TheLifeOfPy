@@ -90,6 +90,12 @@ class Nature:
         self.clock.tick(1000)
         # self.done = all(creature.done for creature in creatures)
         self.truncated = False  # or len(self.creatures) == 0
+        if self.creatures and all(creature.done for creature in self.creatures):
+            max_fitness = max([creature.fitness for creature in self.creatures])
+            print(f"Max fitness: {max_fitness}")
+            min_fitness = min([creature.fitness for creature in self.creatures])
+            print(f"Min fitness: {min_fitness}")
+            return
 
         if self.time_steps % 75 == 0:
             self.forest.create_plant_patch()

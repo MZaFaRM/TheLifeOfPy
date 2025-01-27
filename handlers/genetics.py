@@ -41,14 +41,6 @@ class Genome:
         self.innovation_history = InnovationHistory()
         self.genome_data = genome_data or {}
         self.neuron_manager = genome_data.get("neuron_manager")
-        self.perlin = {
-            "scale": 50,
-            "octaves": 6,
-            "persistence": 0.5,
-            "lacunarity": 2.0,
-            "dx": random.randint(0, 10000),
-            "dy": random.randint(0, 10000),
-        }
 
         if self.genome_data:
             sensors = {}
@@ -130,14 +122,13 @@ class Genome:
 
         return max(output_nodes, key=lambda node: activations[node.node_id]).node_name
 
-    def step(self, output, creature):
-        context = {}
-        for actuator_id in self.genome_data["actuators"]:
-            if actuator_id in self.neuron_manager.actuators:
-                actuator_method = getattr(self.neuron_manager, f"act_{actuator_id}")
-                actuator_method(creature)
-            else:
-                raise ValueError(f"Unknown actuator: {actuator_id}")
+    def step(self, actuator_name, creature):
+        if actuator_method := getattr(
+            self.neuron_manager, f"act_{actuator_name}", None
+        ):
+            actuator_method(creature)
+        else:
+            raise ValueError(f"Unknown actuator: {actuator_name}")
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(
@@ -252,23 +243,14 @@ class NeuronManager:
             "desc": "Generates random noise",
         },
         "FD": {
-            "desc": "Distance to nearest food in vision",
-        },
-        "FA": {
-            "desc": "Angle to nearest food",
+            "desc": "Closeness to nearest food in vision",
         },
         # "TSF": {
         #     "desc": "Time since last food",
         # },
-        "CD": {
-            "desc": "Current direction angle",
-        },
     }
 
     actuators = {
-        "Chd": {
-            "desc": "Set creature direction",
-        },
         "Mv": {
             "desc": "Move in current direction",
         },
@@ -331,32 +313,13 @@ class NeuronManager:
         distance = math.sqrt(dx**2 + dy**2)
         return min(distance / creature.vision["radius"], 1.0)
 
-    def obs_FA(self, creature):
-        """Returns the angle to the nearest food source relative to the creature's direction."""
-        if (food := self.nearest_food_map.get(creature)) is None:
-            return 0.0  # No food, return neutral angle
-
-        dx = food.rect.centerx - creature.rect.centerx
-        dy = food.rect.centery - creature.rect.centery
-        angle_to_food = math.atan2(dy, dx)
-        relative_angle = (angle_to_food - creature.angle) % (2 * math.pi)
-        return (relative_angle / math.pi) - 1
-
     # def obs_TSF(self, creature):
     #     """Returns normalized time since last food intake."""
     #     return min(
     #         (self.current_time - creature.last_eaten_time) / creature.max_time, 1.0
     #     )
 
-    def obs_CD(self, creature):
-        """Returns the creature's current facing direction as a normalized value."""
-        return (creature.angle / math.pi) - 1
-
     # --- ACTUATOR FUNCTIONS ---
-
-    def act_Chd(self, creature):
-        """+30 to the creature's direction."""
-        creature.angle = (creature.angle + 30) % (2 * math.pi)
 
     def act_Mv(self, creature):
         """Moves the creature in its current direction with Perlin noise influence."""
