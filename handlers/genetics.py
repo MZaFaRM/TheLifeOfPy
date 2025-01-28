@@ -50,31 +50,31 @@ class Genome:
             "dy": random.randint(0, 10000),
         }
 
-        if self.genome_data:
-            sensors = {}
-            actuators = {}
+        # if self.genome_data:
+        #     sensors = {}
+        #     actuators = {}
 
-            for sensor_name in genome_data["sensors"]:
-                node = self.add_node_gene(
-                    node_type=NeuronType.SENSOR, node_name=sensor_name
-                )
-                sensors[sensor_name] = node
-            for actuator_name in genome_data["actuators"]:
-                node = self.add_node_gene(
-                    node_type=NeuronType.ACTUATOR, node_name=actuator_name
-                )
-                actuators[actuator_name] = node
+        #     for sensor_name in genome_data["sensors"]:
+        #         node = self.add_node_gene(
+        #             node_type=NeuronType.SENSOR, node_name=sensor_name
+        #         )
+        #         sensors[sensor_name] = node
+        #     for actuator_name in genome_data["actuators"]:
+        #         node = self.add_node_gene(
+        #             node_type=NeuronType.ACTUATOR, node_name=actuator_name
+        #         )
+        #         actuators[actuator_name] = node
 
-            for sensor_name, actuator_name in genome_data["connections"]:
-                self.add_connection_gene(
-                    sensors[sensor_name],
-                    actuators[actuator_name],
-                    np.random.uniform(-1, 1),
-                )
+        #     for sensor_name, actuator_name in genome_data["connections"]:
+        #         self.add_connection_gene(
+        #             sensors[sensor_name],
+        #             actuators[actuator_name],
+        #             np.random.uniform(-1, 1),
+        #         )
 
     def observe(self, creature):
         observations = []
-        for sensor_name in self.genome_data["sensors"]:
+        for sensor_name in self.genome_data.get("sensors", []):
             if sensor_name in self.neuron_manager.sensors:
                 sensor_method = getattr(self.neuron_manager, f"obs_{sensor_name}")
                 observations.append(sensor_method(creature))
@@ -83,6 +83,7 @@ class Genome:
         return observations
 
     def forward(self, inputs):
+        return
         activations = {}
 
         # Step 1: Initialize sensor nodes with input values
@@ -132,6 +133,7 @@ class Genome:
 
     def step(self, output, creature):
         context = {}
+        return
         for actuator_id in self.genome_data["actuators"]:
             if actuator_id in self.neuron_manager.actuators:
                 actuator_method = getattr(self.neuron_manager, f"act_{actuator_id}")

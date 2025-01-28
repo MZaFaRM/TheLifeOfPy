@@ -2,13 +2,14 @@ import contextlib
 import os
 import random
 import re
+import uuid
 
 import numpy as np
 import pygame
 import pygame.gfxdraw
 
 from config import Colors, Fonts, image_assets
-from enums import EventType, MessagePacket, NeuronType
+from enums import EventType, MessagePacket, NeuronType, SurfDesc
 from handlers.genetics import NeuronManager
 import helper
 
@@ -45,7 +46,9 @@ class LaboratoryComponent:
 
     def update(self, context=None):
         self.surface.blit(self.bg_image, (0, 0))
-        self.surface.blit(self.back_button["current_image"], self.back_button["rect"])
+        self.surface.blit(
+            self.back_button[SurfDesc.CURRENT_SURFACE], self.back_button[SurfDesc.RECT]
+        )
         sub_component = self.sub_comp_states[self.curr_sub_comp]
         sub_component.update(context)
         self.surface.blit(sub_component.surface, (0, 0))
@@ -53,21 +56,27 @@ class LaboratoryComponent:
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             # Check if the back button is clicked
-            if self.back_button["absolute_rect"].collidepoint(event.pos):
+            if self.back_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 # Set the back button to its clicked image when the button is pressed
-                self.back_button["current_image"] = self.back_button["clicked_image"]
+                self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
+                    SurfDesc.CLICKED_SURFACE
+                ]
 
         elif event.type == pygame.MOUSEBUTTONUP:
-            if self.back_button["absolute_rect"].collidepoint(event.pos):
+            if self.back_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 if self.curr_sub_comp == "neural_lab":
                     # If in the "neural_lab", go back to "attrs_lab"
                     self.curr_sub_comp = "attrs_lab"
-                    self.back_button["current_image"] = self.back_button["image"]
+                    self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
+                        SurfDesc.SURFACE
+                    ]
                 else:
                     # If not in "neural_lab", navigate to home
                     yield MessagePacket(EventType.NAVIGATION, "home")
             else:
-                self.back_button["current_image"] = self.back_button["image"]
+                self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
+                    SurfDesc.SURFACE
+                ]
 
         # Handle the events for the current sub-component
         # Process the packet received from the sub-component handler
@@ -96,23 +105,25 @@ class LaboratoryComponent:
 
     def __configure_back_button(self):
         self.back_button = {
-            "current_image": None,
+            SurfDesc.CURRENT_SURFACE: None,
             "position": {"topleft": (50, 50)},
-            "absolute_rect": None,
-            "image": pygame.image.load(
+            SurfDesc.ABSOLUTE_RECT: None,
+            SurfDesc.SURFACE: pygame.image.load(
                 os.path.join(image_assets, "laboratory", "back_button.svg")
             ),
-            "clicked_image": pygame.image.load(
+            SurfDesc.CLICKED_SURFACE: pygame.image.load(
                 os.path.join(image_assets, "laboratory", "back_button_clicked.svg")
             ),
         }
 
-        self.back_button["rect"] = self.back_button["image"].get_rect(
+        self.back_button[SurfDesc.RECT] = self.back_button[SurfDesc.SURFACE].get_rect(
             **self.back_button["position"]
         )
-        self.back_button["current_image"] = self.back_button["image"]
+        self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[SurfDesc.SURFACE]
 
-        self.back_button["absolute_rect"] = self.back_button["image"].get_rect(
+        self.back_button[SurfDesc.ABSOLUTE_RECT] = self.back_button[
+            SurfDesc.SURFACE
+        ].get_rect(
             topleft=(
                 50 + self.surface_x_offset,
                 50 + self.surface_y_offset,
@@ -135,11 +146,17 @@ class NeuralLab:
         self.selected_neuron = {}
 
         sensors = NeuronManager.sensors.items()
-        sensors = [{"name": key, "desc": value["desc"]} for key, value in sensors]
+        sensors = [
+            {"id": uuid.uuid4(), "name": key, "desc": value["desc"]}
+            for key, value in sensors
+        ]
         self._configure_neurons(neuron_type=NeuronType.SENSOR, neurons=sensors)
 
         actuators = NeuronManager.actuators.items()
-        actuators = [{"name": key, "desc": value["desc"]} for key, value in actuators]
+        actuators = [
+            {"id": uuid.uuid4(), "name": key, "desc": value["desc"]}
+            for key, value in actuators
+        ]
         self._configure_neurons(neuron_type=NeuronType.ACTUATOR, neurons=actuators)
 
         self._configure_hidden_neuron()
@@ -154,18 +171,48 @@ class NeuralLab:
         }
 
     def _configure_neural_frame(self):
-        self.neural_frame_surface = pygame.image.load(
+        self.neural_frame = {}
+
+        self.neural_frame[SurfDesc.SURFACE] = pygame.image.load(
             os.path.join(image_assets, "laboratory", "neural_lab", "neural_frame.svg")
         )
-        self.neural_frame_rect = self.neural_frame_surface.get_rect(topleft=(62, 204))
-
-        neural_frame_surface = self.neural_frame_surface.copy()
-        self.surface.blit(neural_frame_surface, self.neural_frame_rect)
+        self.neural_frame[SurfDesc.RECT] = self.neural_frame[SurfDesc.SURFACE].get_rect(
+            topleft=(62, 204)
+        )
+        self.neural_frame[SurfDesc.ABSOLUTE_RECT] = self.neural_frame[
+            SurfDesc.SURFACE
+        ].get_rect(
+            topleft=(
+                62 + self.surface_x_offset,
+                204 + self.surface_y_offset,
+            )
+        )
+        self.neural_frame["reset"] = self.neural_frame[SurfDesc.SURFACE].copy()
+        self.neural_frame["nodes"] = []
+        self.neural_frame["selection"] = None
+        self.neural_frame["connections"] = []
+        self.neural_frame["graph_desc"] = {
+            "circle": {
+                "radius": 25,
+                "color": {
+                    NeuronType.SENSOR: (74, 227, 181),
+                    NeuronType.ACTUATOR: (0, 255, 127),
+                    NeuronType.HIDDEN: (0, 163, 108),
+                },
+            },
+            "line": {
+                "thickness": 5,
+                "color": (23, 86, 67),
+            },
+        }
+        self.surface.blit(
+            self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
+        )
 
     def _configure_unleash_organism_click(self):
         self.unleash_organism_button = {
-            "current_image": None,
-            "image": pygame.image.load(
+            SurfDesc.CURRENT_SURFACE: None,
+            SurfDesc.SURFACE: pygame.image.load(
                 os.path.join(
                     image_assets,
                     "laboratory",
@@ -173,7 +220,7 @@ class NeuralLab:
                     "unleash_organism_button.svg",
                 )
             ),
-            "clicked_image": pygame.image.load(
+            SurfDesc.CLICKED_SURFACE: pygame.image.load(
                 os.path.join(
                     image_assets,
                     "laboratory",
@@ -182,20 +229,20 @@ class NeuralLab:
                 )
             ),
             "position": {"topleft": (1290, 829)},
-            "rect": None,
-            "absolute_rect": None,
+            SurfDesc.RECT: None,
+            SurfDesc.ABSOLUTE_RECT: None,
         }
-        self.unleash_organism_button["current_image"] = self.unleash_organism_button[
-            "image"
-        ]
-        self.unleash_organism_button["rect"] = self.unleash_organism_button[
-            "image"
+        self.unleash_organism_button[SurfDesc.CURRENT_SURFACE] = (
+            self.unleash_organism_button[SurfDesc.SURFACE]
+        )
+        self.unleash_organism_button[SurfDesc.RECT] = self.unleash_organism_button[
+            SurfDesc.SURFACE
         ].get_rect(**self.unleash_organism_button["position"])
-        self.unleash_organism_button["absolute_rect"] = self.unleash_organism_button[
-            "image"
-        ].get_rect(
+        self.unleash_organism_button[
+            SurfDesc.ABSOLUTE_RECT
+        ] = self.unleash_organism_button[SurfDesc.SURFACE].get_rect(
             topleft=(
-                np.array(self.unleash_organism_button["rect"].topleft)
+                np.array(self.unleash_organism_button[SurfDesc.RECT].topleft)
                 + np.array(
                     (
                         self.surface_x_offset,
@@ -210,120 +257,219 @@ class NeuralLab:
             return self._handle_mouse_down(event)
         elif event.type == pygame.MOUSEBUTTONUP:
             return self._handle_mouse_up(event)
+        elif getattr(event, "key", None) == pygame.K_DELETE:
+            return self.__handle_neural_frame_deletion(event)
 
     def _handle_mouse_down(self, event):
         response = None
         for res in (
             self.__handle_neuron_click(event),
-            # self.__handle_neuron_on_mouse_down(event),
+            self.__handle_neural_node_click(event),
+            self.__handle_neural_node_creation(event),
             self.__handle_unleash_organism_on_mouse_down(event),
         ):
             if res:
                 response = res
         return response
 
-    def __handle_neuron_on_mouse_down(self, event):
-        for i in range(len(self.neural_network["sensors"])):
-            if self.neural_network["sensors"][i]["absolute_rect"].collidepoint(
-                event.pos
+    def __handle_neural_frame_deletion(self, event):
+        if self.neural_frame["selection"]:
+            for node in self.neural_frame["nodes"]:
+                if node["id"] == self.neural_frame["selection"]["id"]:
+                    self.neural_frame["nodes"].remove(node)
+                    for connection in self.neural_frame["connections"].copy():
+                        if (
+                            connection[0]["id"] == node["id"]
+                            or connection[1]["id"] == node["id"]
+                        ):
+                            self.neural_frame["connections"].remove(connection)
+            self.neural_frame["selection"] = None
+
+    def __handle_neural_node_click(self, event):
+        selected_any = False
+        for node in self.neural_frame["nodes"]:
+            if node[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
+                selected_any = True
+                if self.neural_frame["selection"]:
+                    if self.__valid_connection(self.neural_frame["selection"], node):
+                        self.neural_frame["connections"].append(
+                            (self.neural_frame["selection"], node)
+                        )
+                    else:
+                        print(f"Invalid Connection: {self.neural_frame['selection']["name"]} -> {node["name"]}")
+                    self.neural_frame["selection"] = None
+                    
+                else:
+                    node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.CLICKED_SURFACE]
+                    self.neural_frame["selection"] = node
+            else:
+                node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.SURFACE]
+
+        if not selected_any:
+            self.neural_frame["selection"] = None
+
+    def __valid_connection(self, node_1, node_2):
+        # Ensure both nodes exist
+        if not node_1.get("id", None) or not node_2.get("id", None):
+            return False
+
+        # Prevent self-connections
+        if node_1.get("id") == node_2.get("id"):
+            return False
+
+        # Ensure nodes are not already connected
+        for connection in self.neural_frame["connections"]:
+            if (
+                connection[0]["id"] == node_1["id"]
+                and connection[1]["id"] == node_2["id"]
+            ) or (
+                connection[0]["id"] == node_2["id"]
+                and connection[1]["id"] == node_1["id"]
             ):
-                if self.selected_neuron:
-                    # sensor change, hence, trigger a deletion of the connections to this sensor
-                    indices_to_remove = [
-                        j
-                        for j, conn in enumerate(self.neural_network["lines"])
-                        if conn[0] == self.neural_network["sensors"][i]["rect"].center
-                    ]
+                return False
 
-                    # Remove elements in reverse order to avoid shifting issues
-                    for index in reversed(indices_to_remove):
-                        self.neural_network["connections"].pop(index)
-                        self.neural_network["lines"].pop(index)
-
-                    # Then change the sensor name
-                    self.neural_network["sensors"][i]["name"] = self.selected_neuron[
-                        "name"
-                    ]
-
-                elif self.neural_network["sensors"][i]["name"]:
-                    self.neural_network["selected_sensor"] = i
-                break
-
-        for i in range(len(self.neural_network["actuators"])):
-            if self.neural_network["actuators"][i]["absolute_rect"].collidepoint(
-                event.pos
-            ):
-                if self.selected_neuron:
-                    # actuator change, hence, trigger a deletion of the all connections to this actuator
-                    indices_to_remove = [
-                        j
-                        for j, conn in enumerate(self.neural_network["lines"])
-                        if conn[1] == self.neural_network["actuators"][i]["rect"].center
-                    ]
-
-                    # Remove elements in reverse order to avoid shifting issues
-                    for index in reversed(indices_to_remove):
-                        self.neural_network["connections"].pop(index)
-                        self.neural_network["lines"].pop(index)
-
-                    # Then change the actuator name
-                    self.neural_network["actuators"][i]["name"] = self.selected_neuron[
-                        "name"
-                    ]
-
-                elif self.neural_network["actuators"][i]["name"]:
-                    self.neural_network["selected_actuator"] = i
-                break
+        # Enforce directional rules
+        if node_1["type"] == NeuronType.SENSOR and node_2["type"] == NeuronType.SENSOR:
+            return False  # Sensors should not connect to other sensors
 
         if (
-            self.neural_network["selected_sensor"] is not None
-            and self.neural_network["selected_actuator"] is not None
+            node_1["type"] == NeuronType.ACTUATOR
+            and node_2["type"] == NeuronType.ACTUATOR
         ):
-            sensor = self.neural_network["sensors"][
-                self.neural_network["selected_sensor"]
-            ]
-            actuator = self.neural_network["actuators"][
-                self.neural_network["selected_actuator"]
-            ]
-            self.neural_network["connections"].append(
-                (
-                    sensor["name"],
-                    actuator["name"],
-                )
+            return False  # Actuators should not connect to other actuators
+
+        if node_2["type"] == NeuronType.SENSOR:
+            return False  # No connections should go *into* a sensor
+
+        if node_1["type"] == NeuronType.ACTUATOR:
+            return False  # No connections should come *out of* an actuator
+
+        # Prevent cycles if required (optional, depends on your structure)
+        if self.__has_cycle(node_1, node_2):
+            return False
+
+        return True
+
+    def __has_cycle(self, node_1, node_2):
+        # Create a directed adjacency list from the connections
+        adjacency_list = {}
+        for src, dst in self.neural_frame["connections"]:
+            adjacency_list.setdefault(src["id"], []).append(dst["id"])
+
+        # Temporarily add the new connection
+        adjacency_list.setdefault(node_1["id"], []).append(node_2["id"])
+
+        # Perform DFS to check if node_2 can reach node_1 (forming a cycle)
+        visited = set()
+
+        def dfs(node):
+            if node in visited:
+                return True  # Cycle detected
+            visited.add(node)
+            for neighbor in adjacency_list.get(node, []):
+                if dfs(neighbor):
+                    return True
+            visited.remove(node)  # Backtrack
+            return False
+
+        has_cycle = dfs(node_2["id"])  # Start DFS from node_2
+        return has_cycle
+
+    def __handle_neural_node_creation(self, event):
+        # Check if the selected neuron is within the neural frame
+        if self.selected_neuron and self.neural_frame[
+            SurfDesc.ABSOLUTE_RECT
+        ].collidepoint(event.pos):
+            # Get the properties of the shape to draw
+            shape = self.neural_frame["graph_desc"]["circle"]
+            radius = shape["radius"]
+            color = shape["color"][self.selected_neuron["type"]]
+            pos = (
+                event.pos[0] - self.surface_x_offset,
+                event.pos[1] - self.surface_y_offset,
             )
-            self.neural_network["lines"].append(
-                (
-                    sensor["rect"].center,
-                    actuator["rect"].center,
-                )
+
+            # Create a new surface and draw the circle
+            surface = pygame.Surface(
+                ((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA
             )
-            self.neural_network["selected_sensor"] = None
-            self.neural_network["selected_actuator"] = None
+            pygame.draw.circle(surface, color, (radius, radius), radius)
+
+            # Create a selected surface with a white border and text
+            selected_surface = pygame.Surface(
+                ((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA
+            )
+            pygame.draw.circle(
+                selected_surface, (255, 255, 255), (radius, radius), radius
+            )
+            pygame.draw.circle(selected_surface, color, (radius, radius), radius - 5)
+
+            if self.selected_neuron["type"] != NeuronType.HIDDEN:
+                text = self.body_font.render(
+                    self.selected_neuron["name"], True, Colors.bg_color
+                )
+                surface.blit(text, text.get_rect(center=(radius, radius)))
+                selected_surface.blit(text, text.get_rect(center=(radius, radius)))
+
+            if self.selected_neuron["type"] == NeuronType.HIDDEN:
+                _id = uuid.uuid4()
+            else:
+                _id = self.selected_neuron.get("id")
+
+            # Define the new neuron properties and add it to the frame
+            new_neuron = {
+                "id": _id,
+                "name": self.selected_neuron["name"],
+                "type": self.selected_neuron["type"],
+                SurfDesc.SURFACE: surface,
+                SurfDesc.CURRENT_SURFACE: surface,
+                SurfDesc.CLICKED_SURFACE: selected_surface,
+                SurfDesc.RECT: surface.get_rect(center=(pos[0], pos[1])),
+                SurfDesc.ABSOLUTE_RECT: surface.get_rect(
+                    topleft=(
+                        pos[0] + self.surface_x_offset - radius,
+                        pos[1] + self.surface_y_offset - radius,
+                    )
+                ),
+            }
+            self.neural_frame["nodes"].extend([new_neuron])
+
+            # Reset selected neuron after adding
+            self.selected_neuron = {}
 
     def __handle_unleash_organism_on_mouse_down(self, event):
-        if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
-            self.unleash_organism_button["current_image"] = (
-                self.unleash_organism_button["clicked_image"]
-            )
-            return MessagePacket(
-                EventType.NAVIGATION,
-                "home",
-                context={EventType.GENESIS: self.__get_user_input()},
+        if self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
+            self.unleash_organism_button[SurfDesc.CURRENT_SURFACE] = (
+                self.unleash_organism_button[SurfDesc.CLICKED_SURFACE]
             )
 
     def __get_user_input(self):
+        sensors = []
+        actuators = []
+        hidden = []
+        connections = []
+
+        for node in self.neural_frame["nodes"]:
+            if node["type"] == NeuronType.SENSOR:
+                sensors.append((node["id"], node["name"], NeuronType.SENSOR))
+            elif node["type"] == NeuronType.ACTUATOR:
+                actuators.append((node["id"], node["name"], NeuronType.ACTUATOR))
+            elif node["type"] == NeuronType.HIDDEN:
+                hidden.append((node["id"], node["name"], NeuronType.HIDDEN))
+
+        for conn in self.neural_frame["connections"]:
+            connections.append(
+                (
+                    (conn[0]["id"], conn[0]["name"], conn[0]["type"]),
+                    (conn[1]["id"], conn[1]["name"], conn[1]["type"]),
+                )
+            )
+
         return {
-            "sensors": tuple(
-                sensor["name"]
-                for sensor in self.neural_network["sensors"]
-                if sensor["name"]
-            ),
-            "actuators": tuple(
-                actuator["name"]
-                for actuator in self.neural_network["actuators"]
-                if actuator["name"]
-            ),
-            "connections": self.neural_network["connections"],
+            NeuronType.SENSOR: sensors,
+            NeuronType.ACTUATOR: actuators,
+            NeuronType.HIDDEN: hidden,
+            "connections": connections,
         }
 
     def _handle_mouse_up(self, event):
@@ -339,19 +485,26 @@ class NeuralLab:
         )
 
     def __handle_unleash_organism_on_mouse_up(self, event):
-        if self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
-            return MessagePacket(EventType.NAVIGATION, "home")
-        elif not self.unleash_organism_button["absolute_rect"].collidepoint(event.pos):
-            self.unleash_organism_button["current_image"] = (
-                self.unleash_organism_button["image"]
+        if self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
+            return MessagePacket(
+                EventType.NAVIGATION,
+                "home",
+                context={EventType.GENESIS: self.__get_user_input()},
+            )
+        elif not self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(
+            event.pos
+        ):
+            self.unleash_organism_button[SurfDesc.CURRENT_SURFACE] = (
+                self.unleash_organism_button[SurfDesc.SURFACE]
             )
 
     def __handle_neuron_click(self, event):
         for neuron_type, neurons in self.neural_nodes.items():
             for neuron in neurons:
-                if neuron["absolute_rect"].collidepoint(event.pos):
+                if neuron[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                     self.selected_neuron = neuron
-                    neuron["current_surface"] = neuron["clicked_surface"]
+                    self.selected_neuron["type"] = neuron_type
+                    neuron[SurfDesc.CURRENT_SURFACE] = neuron[SurfDesc.CLICKED_SURFACE]
                     if neuron_type != NeuronType.HIDDEN:
                         self.__update_neuron_text(
                             neuron_type=neuron_type, neuron_desc_text=neuron["desc"]
@@ -359,105 +512,95 @@ class NeuralLab:
                     return
 
     def __reset_neurons_on_mouse_up(self, event):
-        if self.selected_neuron:
-            for neuron_type, neurons in self.neural_nodes.items():
-                for neuron in neurons:
-                    if neuron != self.selected_neuron:
-                        neuron["current_surface"] = neuron["surface"]
+        # Iterate through neuron types and their neurons
+        for neuron_type, neurons in self.neural_nodes.items():
+            for neuron in neurons:
+                # Reset unselected neurons' surface
+                if neuron != self.selected_neuron:
+                    neuron[SurfDesc.CURRENT_SURFACE] = neuron[SurfDesc.SURFACE]
 
-                if not self.selected_neuron["absolute_rect"].collidepoint(event.pos):
+            # If a neuron is selected, check if it was clicked
+            if self.selected_neuron:
+                if not self.selected_neuron[SurfDesc.ABSOLUTE_RECT].collidepoint(
+                    event.pos
+                ):
+                    # Reset selected neuron's surface and update desc text
+                    self.selected_neuron[SurfDesc.CURRENT_SURFACE] = (
+                        self.selected_neuron[SurfDesc.SURFACE]
+                    )
                     self.__update_neuron_text(neuron_type)
-                    self.selected_neuron["current_surface"] = self.selected_neuron[
-                        "surface"
-                    ]
-                    self.selected_neuron = None
+                    self.selected_neuron = {}
+            else:
+                # Update desc text when no neuron is selected
+                self.__update_neuron_text(neuron_type)
 
     def update(self, context=None):
-        for sensor in self.sensors:
-            self.surface.blit(sensor["current_surface"], sensor["rect"])
+        # Blit all sensors and actuators
+        for item in self.sensors + self.actuators:
+            self.surface.blit(item[SurfDesc.CURRENT_SURFACE], item[SurfDesc.RECT])
 
-        for actuator in self.actuators:
-            self.surface.blit(actuator["current_surface"], actuator["rect"])
+        # Blit specific elements
+        for element, desc in [
+            (self.hidden_neuron, SurfDesc.CURRENT_SURFACE),
+            (self.sensor_desc, SurfDesc.SURFACE),
+            (self.actuator_desc, SurfDesc.SURFACE),
+            (self.unleash_organism_button, SurfDesc.CURRENT_SURFACE),
+        ]:
+            self.surface.blit(element[desc], element[SurfDesc.RECT])
 
         self.surface.blit(
-            self.hidden_neuron["current_surface"], self.hidden_neuron["rect"]
+            self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
         )
-
-        self.surface.blit(self.sensor_desc["surface"], self.sensor_desc["rect"])
-        self.surface.blit(self.actuator_desc["surface"], self.actuator_desc["rect"])
-        self.surface.blit(
-            self.unleash_organism_button["current_image"],
-            self.unleash_organism_button["rect"],
-        )
-
-        neural_frame_surface = self.neural_frame_surface.copy()
-
-        self.surface.blit(neural_frame_surface, self.neural_frame_rect)
+        for connection in self.neural_frame["connections"]:
+            pygame.draw.line(
+                self.surface,
+                self.neural_frame["graph_desc"]["line"]["color"],
+                connection[0][SurfDesc.RECT].center,
+                connection[1][SurfDesc.RECT].center,
+                self.neural_frame["graph_desc"]["line"]["thickness"],
+            )
+        for node in self.neural_frame["nodes"]:
+            self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
 
     def _setup_surface(self):
         surface = pygame.Surface(
-            size=(
-                pygame.image.load(
-                    os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
-                ).get_size()
-            ),
+            size=pygame.image.load(
+                os.path.join(image_assets, "laboratory", "laboratory_bg.svg")
+            ).get_size(),
             flags=pygame.SRCALPHA,
         )
 
-        sensor_title = pygame.image.load(
-            os.path.join(image_assets, "laboratory", "neural_lab", "sensor_title.svg"),
-        )
-        surface.blit(
-            sensor_title,
-            sensor_title.get_rect(
-                topleft=(62, 640),
-            ),
-        )
+        titles = [
+            ("sensor_title.svg", (62, 640)),
+            ("actuator_title.svg", (666, 640)),
+            ("hidden_neuron_title.svg", (1290, 640)),
+        ]
 
-        actuator_title = pygame.image.load(
-            os.path.join(
-                image_assets, "laboratory", "neural_lab", "actuator_title.svg"
-            ),
-        )
-        surface.blit(
-            actuator_title,
-            actuator_title.get_rect(
-                topleft=(666, 640),
-            ),
-        )
+        for title, pos in titles:
+            title_image = pygame.image.load(
+                os.path.join(image_assets, "laboratory", "neural_lab", title)
+            )
+            surface.blit(title_image, title_image.get_rect(topleft=pos))
 
-        hidden_neuron_title = pygame.image.load(
-            os.path.join(
-                image_assets, "laboratory", "neural_lab", "hidden_neuron_title.svg"
-            ),
-        )
-        surface.blit(
-            hidden_neuron_title,
-            hidden_neuron_title.get_rect(
-                topleft=(1290, 640),
-            ),
-        )
         return surface
 
     def _configure_neurons(self, neuron_type: NeuronType, neurons: list):
         if neurons is None:
             neurons = []
 
-        neurons.append({"name": "", "desc": "Use this to remove added neurons."})
-
         desc_attr = f"{neuron_type.value}_desc"
         setattr(
             self,
             desc_attr,
             {
-                "surface": pygame.Surface((450, 50)),
+                SurfDesc.SURFACE: pygame.Surface((450, 50)),
                 "position": {
                     "topleft": (
                         (62, 690) if neuron_type == NeuronType.SENSOR else (666, 690)
                     )
                 },
-                "rect": None,
-                "absolute_rect": None,
+                SurfDesc.RECT: None,
+                SurfDesc.ABSOLUTE_RECT: None,
                 "default_text": helper.split_text(
                     f"Select a {neuron_type.value} to view more information..."
                 ),
@@ -465,7 +608,7 @@ class NeuralLab:
         )
 
         desc = getattr(self, desc_attr)
-        desc["rect"] = desc["surface"].get_rect(**desc["position"])
+        desc[SurfDesc.RECT] = desc[SurfDesc.SURFACE].get_rect(**desc["position"])
         self.__update_neuron_text(neuron_type)
 
         num_neurons = len(neurons)
@@ -499,13 +642,14 @@ class NeuralLab:
 
             getattr(self, neuron_list_attr).append(
                 {
+                    "id": neurons[i]["id"],
                     "name": neurons[i]["name"],
                     "desc": helper.split_text(neurons[i]["desc"]),
-                    "current_surface": neuron_surface,
-                    "surface": neuron_surface,
-                    "clicked_surface": clicked_neuron_surface,
-                    "rect": neuron_surface.get_rect(center=(x, y)),
-                    "absolute_rect": neuron_surface.get_rect(
+                    SurfDesc.CURRENT_SURFACE: neuron_surface,
+                    SurfDesc.SURFACE: neuron_surface,
+                    SurfDesc.CLICKED_SURFACE: clicked_neuron_surface,
+                    SurfDesc.RECT: neuron_surface.get_rect(center=(x, y)),
+                    SurfDesc.ABSOLUTE_RECT: neuron_surface.get_rect(
                         topleft=(
                             x - 25 + self.surface_x_offset,
                             y - 25 + self.surface_y_offset,
@@ -532,15 +676,15 @@ class NeuralLab:
         clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
 
         self.hidden_neuron = {
-            "name": "Hidden Neuron",
+            "name": "H",
             "desc": helper.split_text(
                 "A hidden neuron connects input to output neurons."
             ),
-            "current_surface": neuron_surface,
-            "surface": neuron_surface,
-            "clicked_surface": clicked_neuron_surface,
-            "rect": neuron_surface.get_rect(center=(x, y)),
-            "absolute_rect": neuron_surface.get_rect(
+            SurfDesc.CURRENT_SURFACE: neuron_surface,
+            SurfDesc.SURFACE: neuron_surface,
+            SurfDesc.CLICKED_SURFACE: clicked_neuron_surface,
+            SurfDesc.RECT: neuron_surface.get_rect(center=(x, y)),
+            SurfDesc.ABSOLUTE_RECT: neuron_surface.get_rect(
                 topleft=(
                     x - 25 + self.surface_x_offset,
                     y - 25 + self.surface_y_offset,
@@ -559,11 +703,11 @@ class NeuralLab:
         if not neuron_desc_text:
             neuron_desc_text = desc["default_text"]
 
-        desc["surface"].fill(Colors.primary)
+        desc[SurfDesc.SURFACE].fill(Colors.primary)
         text_y = 0
         for text in neuron_desc_text:
             text = self.body_font.render(text, True, Colors.bg_color, Colors.primary)
-            desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
+            desc[SurfDesc.SURFACE].blit(text, text.get_rect(topleft=(0, text_y)))
             text_y += 25
 
 
@@ -597,7 +741,7 @@ class AttributesLab:
 
     def update(self, context=None):
         self.time += 1
-        self.surface.blit(self.pic_circle["bg_image"], self.pic_circle["rect"])
+        self.surface.blit(self.pic_circle["bg_image"], self.pic_circle[SurfDesc.RECT])
         self.surface.blit(
             self.__rotate_pic_circle_organism(), self.pic_circle["organism_rect"]
         )
@@ -605,14 +749,14 @@ class AttributesLab:
             self.__rotate_pic_circle_border(), self.pic_circle["border_rect"]
         )
         self.surface.blit(
-            self.neural_network_button["current_image"],
-            self.neural_network_button["rect"],
+            self.neural_network_button[SurfDesc.CURRENT_SURFACE],
+            self.neural_network_button[SurfDesc.RECT],
         )
 
         for option, value in self.traits_schema["options"].items():
             self.surface.blit(
-                value["surface"],
-                value["rect"],
+                value[SurfDesc.SURFACE],
+                value[SurfDesc.RECT],
             )
 
             if value["type"] == "single_choice_list":
@@ -621,16 +765,22 @@ class AttributesLab:
                         (
                             choice["surface_selected"]
                             if choice["selected"]
-                            else choice["surface"]
+                            else choice[SurfDesc.SURFACE]
                         ),
-                        choice["rect"],
+                        choice[SurfDesc.RECT],
                     )
             elif value["type"] == "user_input_int":
-                self.__update_user_input(value, value["surface"], input_type="int")
+                self.__update_user_input(
+                    value, value[SurfDesc.SURFACE], input_type="int"
+                )
             elif value["type"] == "user_input_str":
-                self.__update_user_input(value, value["surface"], input_type="str")
+                self.__update_user_input(
+                    value, value[SurfDesc.SURFACE], input_type="str"
+                )
             elif value["type"] == "user_input_color":
-                self.__update_user_input(value, value["surface"], input_type="color")
+                self.__update_user_input(
+                    value, value[SurfDesc.SURFACE], input_type="color"
+                )
 
     def event_handler(self, event):
         selected_option = self.traits_schema.get("selected_option")
@@ -729,9 +879,9 @@ class AttributesLab:
         for option, value in self.traits_schema["options"].items():
             option_surface = self.__create_option_surface(option)
             self.__configure_option_rhs(option, value, option_surface, x, y)
-            self.traits_schema["options"][option]["surface"] = option_surface
-            self.traits_schema["options"][option]["rect"] = option_surface.get_rect(
-                topleft=(x, y)
+            self.traits_schema["options"][option][SurfDesc.SURFACE] = option_surface
+            self.traits_schema["options"][option][SurfDesc.RECT] = (
+                option_surface.get_rect(topleft=(x, y))
             )
             y += self.traits_schema["yIncrement"]
 
@@ -786,7 +936,7 @@ class AttributesLab:
         )
         text_surface.blit(text, (5, 0))
         option_surface.blit(text_surface, (200, 0))
-        value["absolute_rect"] = text_surface.get_rect(
+        value[SurfDesc.ABSOLUTE_RECT] = text_surface.get_rect(
             topleft=(
                 x + 200 + self.surface_x_offset,
                 y + self.surface_y_offset,
@@ -797,7 +947,7 @@ class AttributesLab:
         choice_x = 200
         for choice in value["choices"]:
             for state, color in [
-                ("surface", self.traits_schema["bg_color"]),
+                (SurfDesc.SURFACE, self.traits_schema["bg_color"]),
                 ("surface_selected", self.traits_schema["text_color"]),
             ]:
                 text = self.traits_schema["font"].render(
@@ -805,7 +955,7 @@ class AttributesLab:
                     True,
                     (
                         self.traits_schema["text_color"]
-                        if state == "surface"
+                        if state == SurfDesc.SURFACE
                         else self.traits_schema["bg_color"]
                     ),
                     color,
@@ -820,24 +970,26 @@ class AttributesLab:
                 choice_surface.blit(text, (5, 0))
                 choice[state] = choice_surface
 
-            choice["rect"] = choice["surface"].get_rect(topleft=(x + choice_x, y))
-            choice["absolute_rect"] = choice["surface"].get_rect(
+            choice[SurfDesc.RECT] = choice[SurfDesc.SURFACE].get_rect(
+                topleft=(x + choice_x, y)
+            )
+            choice[SurfDesc.ABSOLUTE_RECT] = choice[SurfDesc.SURFACE].get_rect(
                 topleft=(
                     x + choice_x + self.surface_x_offset,
                     y + self.surface_y_offset,
                 )
             )
-            choice_x += choice["surface"].get_width() + 10
+            choice_x += choice[SurfDesc.SURFACE].get_width() + 10
 
     def __configure_neural_network_button(self):
         self.neural_network_button = {
-            "current_image": None,
-            "image": pygame.image.load(
+            SurfDesc.CURRENT_SURFACE: None,
+            SurfDesc.SURFACE: pygame.image.load(
                 os.path.join(
                     image_assets, "laboratory", "attrs_lab", "neural_network_button.svg"
                 )
             ),
-            "clicked_image": pygame.image.load(
+            SurfDesc.CLICKED_SURFACE: pygame.image.load(
                 os.path.join(
                     image_assets,
                     "laboratory",
@@ -852,15 +1004,15 @@ class AttributesLab:
                 )
             },
         }
-        self.neural_network_button["rect"] = self.neural_network_button.get(
-            "image"
+        self.neural_network_button[SurfDesc.RECT] = self.neural_network_button.get(
+            SurfDesc.SURFACE
         ).get_rect(**self.neural_network_button["position"])
 
-        self.neural_network_button["absolute_rect"] = self.neural_network_button.get(
-            "image"
-        ).get_rect(
+        self.neural_network_button[
+            SurfDesc.ABSOLUTE_RECT
+        ] = self.neural_network_button.get(SurfDesc.SURFACE).get_rect(
             topleft=(
-                np.array(self.neural_network_button["rect"].topleft)
+                np.array(self.neural_network_button[SurfDesc.RECT].topleft)
                 + np.array(
                     (
                         self.surface_x_offset,
@@ -870,8 +1022,8 @@ class AttributesLab:
             )
         )
 
-        self.neural_network_button["current_image"] = self.neural_network_button.get(
-            "image"
+        self.neural_network_button[SurfDesc.CURRENT_SURFACE] = (
+            self.neural_network_button.get(SurfDesc.SURFACE)
         )
 
     def __configure_dp_circle(self):
@@ -899,28 +1051,28 @@ class AttributesLab:
             },
         }
 
-        self.pic_circle["rect"] = self.pic_circle["bg_image"].get_rect(
+        self.pic_circle[SurfDesc.RECT] = self.pic_circle["bg_image"].get_rect(
             **self.pic_circle["position"]
         )
-        self.pic_circle["border_rect"] = self.pic_circle["rect"]
+        self.pic_circle["border_rect"] = self.pic_circle[SurfDesc.RECT]
         self.pic_circle["organism_rect"] = self.pic_circle["organism_image"].get_rect(
             **self.pic_circle["position"]
         )
 
     def __handle_neural_network_button(self, event):
         """Handle neural network button clicks."""
-        if self.neural_network_button["absolute_rect"].collidepoint(event.pos):
+        if self.neural_network_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
             if event.type == pygame.MOUSEBUTTONDOWN:
-                self.neural_network_button["current_image"] = (
-                    self.neural_network_button["clicked_image"]
+                self.neural_network_button[SurfDesc.CURRENT_SURFACE] = (
+                    self.neural_network_button[SurfDesc.CLICKED_SURFACE]
                 )
             elif event.type == pygame.MOUSEBUTTONUP:
                 return True  # Proceed with navigation if clicked
         else:
             # Reset the button image when not clicked
-            self.neural_network_button["current_image"] = self.neural_network_button[
-                "image"
-            ]
+            self.neural_network_button[SurfDesc.CURRENT_SURFACE] = (
+                self.neural_network_button[SurfDesc.SURFACE]
+            )
         return False
 
     def __navigate_to_neural_lab(self):
@@ -947,7 +1099,7 @@ class AttributesLab:
         """Handle single choice list interaction."""
         selected_choice = None
         for choice in value["choices"]:
-            if choice["absolute_rect"].collidepoint(event.pos):
+            if choice[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     selected_choice = choice["value"]
 
@@ -957,7 +1109,7 @@ class AttributesLab:
 
     def __handle_user_input(self, event, value, option):
         """Handle user input (text, color, integer)."""
-        if value["absolute_rect"].collidepoint(event.pos):
+        if value[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 value["selected"] = True
                 self.traits_schema["selected_option"] = option
@@ -1049,7 +1201,7 @@ class AttributesLab:
             self.pic_circle["border_image"], self.pic_circle["border_angle"]
         )
         self.pic_circle["border_rect"] = rotated_image.get_rect(
-            center=self.pic_circle["rect"].center
+            center=self.pic_circle[SurfDesc.RECT].center
         )
         return rotated_image
 
@@ -1059,7 +1211,7 @@ class AttributesLab:
             self.pic_circle["organism_image"], self.pic_circle["organism_angle"]
         )
         self.pic_circle["organism_rect"] = rotated_image.get_rect(
-            center=self.pic_circle["rect"].center
+            center=self.pic_circle[SurfDesc.RECT].center
         )
         return rotated_image
 

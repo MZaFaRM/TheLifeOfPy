@@ -1,10 +1,20 @@
 from enum import Enum
 
+
 class NeuronType(Enum):
     SENSOR = "sensor"
     HIDDEN = "hidden"
     ACTUATOR = "actuator"
     BIAS = "bias"
+
+
+class SurfDesc(Enum):
+    SURFACE = "surface"
+    CLICKED_SURFACE = "clicked_surface"
+    CURRENT_SURFACE = "current_surface"
+    RECT = "rect"
+    ABSOLUTE_RECT = "absolute_rect"
+
 
 class Base(Enum):
     food = "food"

@@ -6,7 +6,7 @@ from handlers.genetics import Genome, Phenome
 import numpy as np
 import random
 import noise
-from enums import Base
+from enums import Base, SurfDesc
 from uuid import uuid4
 
 
@@ -47,7 +47,7 @@ class Creature(Sprite):
                 Base.found: (0, 255, 0, 25),
                 Base.looking: (0, 255, 255, 25),
             },
-            "food": {"state": Base.looking, "rect": None},
+            "food": {"state": Base.looking, SurfDesc.RECT: None},
             "mate": {"state": Base.looking, "mate": None},
         }
 
@@ -189,10 +189,10 @@ class Creature(Sprite):
             key=lambda rect: rect,
         ):
             self.vision["food"]["state"] = Base.found
-            self.vision["food"]["rect"] = rect
+            self.vision["food"][SurfDesc.RECT] = rect
         else:
             self.vision["food"]["state"] = Base.looking
-            self.vision["food"]["rect"] = None
+            self.vision["food"][SurfDesc.RECT] = None
 
         other_creatures = [
             creature
