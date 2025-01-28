@@ -3,7 +3,7 @@ import os
 import pygame
 
 from config import Colors, image_assets
-from enums import EventType, MessagePacket
+from enums import EventType, MessagePacket, SurfDesc
 from handlers.organisms import Counter
 
 
@@ -70,7 +70,7 @@ class HomeComponent:
                         "default": default_button,
                         "clicked": clicked_button,
                     },
-                    "rect": button_rect,
+                    SurfDesc.RECT: button_rect,
                 }
             )
 
@@ -82,7 +82,7 @@ class HomeComponent:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button, button_data in self.time_control_buttons.items():
-                if button_data["rect"].collidepoint(event.pos):
+                if button_data[SurfDesc.RECT].collidepoint(event.pos):
                     button_data["clicked"] = True
                     for other_button in self.time_control_buttons:
                         if other_button != button:
@@ -95,9 +95,13 @@ class HomeComponent:
         self.surface.blit(self.env_title, self.env_title_rect)
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
-                self.surface.blit(button_data["image"]["clicked"], button_data["rect"])
+                self.surface.blit(
+                    button_data["image"]["clicked"], button_data[SurfDesc.RECT]
+                )
             else:
-                self.surface.blit(button_data["image"]["default"], button_data["rect"])
+                self.surface.blit(
+                    button_data["image"]["default"], button_data[SurfDesc.RECT]
+                )
 
 
 class EnvComponent:
@@ -199,7 +203,9 @@ class SidebarComponent:
             mouse_x, mouse_y = event.pos
             rel_x, rel_y = mouse_x - self.surface_x, mouse_y - self.surface_y
             # Check if the mouse is within the bounds of the button
-            if self.buttons["create_organism"]["rect"].collidepoint((rel_x, rel_y)):
+            if self.buttons["create_organism"][SurfDesc.RECT].collidepoint(
+                (rel_x, rel_y)
+            ):
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     button = self.buttons["create_organism"]
                     button["current_image"] = button["clicked_image"]
@@ -225,7 +231,7 @@ class SidebarComponent:
             {
                 "current_image": button_image,
                 "image": button_image,
-                "rect": button_rect,
+                SurfDesc.RECT: button_rect,
                 "clicked_image": clicked_button_image,
             }
         )
@@ -247,4 +253,4 @@ class SidebarComponent:
         self.surface.blit(self.dead_counter.surface, (290, 325))
 
         for button in self.buttons.values():
-            self.surface.blit(button["current_image"], button["rect"])
+            self.surface.blit(button["current_image"], button[SurfDesc.RECT])
