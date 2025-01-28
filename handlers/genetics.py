@@ -85,21 +85,27 @@ class Genome:
         for node, value in zip(sensor_nodes, inputs):
             activations[node._id] = value
 
-        # Step 2: Initialize hidden & output nodes to 0
+        # Step 2: Initialize hidden, output, and bias nodes
         for node in self.node_genes:
             if node.type != NeuronType.SENSOR:
                 activations[node._id] = 0
 
-        # Step 3: Process connections in a feed-forward manner
+        # Step 3: Initialize bias nodes with constant value (typically 1)
+        for node in self.node_genes:
+            if node.type == NeuronType.BIAS:
+                activations[node._id] = 1  # Bias nodes have a fixed activation of 1
+
+        # Step 4: Process connections in a feed-forward manner
         for connection in sorted(
             self.connection_genes, key=lambda c: c.in_node.name
         ):  # Sort for consistency
             if connection.enabled:
+                # If either in_node or out_node is bias, process it like other neurons
                 activations[connection.out_node._id] += (
                     activations[connection.in_node._id] * connection.weight
                 )
 
-        # Step 4: Apply activation function (sigmoid/tanh/ReLU) to hidden & output nodes
+        # Step 5: Apply activation function (sigmoid/tanh/ReLU) to hidden & output nodes
         def activation_function(x):
             return np.tanh(x)  # Normalize outputs to [-1, 1]
 
@@ -109,22 +115,22 @@ class Genome:
             ):  # Apply activation only to non-input nodes
                 activations[node._id] = activation_function(activations[node._id])
 
-        # Step 5: Return output node activations
+        # Step 6: Return output node activations
         output_nodes = [
             node for node in self.node_genes if node.type == NeuronType.ACTUATOR
         ]
 
-        return max(output_nodes, key=lambda node: activations[node._id]).name
+        return max(output_nodes, key=lambda node: activations[node._id])
 
     def step(self, output, creature):
         context = {}
-        return
-        for actuator_id in self.genome_data[NeuronType.ACTUATOR]:
-            if actuator_id in self.neuron_manager.actuators:
-                actuator_method = getattr(self.neuron_manager, f"act_{actuator_id}")
-                actuator_method(creature)
-            else:
-                raise ValueError(f"Unknown actuator: {actuator_id}")
+        for node in self.nodes.values():
+            if node.type == NeuronType.ACTUATOR:
+                if node.name in self.neuron_manager.actuators:
+                    actuator_method = getattr(self.neuron_manager, f"act_{node.name}")
+                    actuator_method(creature)
+                else:
+                    raise ValueError(f"Unknown actuator: {node.name}")
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node._id, out_node._id)
