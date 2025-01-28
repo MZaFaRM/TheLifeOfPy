@@ -8,7 +8,7 @@ import pygame
 import pygame.gfxdraw
 
 from config import Colors, Fonts, image_assets
-from enums import EventType, MessagePacket
+from enums import EventType, MessagePacket, NeuronType
 from handlers.genetics import NeuronManager
 import helper
 
@@ -123,8 +123,6 @@ class LaboratoryComponent:
 class NeuralLab:
     def __init__(self, main_surface, context=None):
         self.main_surface = main_surface
-        self.selected_sensor = None
-        self.selected_actuator = None
 
         self.surface_x_offset = context.get("surface_x_offset", 0)
         self.surface_y_offset = context.get("surface_y_offset", 0)
@@ -134,18 +132,26 @@ class NeuralLab:
         self.surface = surface
         self.body_font = pygame.font.Font(Fonts.PixelifySansMedium, 21)
 
+        self.selected_neuron = {}
+
         sensors = NeuronManager.sensors.items()
         sensors = [{"name": key, "desc": value["desc"]} for key, value in sensors]
-        self._configure_sensors(sensors=sensors)
+        self._configure_neurons(neuron_type=NeuronType.SENSOR, neurons=sensors)
 
         actuators = NeuronManager.actuators.items()
         actuators = [{"name": key, "desc": value["desc"]} for key, value in actuators]
-        self._configure_actuators(actuators=actuators)
+        self._configure_neurons(neuron_type=NeuronType.ACTUATOR, neurons=actuators)
 
         self._configure_hidden_neuron()
 
         self._configure_neural_frame()
         self._configure_unleash_organism_click()
+
+        self.neural_nodes = {
+            NeuronType.SENSOR: self.sensors,
+            NeuronType.ACTUATOR: self.actuators,
+            NeuronType.HIDDEN: [self.hidden_neuron],
+        }
 
     def _configure_neural_frame(self):
         self.neural_frame_surface = pygame.image.load(
@@ -208,9 +214,7 @@ class NeuralLab:
     def _handle_mouse_down(self, event):
         response = None
         for res in (
-            self.__handle_sensor_click(event),
-            self.__handle_actuator_click(event),
-            self.__handle_hidden_neuron_click(event),
+            self.__handle_neuron_click(event),
             # self.__handle_neuron_on_mouse_down(event),
             self.__handle_unleash_organism_on_mouse_down(event),
         ):
@@ -218,21 +222,12 @@ class NeuralLab:
                 response = res
         return response
 
-    def __handle_hidden_neuron_click(self, event):
-        if self.hidden_neuron["absolute_rect"].collidepoint(event.pos):
-            self.hidden_neuron["selected"] = not self.hidden_neuron["selected"]
-            self.hidden_neuron["current_surface"] = (
-                self.hidden_neuron["clicked_surface"]
-                if self.hidden_neuron["selected"]
-                else self.hidden_neuron["surface"]
-            )
-
     def __handle_neuron_on_mouse_down(self, event):
         for i in range(len(self.neural_network["sensors"])):
             if self.neural_network["sensors"][i]["absolute_rect"].collidepoint(
                 event.pos
             ):
-                if self.selected_sensor:
+                if self.selected_neuron:
                     # sensor change, hence, trigger a deletion of the connections to this sensor
                     indices_to_remove = [
                         j
@@ -246,7 +241,7 @@ class NeuralLab:
                         self.neural_network["lines"].pop(index)
 
                     # Then change the sensor name
-                    self.neural_network["sensors"][i]["name"] = self.selected_sensor[
+                    self.neural_network["sensors"][i]["name"] = self.selected_neuron[
                         "name"
                     ]
 
@@ -258,7 +253,7 @@ class NeuralLab:
             if self.neural_network["actuators"][i]["absolute_rect"].collidepoint(
                 event.pos
             ):
-                if self.selected_actuator:
+                if self.selected_neuron:
                     # actuator change, hence, trigger a deletion of the all connections to this actuator
                     indices_to_remove = [
                         j
@@ -272,9 +267,9 @@ class NeuralLab:
                         self.neural_network["lines"].pop(index)
 
                     # Then change the actuator name
-                    self.neural_network["actuators"][i]["name"] = (
-                        self.selected_actuator["name"]
-                    )
+                    self.neural_network["actuators"][i]["name"] = self.selected_neuron[
+                        "name"
+                    ]
 
                 elif self.neural_network["actuators"][i]["name"]:
                     self.neural_network["selected_actuator"] = i
@@ -336,8 +331,7 @@ class NeuralLab:
             filter(
                 lambda packet: packet is not None,
                 (
-                    self.__reset_sensors_on_mouse_up(event),
-                    self.__reset_actuators_on_mouse_up(event),
+                    self.__reset_neurons_on_mouse_up(event),
                     self.__handle_unleash_organism_on_mouse_up(event),
                 ),
             ),
@@ -352,48 +346,33 @@ class NeuralLab:
                 self.unleash_organism_button["image"]
             )
 
-    def __handle_sensor_click(self, event):
-        for sensor in self.sensors:
-            if sensor["absolute_rect"].collidepoint(event.pos):
-                self.selected_sensor = sensor
-                sensor["current_surface"] = sensor["clicked_surface"]
-                self.__update_sensor_text(sensor_desc_text=sensor["desc"])
-                break
+    def __handle_neuron_click(self, event):
+        for neuron_type, neurons in self.neural_nodes.items():
+            for neuron in neurons:
+                if neuron["absolute_rect"].collidepoint(event.pos):
+                    self.selected_neuron = neuron
+                    neuron["current_surface"] = neuron["clicked_surface"]
+                    if neuron_type != NeuronType.HIDDEN:
+                        self.__update_neuron_text(
+                            neuron_type=neuron_type, neuron_desc_text=neuron["desc"]
+                        )
+                    return
 
-    def __handle_actuator_click(self, event):
-        for actuator in self.actuators:
-            if actuator["absolute_rect"].collidepoint(event.pos):
-                self.selected_actuator = actuator
-                actuator["current_surface"] = actuator["clicked_surface"]
-                self.__update_actuator_text(actuator_desc_text=actuator["desc"])
-                break
+    def __reset_neurons_on_mouse_up(self, event):
+        if self.selected_neuron:
+            for neuron_type, neurons in self.neural_nodes.items():
+                for neuron in neurons:
+                    if neuron != self.selected_neuron:
+                        neuron["current_surface"] = neuron["surface"]
 
-    def __reset_sensors_on_mouse_up(self, event):
-        if self.selected_sensor:
-            for sensor in self.sensors:
-                if sensor != self.selected_sensor:
-                    sensor["current_surface"] = sensor["surface"]
-            if not self.selected_sensor["absolute_rect"].collidepoint(event.pos):
-                self.__update_sensor_text()
-                self.selected_sensor["current_surface"] = self.selected_sensor[
-                    "surface"
-                ]
-                self.selected_sensor = None
-
-    def __reset_actuators_on_mouse_up(self, event):
-        if self.selected_actuator:
-            for actuator in self.actuators:
-                if actuator != self.selected_actuator:
-                    actuator["current_surface"] = actuator["surface"]
-            if not self.selected_actuator["absolute_rect"].collidepoint(event.pos):
-                self.__update_actuator_text()
-                self.selected_actuator["current_surface"] = self.selected_actuator[
-                    "surface"
-                ]
-                self.selected_actuator = None
+                if not self.selected_neuron["absolute_rect"].collidepoint(event.pos):
+                    self.__update_neuron_text(neuron_type)
+                    self.selected_neuron["current_surface"] = self.selected_neuron[
+                        "surface"
+                    ]
+                    self.selected_neuron = None
 
     def update(self, context=None):
-
         for sensor in self.sensors:
             self.surface.blit(sensor["current_surface"], sensor["rect"])
 
@@ -460,219 +439,131 @@ class NeuralLab:
         )
         return surface
 
-    def _configure_hidden_neuron(self):
-        # Single hidden neuron positioning
-        x = 1626
-        y = 748
+    def _configure_neurons(self, neuron_type: NeuronType, neurons: list):
+        if neurons is None:
+            neurons = []
 
-        # Create a surface for the hidden neuron
+        neurons.append({"name": "", "desc": "Use this to remove added neurons."})
+
+        desc_attr = f"{neuron_type.value}_desc"
+        setattr(
+            self,
+            desc_attr,
+            {
+                "surface": pygame.Surface((450, 50)),
+                "position": {
+                    "topleft": (
+                        (62, 690) if neuron_type == NeuronType.SENSOR else (666, 690)
+                    )
+                },
+                "rect": None,
+                "absolute_rect": None,
+                "default_text": helper.split_text(
+                    f"Select a {neuron_type.value} to view more information..."
+                ),
+            },
+        )
+
+        desc = getattr(self, desc_attr)
+        desc["rect"] = desc["surface"].get_rect(**desc["position"])
+        self.__update_neuron_text(neuron_type)
+
+        num_neurons = len(neurons)
+        y_start, x_start = (790, 87) if neuron_type == NeuronType.SENSOR else (790, 691)
+        y_offset, x_offset, x_max = (
+            15,
+            67,
+            600 if neuron_type == NeuronType.SENSOR else 1200,
+        )
+
+        neuron_list_attr = f"{neuron_type.value}s"
+        setattr(self, neuron_list_attr, [])
+
+        for i in range(num_neurons):
+            neuron_surface = pygame.Surface((55, 55))
+            neuron_surface.fill(color=Colors.primary)
+            pygame.gfxdraw.aacircle(neuron_surface, 25, 25, 25, Colors.bg_color)
+
+            text = self.body_font.render(neurons[i]["name"], True, Colors.bg_color)
+            neuron_surface.blit(text, text.get_rect(center=(25, 25)))
+
+            clicked_neuron_surface = pygame.Surface((55, 55))
+            clicked_neuron_surface.fill(color=Colors.primary)
+            pygame.draw.circle(clicked_neuron_surface, Colors.bg_color, (25, 25), 25)
+
+            text = self.body_font.render(neurons[i]["name"], True, Colors.primary)
+            clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
+
+            x = x_start + (x_offset * i)
+            y = y_start if x < x_max else y_start + y_offset
+
+            getattr(self, neuron_list_attr).append(
+                {
+                    "name": neurons[i]["name"],
+                    "desc": helper.split_text(neurons[i]["desc"]),
+                    "current_surface": neuron_surface,
+                    "surface": neuron_surface,
+                    "clicked_surface": clicked_neuron_surface,
+                    "rect": neuron_surface.get_rect(center=(x, y)),
+                    "absolute_rect": neuron_surface.get_rect(
+                        topleft=(
+                            x - 25 + self.surface_x_offset,
+                            y - 25 + self.surface_y_offset,
+                        ),
+                    ),
+                }
+            )
+
+    def _configure_hidden_neuron(self):
+        x, y = 1626, 748
+
         neuron_surface = pygame.Surface((55, 55))
         neuron_surface.fill(color=Colors.primary)
         pygame.gfxdraw.aacircle(neuron_surface, 25, 25, 25, Colors.bg_color)
 
-        # Render neuron label
         text = self.body_font.render("H", True, Colors.bg_color)
         neuron_surface.blit(text, text.get_rect(center=(25, 25)))
 
-        # Create a clicked state for the neuron
         clicked_neuron_surface = pygame.Surface((55, 55))
         clicked_neuron_surface.fill(color=Colors.primary)
         pygame.draw.circle(clicked_neuron_surface, Colors.bg_color, (25, 25), 25)
 
-        # Render neuron label in clicked state
         text = self.body_font.render("H", True, Colors.primary)
         clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
 
-        # Store hidden neuron data
         self.hidden_neuron = {
             "name": "Hidden Neuron",
             "desc": helper.split_text(
                 "A hidden neuron connects input to output neurons."
             ),
-            "selected": False,
             "current_surface": neuron_surface,
             "surface": neuron_surface,
             "clicked_surface": clicked_neuron_surface,
             "rect": neuron_surface.get_rect(center=(x, y)),
             "absolute_rect": neuron_surface.get_rect(
-                topleft=(x - 25 + self.surface_x_offset, y - 25 + self.surface_y_offset)
+                topleft=(
+                    x - 25 + self.surface_x_offset,
+                    y - 25 + self.surface_y_offset,
+                ),
             ),
         }
 
-    def _configure_sensors(self, sensors):
-        sensors.extend(
-            [
-                {
-                    "name": "",
-                    "desc": "Use this to remove added sensors.",
-                }
-            ]
-        )
-        self.sensor_desc = {
-            "surface": pygame.Surface((450, 50)),
-            "position": {"topleft": (62, 690)},
-            "rect": None,
-            "absolute_rect": None,
-            "default_text": helper.split_text(
-                "Select a sensor to view more information..."
-            ),
-        }
-        self.sensor_desc["rect"] = self.sensor_desc["surface"].get_rect(
-            **self.sensor_desc["position"]
-        )
-
-        self.__update_sensor_text()
-
-        num_sensors = len(sensors)
-        self.sensors = []  # Use this list to store sensor data
-        y_start = 790
-        x_start = 87
-        y_offset = 15
-        x_offset = 67
-        x_max = 600
-
-        for i in range(num_sensors):
-            # Create a new surface for each sensor
-            sensor_surface = pygame.Surface((55, 55))
-            sensor_surface.fill(color=Colors.primary)
-            pygame.gfxdraw.aacircle(sensor_surface, 25, 25, 25, Colors.bg_color)
-
-            # Render title text for each sensor
-            text = self.body_font.render(sensors[i]["name"], True, Colors.bg_color)
-            sensor_surface.blit(text, text.get_rect(center=(25, 25)))
-
-            # Create a new surface for the clicked look for each sensor
-            clicked_sensor_surface = pygame.Surface((55, 55))
-            clicked_sensor_surface.fill(color=Colors.primary)
-            pygame.draw.circle(clicked_sensor_surface, Colors.bg_color, (25, 25), 25)
-
-            # Render title text for the clicked sensor
-            text = self.body_font.render(sensors[i]["name"], True, Colors.primary)
-            clicked_sensor_surface.blit(text, text.get_rect(center=(25, 25)))
-
-            x = x_start + (x_offset * i)
-            y = y_start if x < x_max else y_start + y_offset
-
-            # Add sensor data to the self.sensors list
-            self.sensors.append(
-                {
-                    "name": sensors[i]["name"],
-                    "desc": helper.split_text(sensors[i]["desc"]),
-                    "selected": False,
-                    "current_surface": sensor_surface,
-                    "surface": sensor_surface,
-                    "clicked_surface": clicked_sensor_surface,
-                    "rect": sensor_surface.get_rect(center=(x, y)),
-                    "absolute_rect": sensor_surface.get_rect(
-                        topleft=(
-                            x - 25 + self.surface_x_offset,
-                            y - 25 + self.surface_y_offset,
-                        )
-                    ),
-                }
-            )
-
-    def __update_sensor_text(
-        self,
-        sensor_desc_text: list = None,
+    def __update_neuron_text(
+        self, neuron_type: NeuronType, neuron_desc_text: list = None
     ):
-        if not sensor_desc_text:
-            sensor_desc_text = self.sensor_desc["default_text"]
+        desc_attr = f"{neuron_type.value}_desc"
+        desc = getattr(self, desc_attr, None)
+        if not desc:
+            return
 
-        self.sensor_desc["surface"].fill(Colors.primary)
+        if not neuron_desc_text:
+            neuron_desc_text = desc["default_text"]
 
+        desc["surface"].fill(Colors.primary)
         text_y = 0
-        for text in sensor_desc_text:
+        for text in neuron_desc_text:
             text = self.body_font.render(text, True, Colors.bg_color, Colors.primary)
-            self.sensor_desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
-            text_y += 25
-
-    def _configure_actuators(self, actuators):
-        actuators.extend(
-            [
-                {
-                    "name": "",
-                    "desc": "Use this to remove added actuators.",
-                }
-            ]
-        )
-        self.actuator_desc = {
-            "surface": pygame.Surface((450, 50)),
-            "position": {"topleft": (666, 690)},
-            "rect": None,
-            "absolute_rect": None,
-            "default_text": helper.split_text(
-                "Select a actuator to view more information..."
-            ),
-        }
-        self.actuator_desc["rect"] = self.actuator_desc["surface"].get_rect(
-            **self.actuator_desc["position"]
-        )
-
-        self.__update_actuator_text()
-
-        num_actuators = len(actuators)
-        self.actuators = []  # Use this list to store actuator data
-        y_start = 790
-        x_start = 691
-        y_offset = 15
-        x_offset = 67
-        x_max = 1200
-
-        for i in range(num_actuators):
-            # Create a new surface for each actuator
-            actuator_surface = pygame.Surface((55, 55))
-            actuator_surface.fill(color=Colors.primary)
-            pygame.gfxdraw.aacircle(actuator_surface, 25, 25, 25, Colors.bg_color)
-
-            # Render title text for each actuator
-            text = self.body_font.render(actuators[i]["name"], True, Colors.bg_color)
-            actuator_surface.blit(text, text.get_rect(center=(25, 25)))
-
-            # Create a new surface for the clicked look for each actuator
-            clicked_actuator_surface = pygame.Surface((55, 55))
-            clicked_actuator_surface.fill(color=Colors.primary)
-            pygame.draw.circle(clicked_actuator_surface, Colors.bg_color, (25, 25), 25)
-
-            # Render title text for the clicked actuator
-            text = self.body_font.render(actuators[i]["name"], True, Colors.primary)
-            clicked_actuator_surface.blit(text, text.get_rect(center=(25, 25)))
-
-            x = x_start + (x_offset * i)
-            y = y_start if x < x_max else y_start + y_offset
-
-            # Add actuator data to the self.actuators list
-            self.actuators.append(
-                {
-                    "name": actuators[i]["name"],
-                    "desc": helper.split_text(actuators[i]["desc"]),
-                    "selected": False,
-                    "current_surface": actuator_surface,
-                    "surface": actuator_surface,
-                    "clicked_surface": clicked_actuator_surface,
-                    "rect": actuator_surface.get_rect(center=(x, y)),
-                    "absolute_rect": actuator_surface.get_rect(
-                        topleft=(
-                            x - 25 + self.surface_x_offset,
-                            y - 25 + self.surface_y_offset,
-                        )
-                    ),
-                }
-            )
-
-    def __update_actuator_text(
-        self,
-        actuator_desc_text: list = None,
-    ):
-        if not actuator_desc_text:
-            actuator_desc_text = self.actuator_desc["default_text"]
-
-        self.actuator_desc["surface"].fill(Colors.primary)
-
-        text_y = 0
-        for text in actuator_desc_text:
-            text = self.body_font.render(text, True, Colors.bg_color, Colors.primary)
-            self.actuator_desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
+            desc["surface"].blit(text, text.get_rect(topleft=(0, text_y)))
             text_y += 25
 
 
