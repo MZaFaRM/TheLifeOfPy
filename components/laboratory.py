@@ -160,14 +160,16 @@ class NeuralLab:
         self._configure_neurons(neuron_type=NeuronType.ACTUATOR, neurons=actuators)
 
         self._configure_hidden_neuron()
+        self._configure_bias_neuron()
 
         self._configure_neural_frame()
-        self._configure_unleash_organism_click()
+        self._configure_unleash_organism_button()
 
         self.neural_nodes = {
             NeuronType.SENSOR: self.sensors,
             NeuronType.ACTUATOR: self.actuators,
             NeuronType.HIDDEN: [self.hidden_neuron],
+            NeuronType.BIAS: [self.bias_neuron],
         }
 
     def _configure_neural_frame(self):
@@ -198,6 +200,7 @@ class NeuralLab:
                     NeuronType.SENSOR: (74, 227, 181),
                     NeuronType.ACTUATOR: (0, 255, 127),
                     NeuronType.HIDDEN: (0, 163, 108),
+                    NeuronType.BIAS: (0, 139, 139),
                 },
             },
             "line": {
@@ -209,7 +212,7 @@ class NeuralLab:
             self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
         )
 
-    def _configure_unleash_organism_click(self):
+    def _configure_unleash_organism_button(self):
         self.unleash_organism_button = {
             SurfDesc.CURRENT_SURFACE: None,
             SurfDesc.SURFACE: pygame.image.load(
@@ -228,7 +231,7 @@ class NeuralLab:
                     "unleash_organism_button_clicked.svg",
                 )
             ),
-            "position": {"topleft": (1290, 829)},
+            "position": {"topleft": (1304, 843)},
             SurfDesc.RECT: None,
             SurfDesc.ABSOLUTE_RECT: None,
         }
@@ -404,14 +407,14 @@ class NeuralLab:
             )
             pygame.draw.circle(selected_surface, color, (radius, radius), radius - 5)
 
-            if self.selected_neuron["type"] != NeuronType.HIDDEN:
+            if self.selected_neuron["type"] not in [NeuronType.HIDDEN, NeuronType.BIAS]:
                 text = self.body_font.render(
                     self.selected_neuron["name"], True, Colors.bg_color
                 )
                 surface.blit(text, text.get_rect(center=(radius, radius)))
                 selected_surface.blit(text, text.get_rect(center=(radius, radius)))
 
-            if self.selected_neuron["type"] == NeuronType.HIDDEN:
+            if self.selected_neuron["type"] in [NeuronType.HIDDEN, NeuronType.BIAS]:
                 _id = uuid.uuid4()
             else:
                 _id = self.selected_neuron.get("id")
@@ -447,6 +450,7 @@ class NeuralLab:
         sensors = []
         actuators = []
         hidden = []
+        bias = []
         connections = []
 
         for node in self.neural_frame["nodes"]:
@@ -456,6 +460,8 @@ class NeuralLab:
                 actuators.append((node["id"], node["name"], NeuronType.ACTUATOR))
             elif node["type"] == NeuronType.HIDDEN:
                 hidden.append((node["id"], node["name"], NeuronType.HIDDEN))
+            elif node["type"] == NeuronType.BIAS:
+                bias.append((node["id"], node["name"], NeuronType.BIAS))
 
         for conn in self.neural_frame["connections"]:
             connections.append(
@@ -469,6 +475,7 @@ class NeuralLab:
             NeuronType.SENSOR: sensors,
             NeuronType.ACTUATOR: actuators,
             NeuronType.HIDDEN: hidden,
+            NeuronType.BIAS: bias,
             "connections": connections,
         }
 
@@ -505,7 +512,7 @@ class NeuralLab:
                     self.selected_neuron = neuron
                     self.selected_neuron["type"] = neuron_type
                     neuron[SurfDesc.CURRENT_SURFACE] = neuron[SurfDesc.CLICKED_SURFACE]
-                    if neuron_type != NeuronType.HIDDEN:
+                    if neuron_type not in [NeuronType.HIDDEN, NeuronType.BIAS]:
                         self.__update_neuron_text(
                             neuron_type=neuron_type, neuron_desc_text=neuron["desc"]
                         )
@@ -542,6 +549,7 @@ class NeuralLab:
         # Blit specific elements
         for element, desc in [
             (self.hidden_neuron, SurfDesc.CURRENT_SURFACE),
+            (self.bias_neuron, SurfDesc.CURRENT_SURFACE),
             (self.sensor_desc, SurfDesc.SURFACE),
             (self.actuator_desc, SurfDesc.SURFACE),
             (self.unleash_organism_button, SurfDesc.CURRENT_SURFACE),
@@ -573,7 +581,9 @@ class NeuralLab:
         titles = [
             ("sensor_title.svg", (62, 640)),
             ("actuator_title.svg", (666, 640)),
-            ("hidden_neuron_title.svg", (1290, 640)),
+            ("hidden_neuron_title.svg", (1304, 206)),
+            ("bias_neuron_title.svg", (1304, 363)),
+            ("help_screen.svg", (1304, 519)),
         ]
 
         for title, pos in titles:
@@ -659,7 +669,7 @@ class NeuralLab:
             )
 
     def _configure_hidden_neuron(self):
-        x, y = 1626, 748
+        x, y = 1700, 310
 
         neuron_surface = pygame.Surface((55, 55))
         neuron_surface.fill(color=Colors.primary)
@@ -679,6 +689,40 @@ class NeuralLab:
             "name": "H",
             "desc": helper.split_text(
                 "A hidden neuron connects input to output neurons."
+            ),
+            SurfDesc.CURRENT_SURFACE: neuron_surface,
+            SurfDesc.SURFACE: neuron_surface,
+            SurfDesc.CLICKED_SURFACE: clicked_neuron_surface,
+            SurfDesc.RECT: neuron_surface.get_rect(center=(x, y)),
+            SurfDesc.ABSOLUTE_RECT: neuron_surface.get_rect(
+                topleft=(
+                    x - 25 + self.surface_x_offset,
+                    y - 25 + self.surface_y_offset,
+                ),
+            ),
+        }
+
+    def _configure_bias_neuron(self):
+        x, y = 1700, 460
+
+        neuron_surface = pygame.Surface((55, 55))
+        neuron_surface.fill(color=Colors.primary)
+        pygame.gfxdraw.aacircle(neuron_surface, 25, 25, 25, Colors.bg_color)
+
+        text = self.body_font.render("B", True, Colors.bg_color)
+        neuron_surface.blit(text, text.get_rect(center=(25, 25)))
+
+        clicked_neuron_surface = pygame.Surface((55, 55))
+        clicked_neuron_surface.fill(color=Colors.primary)
+        pygame.draw.circle(clicked_neuron_surface, Colors.bg_color, (25, 25), 25)
+
+        text = self.body_font.render("B", True, Colors.primary)
+        clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
+
+        self.bias_neuron = {
+            "name": "B",
+            "desc": helper.split_text(
+                "Bias shifts the neuron's output to help it activate."
             ),
             SurfDesc.CURRENT_SURFACE: neuron_surface,
             SurfDesc.SURFACE: neuron_surface,
