@@ -59,13 +59,13 @@ class Genome:
                     np.random.uniform(-1, 1),
                 )
 
-    def observe(self, creature):
+    def observe(self, critter):
         observations = []
         for neuron in self.nodes.values():
             if neuron.type == NeuronType.SENSOR:
                 if neuron.name in self.neuron_manager.sensors:
                     sensor_method = getattr(self.neuron_manager, f"obs_{neuron.name}")
-                    observations.append(sensor_method(creature))
+                    observations.append(sensor_method(critter))
                 else:
                     raise ValueError(f"Unknown sensor: {neuron}")
         return observations
@@ -119,18 +119,18 @@ class Genome:
         output_nodes = [
             node for node in self.node_genes if node.type == NeuronType.ACTUATOR
         ]
+        if output_nodes:
+            return max(output_nodes, key=lambda node: activations[node._id])
 
-        return max(output_nodes, key=lambda node: activations[node._id])
-
-    def step(self, output, creature):
-        context = {}
-        for node in self.nodes.values():
-            if node.type == NeuronType.ACTUATOR:
-                if node.name in self.neuron_manager.actuators:
-                    actuator_method = getattr(self.neuron_manager, f"act_{node.name}")
-                    actuator_method(creature)
-                else:
-                    raise ValueError(f"Unknown actuator: {node.name}")
+    def step(self, output_node, critter):
+        if output_node:
+            if output_node.name in self.neuron_manager.actuators:
+                actuator_method = getattr(
+                    self.neuron_manager, f"act_{output_node.name}"
+                )
+                actuator_method(critter)
+            else:
+                raise ValueError(f"Unknown actuator: {output_node.name}")
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node._id, out_node._id)
@@ -244,9 +244,6 @@ class NeuronManager:
         "FD": {
             "desc": "Closeness to nearest food in vision",
         },
-        # "TSF": {
-        #     "desc": "Time since last food",
-        # },
     }
 
     actuators = {
@@ -258,26 +255,26 @@ class NeuronManager:
         },
     }
 
-    def __init__(self, creatures=None, plants=None):
-        self.creatures = creatures or []
+    def __init__(self, critters=None, plants=None):
+        self.critters = critters or []
         self.plants = plants or []
 
-    def update(self, creatures, plants):
-        self.creatures = creatures
+    def update(self, critters, plants):
+        self.critters = critters
         self.plants = plants
 
         self._update_nearest_food()
         self._precompute_trig_values()
 
     def _update_nearest_food(self):
-        """Precompute nearest food for all creatures to avoid redundant calculations."""
+        """Precompute nearest food for all critters to avoid redundant calculations."""
         self.nearest_food_map = {}
 
-        for creature in self.creatures:
+        for critter in self.critters:
             min_plant = None
-            min_distance_sq = creature.vision["radius"] ** 2
+            min_distance_sq = critter.vision["radius"] ** 2
 
-            cx, cy = creature.rect.centerx, creature.rect.centery
+            cx, cy = critter.rect.centerx, critter.rect.centery
 
             for plant in self.plants:
                 dx = plant.rect.centerx - cx
@@ -288,64 +285,58 @@ class NeuronManager:
                     min_distance_sq = distance_sq
                     min_plant = plant
 
-            self.nearest_food_map[creature] = min_plant
+            self.nearest_food_map[critter] = min_plant
 
     def _precompute_trig_values(self):
-        """Precomputes sine and cosine for each creature to avoid redundant calculations."""
+        """Precomputes sine and cosine for each critter to avoid redundant calculations."""
         self.trig_cache = {
-            creature: (math.cos(creature.angle), math.sin(creature.angle))
-            for creature in self.creatures
+            critter: (math.cos(critter.angle), math.sin(critter.angle))
+            for critter in self.critters
         }
 
     # --- SENSOR FUNCTIONS ---
 
-    def obs_RNs(self, creature):
+    def obs_RNs(self, critter):
         return random.uniform(-1, 1)
 
-    def obs_FD(self, creature):
+    def obs_FD(self, critter):
         """Returns normalized distance to the nearest food source using precomputed data."""
-        if (food := self.nearest_food_map.get(creature)) is None:
+        if (food := self.nearest_food_map.get(critter)) is None:
             return 1.0  # No food found, return max distance
 
-        dx = food.rect.centerx - creature.rect.centerx
-        dy = food.rect.centery - creature.rect.centery
+        dx = food.rect.centerx - critter.rect.centerx
+        dy = food.rect.centery - critter.rect.centery
         distance = math.sqrt(dx**2 + dy**2)
-        return min(distance / creature.vision["radius"], 1.0)
-
-    # def obs_TSF(self, creature):
-    #     """Returns normalized time since last food intake."""
-    #     return min(
-    #         (self.current_time - creature.last_eaten_time) / creature.max_time, 1.0
-    #     )
+        return min(distance / critter.vision["radius"], 1.0)
 
     # --- ACTUATOR FUNCTIONS ---
 
-    def act_Mv(self, creature):
-        """Moves the creature in its current direction with Perlin noise influence."""
-        direction = noise.snoise2(((creature.seed + creature.age) / 1000) % 1000, 0)
+    def act_Mv(self, critter):
+        """Moves the critter in its current direction with Perlin noise influence."""
+        direction = noise.snoise2(((critter.seed + critter.age) / 1000) % 1000, 0)
         angle = (direction + 1) * math.pi
-        creature.rect.x += math.cos(angle)
-        creature.rect.y += math.sin(angle)
+        critter.rect.x += math.cos(angle)
+        critter.rect.y += math.sin(angle)
 
-    def act_Eat(self, creature):
+    def act_Eat(self, critter):
         """Eats the nearest food source if in range."""
-        if (food := self.nearest_food_map.get(creature)) is not None:
-            if creature.rect.center == food.rect.center:
+        if (food := self.nearest_food_map.get(critter)) is not None:
+            if critter.body.colliderect(food.rect):
                 self.plants.remove(food)
-                creature.energy += 500
-                creature.fitness += 1
-                self._update_nearest_food()  # Update nearest food for all creatures
+                critter.energy += 500
+                critter.fitness += 1
+                self._update_nearest_food()  # Update nearest food for all critters
             else:
-                # Move food 1d closer to creature
-                dx = food.rect.centerx - creature.rect.centerx
-                dy = food.rect.centery - creature.rect.centery
+                # Move food 1d closer to critter
+                dx = food.rect.centerx - critter.rect.centerx
+                dy = food.rect.centery - critter.rect.centery
                 distance_sq = dx * dx + dy * dy
 
                 if distance_sq > 0:
                     distance = math.sqrt(distance_sq)
                     unit_vector = (dx / distance, dy / distance)
 
-                    step = max(0.1, 1 - (distance / (creature.vision["radius"] * 2)))
+                    step = max(0.1, 1 - (distance / (critter.vision["radius"] * 2)))
 
                     food.rect.x -= step * unit_vector[0]
                     food.rect.y -= step * unit_vector[1]

@@ -19,6 +19,23 @@ class HomeComponent:
         )
         self.env_title_rect = self.env_title.get_rect(topleft=(50, 50))
 
+        self.components = [
+            {
+                "name": "EnvComponent",
+                "handler": EnvComponent,
+                "position": {
+                    "topleft": (50, 100),
+                },
+            },
+            {
+                "name": "SidebarComponent",
+                "handler": SidebarComponent,
+                "position": {
+                    "topright": (self.surface.get_width() - 50, 50),
+                },
+            },
+        ]
+
         self.time_control_buttons = {
             "pause_time": {
                 "name": "pause_time",
@@ -74,6 +91,16 @@ class HomeComponent:
                 }
             )
 
+        self._initialize_screen(context)
+
+    def _initialize_screen(self, context):
+        for component in self.components:
+            rendered_component = component["handler"](
+                main_surface=self.surface,
+                context=context,
+            )
+            component["rendered_handler"] = rendered_component
+
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONUP:
             if self.close_window_button_rect.collidepoint(event.pos):
@@ -87,10 +114,27 @@ class HomeComponent:
                     for other_button in self.time_control_buttons:
                         if other_button != button:
                             self.time_control_buttons[other_button]["clicked"] = False
-                    yield (button,)
-                    break
+                    return button
+
+        return next(
+            filter(
+                lambda packet: packet is not None,
+                (
+                    component["rendered_handler"].event_handler(event)
+                    for component in self.components
+                ),
+            ),
+            None,
+        )
 
     def update(self, context=None):
+        for component in self.components:
+            component["rendered_handler"].update(context=context)
+            rect = component["rendered_handler"].surface.get_rect(
+                **component["position"]
+            )
+            self.surface.blit(component["rendered_handler"].surface, dest=rect)
+
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
         self.surface.blit(self.env_title, self.env_title_rect)
         for button_data in self.time_control_buttons.values():
@@ -113,20 +157,32 @@ class EnvComponent:
             (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
         )
         self.surface.blit(self.env_image, (0, 0))
+        self.plants = []
+        self.critters = []
 
     def event_handler(self, event):
-        return
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pos = (event.pos[0] - 50, event.pos[1] - 100)
+            for critter in self.critters:
+                if critter.clickable_body.collidepoint(pos):
+                    return MessagePacket(
+                        EventType.NAVIGATION,
+                        "profile",
+                        context={"critter": critter},
+                    )
 
     def update(self, context=None):
-        plants = context.get("plants")
-        creatures = context.get("creatures")
+        self.plants = context.get("plants")
+        self.critters = context.get("critters")
 
         self.surface.fill(Colors.bg_color)
         self.surface.blit(self.env_image, (0, 0))
 
-        plants.draw(self.surface)
-        for creature in creatures:
-            creature.draw(self.surface)
+        self.plants.draw(self.surface)
+
+        for critter in self.critters:
+            critter.step()
+            critter.draw(self.surface)
 
 
 class SidebarComponent:
@@ -210,7 +266,7 @@ class SidebarComponent:
                     button = self.buttons["create_organism"]
                     button["current_image"] = button["clicked_image"]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    yield MessagePacket(
+                    return MessagePacket(
                         EventType.NAVIGATION,
                         "laboratory",
                     )
@@ -237,11 +293,11 @@ class SidebarComponent:
         )
 
     def update(self, context=None):
-        creatures = context.get("creatures")
+        critters = context.get("critters")
         alive = 0
         dead = 0
-        for creature in creatures:
-            if creature.alive:
+        for critter in critters:
+            if critter.alive:
                 alive += 1
             else:
                 dead += 1

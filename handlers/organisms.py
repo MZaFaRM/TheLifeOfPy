@@ -13,9 +13,9 @@ from config import Colors, Fonts
 # Nearest Home Direction (Angle)
 # Current Energy (Amount)
 # Number of Agents Trying to Eat the Nearest Food (Count)
-# Nearest Carnivorous Creature Location (Distance)
-# Nearest Creature Location (Distance)
-# Nearest Creature Direction (Angle)
+# Nearest Carnivorous Critter Location (Distance)
+# Nearest Critter Location (Distance)
+# Nearest Critter Direction (Angle)
 # Target Food Speed (Speed)
 # Distance to Nearest Predator (Distance)
 # Distance to Nearest Safe Zone (Distance)
@@ -84,57 +84,38 @@ class Species:
     def __init__(self, context=None) -> None:
         self.name = context.get("name", "Species 1")
         self.neuron_manager = context["neuron_manager"]
-        self.creature_population = 0
+        self.critter_population = 0
         self.surface = context["env_surface"]
         self.alive_count = 0
         self.dead_count = 0
-        self.creatures = pygame.sprite.Group()
+        self.critters = pygame.sprite.Group()
 
-    def register_creature(self, creature):
-        self.creature_population += 1
+    def register_critter(self, critter):
+        self.critter_population += 1
         return 1
-        return self.generate_dna(creature)
 
-    def generate_creatures(self, n, context):
+    def generate_critters(self, n, context):
         context["genome"]["neuron_manager"] = self.neuron_manager
         for _ in range(n):
-            self.creatures.add(
-                agents.Creature(
+            self.critters.add(
+                agents.Critter(
                     surface=self.surface,
                     context=context,
                 )
             )
 
-        return self.creatures
+        return self.critters
 
-    def evaluate_creatures(self):
-        for creature in self.creatures:
-            creature.evaluate()
+    def evaluate_critters(self):
+        for critter in self.critters:
+            critter.evaluate()
 
-    def generate_id(self):
-        number = self.creature_population
-        result = []
-        while number > 0:
-            result.insert(0, number % self.base)
-            number = number // self.base
+    def step(self, events):
+        for critter in self.critters:
+            critter.step(events)
 
-        while len(result) < 6:
-            # 6 because 6 digit numbers with base 4 can be used
-            # to represent at least 4096 creatures
-            result.insert(0, 0)
-
-        return "".join(self.dna_value[digit] for digit in result)
-
-    def step(self):
-        for creature in self.creatures:
-            creature.step()
-
-    def get_parsed_dna(self, DNA):
-        creature_sensors = [DNA[i : i + 5] for i in range(6, len(DNA), 5)]
-        return [SensorManager.sensors[sensor] for sensor in creature_sensors]
-
-    def get_creatures(self):
-        return self.creatures
+    def get_critters(self):
+        return self.critters
 
 
 class Counter:

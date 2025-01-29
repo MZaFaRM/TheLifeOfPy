@@ -72,7 +72,7 @@ class LaboratoryComponent:
                     ]
                 else:
                     # If not in "neural_lab", navigate to home
-                    yield MessagePacket(EventType.NAVIGATION, "home")
+                    return MessagePacket(EventType.NAVIGATION, "home")
             else:
                 self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
                     SurfDesc.SURFACE
@@ -94,14 +94,14 @@ class LaboratoryComponent:
                     "genome": packet.context.get(EventType.GENESIS, {}),
                 }
 
-                yield MessagePacket(
+                return MessagePacket(
                     EventType.NAVIGATION,
                     "home",
                     context={EventType.GENESIS: user_input},
                 )
             else:
-                # Yield the packet as is
-                yield packet
+                # return the packet as is
+                return packet
 
     def __configure_back_button(self):
         self.back_button = {
@@ -1073,7 +1073,7 @@ class AttributesLab:
     def __configure_dp_circle(self):
         self.pic_circle = {
             "organism_image": pygame.image.load(
-                os.path.join(image_assets, "creatures", "triangle.svg"),
+                os.path.join(image_assets, "critters", "triangle.svg"),
             ),
             "organism_angle": 0,
             "border_angle": 0,

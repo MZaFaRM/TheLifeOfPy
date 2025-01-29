@@ -1,4 +1,4 @@
-# General Sensors and Actions (Given by default to every creature)
+# General Sensors and Actions (Given by default to every critter)
 
 -   Eating
 -   Change direction
@@ -12,8 +12,8 @@
 -   Nearest home direction
 -   Current Energy
 -   Number of agents trying to eat the nearest food
--   Nearest Carnivorous creatures
--   Nearest Creature
+-   Nearest Carnivorous critters
+-   Nearest Critter
 -   Target food speed
 
 # Actions
@@ -21,9 +21,8 @@
 -   Increase speed (uses more energy)
 -   Increase Size (uses more energy, defends from smaller carnivores, passive)
 -   Lower energy consumption
--   Eat other creatures
+-   Eat other critters
 -   Reproduction
-
 
 # Logs
 

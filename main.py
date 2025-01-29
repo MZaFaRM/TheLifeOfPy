@@ -22,14 +22,8 @@ class Nature:
 
         self.ui_handler = UIHandler()
 
-        self.action_space = MultiDiscrete([3, 3])
-        self.observation_space = None
-
-        self.truncation = 1_000_000
-
-        # self.graph_manager = PopulationPlot([1, 2], 200)
         self.ui_handler.initialize_screen(screen="home")
-        env_surface = self.ui_handler.get_component(name="env").surface
+        env_surface = self.ui_handler.get_component(name="EnvComponent").surface
         self.neuron_manager = genetics.NeuronManager()
 
         self.species = organisms.Species(
@@ -43,15 +37,9 @@ class Nature:
                 "env_surface": env_surface,
             }
         )
-        self.creatures = []
-        self.plants = self.forest.bulk_generate_plants_patch(n=20)
 
-    def remove_food(self, position):
-        for plant in self.forest.get_plants():
-            if plant.rect.collidepoint(position):
-                self.forest.remove_plant(plant)
-                return True
-        return False
+        self.critters = []
+        self.plants = self.forest.bulk_generate_plants_patch(n=20)
 
     def step(self):
         reward = 0
@@ -72,46 +60,41 @@ class Nature:
 
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
-                    self.creatures = self.species.generate_creatures(
+                    self.critters = self.species.generate_critters(
                         n=data.pop("base_pop"), context=data
                     )
 
             if packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
-                self.paused = True
                 self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:
-            return self.get_observation(), reward, self.done, self.truncated
+            return reward, self.done, self.truncated
 
-        self.neuron_manager.update(self.creatures, self.plants)
-        self.species.step()
+        self.neuron_manager.update(self.critters, self.plants)
 
-        # self.graph_manager.update_population(self.time_steps, creature_data)
+        # self.graph_manager.update_population(self.time_steps, critter_data)
         self.clock.tick(1000)
-        # self.done = all(creature.done for creature in creatures)
-        self.truncated = False  # or len(self.creatures) == 0
-        if self.creatures and all(creature.done for creature in self.creatures):
-            max_fitness = max([creature.fitness for creature in self.creatures])
+        # self.done = all(critter.done for critter in critters)
+        self.truncated = False  # or len(self.critters) == 0
+        if self.critters and all(critter.done for critter in self.critters):
+            max_fitness = max([critter.fitness for critter in self.critters])
             print(f"Max fitness: {max_fitness}")
-            min_fitness = min([creature.fitness for creature in self.creatures])
+            min_fitness = min([critter.fitness for critter in self.critters])
             print(f"Min fitness: {min_fitness}")
             return
 
         if self.time_steps % 75 == 0:
             self.forest.create_plant_patch()
 
-        return self.get_observation(), reward, self.done, self.truncated
+        return reward, self.done, self.truncated
 
     def render(self):
         self.ui_handler.update_screen(
             context={
-                "creatures": self.species.get_creatures(),
+                "critters": self.species.get_critters(),
                 "plants": self.forest.get_plants(),
             }
         )
-
-    def get_observation(self):
-        return None
 
 
 try:

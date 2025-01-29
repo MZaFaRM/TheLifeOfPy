@@ -10,7 +10,7 @@ from enums import Base, SurfDesc
 from uuid import uuid4
 
 
-class Creature(Sprite):
+class Critter(Sprite):
     def __init__(self, surface, context):
         self.id = uuid4()
         super().__init__()
@@ -87,6 +87,13 @@ class Creature(Sprite):
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
+        self.clickable_body = self.rect.inflate(
+            -2 * self.vision["radius"] - 10,
+            -2 * self.vision["radius"] - 10,
+        )
+        self.body = self.rect.inflate(
+            -2 * self.vision["radius"] + 10, -2 * self.vision["radius"] + 10
+        )
 
     def draw(self, surface, vision_circle=False):
         if not self.alive:
@@ -130,7 +137,7 @@ class Creature(Sprite):
         if not self.alive:
             color = (0, 0, 0)
 
-        # Creature
+        # Critter
         pygame.draw.circle(
             self.image,
             color,
@@ -155,8 +162,7 @@ class Creature(Sprite):
             output = self.genome.forward(obs)
             self.genome.step(output, self)
 
-            self.rect.x %= self.env_surface.get_width()
-            self.rect.y %= self.env_surface.get_height()
+            self.update_rect()
             return
             self.age += 1
             self.mating["timeout"] -= 1
@@ -173,6 +179,12 @@ class Creature(Sprite):
         if not self.alive:
             if (self.time - self.age) < 100:
                 return
+
+    def update_rect(self):
+        self.rect.x %= self.env_surface.get_width()
+        self.rect.y %= self.env_surface.get_height()
+        self.body.center = self.rect.center
+        self.clickable_body.center = self.rect.center
 
     def set_mate(self, mate):
         self.mating["state"] = Base.mating
@@ -194,19 +206,19 @@ class Creature(Sprite):
             self.vision["food"]["state"] = Base.looking
             self.vision["food"][SurfDesc.RECT] = None
 
-        other_creatures = [
-            creature
-            for creature in self.env.creatures
-            if creature is not self
-            and creature.mating["state"] == Base.ready
-            and creature.alive
+        other_critters = [
+            critter
+            for critter in self.env.critters
+            if critter is not self
+            and critter.mating["state"] == Base.ready
+            and critter.alive
         ]
 
-        if creature_index := self.rect.collidelistall(
-            [creature.rect for creature in other_creatures]
+        if critter_index := self.rect.collidelistall(
+            [critter.rect for critter in other_critters]
         ):
             self.vision["mate"]["state"] = Base.found
-            self.vision["mate"]["mate"] = other_creatures[creature_index[0]]
+            self.vision["mate"]["mate"] = other_critters[critter_index[0]]
 
         else:
             self.vision["mate"]["state"] = Base.looking
@@ -238,10 +250,10 @@ class Creature(Sprite):
 
     def reproduce(self):
         self.env.children.add(
-            Creature(
+            Critter(
                 self.env,
                 self.env_window,
-                self.creature_manager,
+                self.critter_manager,
                 radius=self.radius,
             )
         )
@@ -285,7 +297,7 @@ class Creature(Sprite):
 
     def get_observation(self):
         if not hasattr(self, "parsed_dna"):
-            self.parsed_dna = self.creature_manager.get_parsed_dna(self.DNA)
+            self.parsed_dna = self.critter_manager.get_parsed_dna(self.DNA)
 
         observations = []
         # for sensor in self.parsed_dna:

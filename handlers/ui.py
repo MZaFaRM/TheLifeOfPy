@@ -1,8 +1,6 @@
 import pygame
-from components.home import EnvComponent, HomeComponent, SidebarComponent
+from components.home import HomeComponent
 from components.laboratory import LaboratoryComponent
-from config import Colors, image_assets
-from copy import deepcopy
 
 
 class UIHandler:
@@ -16,19 +14,7 @@ class UIHandler:
             "screens": ["home", "laboratory"],
             "home": {
                 "components": {
-                    "env": {
-                        "handler": EnvComponent,
-                        "custom_position": {
-                            "topleft": (50, 100),
-                        },
-                    },
-                    "sidebar": {
-                        "handler": SidebarComponent,
-                        "custom_position": {
-                            "topright": (self.surface.get_width() - 50, 50),
-                        },
-                    },
-                    "main": {
+                    "home": {
                         "handler": HomeComponent,
                         "custom_position": {
                             "topleft": (0, 0),
@@ -74,7 +60,7 @@ class UIHandler:
                 quit()
 
             for name, info in self.screen_states["rendered_components"].items():
-                yield from info["handler"].event_handler(event) or []
+                yield info["handler"].event_handler(event) or []
 
     def update_screen(self, context=None):
         self.surface.fill((26, 26, 26))
@@ -87,4 +73,11 @@ class UIHandler:
         pygame.display.flip()
 
     def get_component(self, name):
-        return self.screen_states["rendered_components"].get(name)["handler"]
+        current_screen = self.screen_states["current_screen"]
+        # TODO: Clean this
+        for component in self.screen_states["rendered_components"][current_screen][
+            "handler"
+        ].components:
+            if component["name"] == name:
+                return component["rendered_handler"]
+        return ValueError(f"Component {name} not found in {current_screen}")
