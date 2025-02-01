@@ -244,6 +244,7 @@ class NeuronManager:
         "FD": {
             "desc": "Closeness to nearest food in vision",
         },
+        
     }
 
     actuators = {

@@ -1,3 +1,4 @@
+from enum import Enum
 import math
 import pygame
 from pygame.sprite import Sprite
@@ -8,6 +9,12 @@ import random
 import noise
 from enums import Base, SurfDesc
 from uuid import uuid4
+
+
+class MatingState(Enum):
+    NOT_READY = 0
+    READY = 1
+    MATING = 2
 
 
 class Critter(Sprite):
@@ -25,7 +32,8 @@ class Critter(Sprite):
         self.radius = context.get("radius", 5)
         self.mating_timeout = random.randint(150, 300)
         self.genome = Genome(context.get("genome"))
-        self.max_energy = 500
+        self.max_energy = 1000
+        self.expected_lifespan = 1000
         self.speed = 1
         self.fitness = 0
         self.seed = random.randint(0, 1000000)
@@ -62,11 +70,7 @@ class Critter(Sprite):
         self.td = random.randint(0, 1000)  # for pnoise generation
         self.energy = initial_energy if initial_energy else self.max_energy
 
-        self.mating = {
-            "state": Base.not_ready,
-            "mate": None,
-            "timeout": self.mating_timeout,
-        }
+        self.mating_state = MatingState.NOT_READY
 
         self.env_surface = surface
         self.noise = noise
@@ -118,12 +122,6 @@ class Critter(Sprite):
             )
 
         color = (0, 0, 0)
-        if not self.alive:
-            color = (0, 0, 0)
-        elif self.mating["state"] == Base.mating:
-            color = (255, 255, 255)
-        elif self.mating["state"] == Base.ready:
-            color = (0, 0, 255)
 
         # Border
         pygame.draw.circle(
@@ -153,6 +151,10 @@ class Critter(Sprite):
 
         if not self.done:
             self.energy -= 1
+
+            if (self.age / self.expected_lifespan) > 0.25:
+                self.mating_state = MatingState.READY
+                print(f"{self.id} is ready to mate")
 
             if self.energy <= 0:
                 self.die()
