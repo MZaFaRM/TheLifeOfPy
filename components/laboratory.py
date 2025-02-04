@@ -260,43 +260,96 @@ class NeuralLab:
             return self._handle_mouse_down(event)
         elif event.type == pygame.MOUSEBUTTONUP:
             return self._handle_mouse_up(event)
-        elif getattr(event, "key", None) == pygame.K_DELETE:
-            return self.__handle_neural_frame_deletion(event)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_DELETE:
+                return self.__handle_neural_frame_deletion(event)
+            elif re.match(r"[-+\.0-9]", event.unicode):
+                if isinstance(self.neural_frame["selection"], list):
+                    current_value = self.neural_frame["selection"][2]
+
+                    # Determine current sign (default to "+")
+                    if current_value in ["0", "-0", "+0"]:  
+                        sign = ""  # No sign for just "0"
+                    else:
+                        sign = current_value[0] if current_value[0] in "+-" else "+"
+
+                    if event.unicode in ["-", "+"]:
+                        # Apply sign if it's not just "0"
+                        if current_value != "0":
+                            self.neural_frame["selection"][2] = event.unicode + current_value.lstrip("+-")
+
+                    elif event.unicode == ".":
+                        # Ensure only one decimal point exists
+                        if "." not in current_value:
+                            self.neural_frame["selection"][2] += "."
+
+                    elif event.unicode.isdigit():
+                        # Handle leading zero cases
+                        if current_value in ["0", "-0", "+0"]:
+                            if event.unicode == "0":
+                                return  # Prevent leading multiple zeros (e.g., "+00")
+                            else:
+                                # Replace "0" with the digit while keeping sign if needed
+                                self.neural_frame["selection"][2] = sign + event.unicode
+                        else:
+                            self.neural_frame["selection"][2] += event.unicode
+                        
+            elif event.key == pygame.K_RETURN:
+                if isinstance(self.neural_frame["selection"], list):
+                    self.neural_frame["selection"] = None
+                    
+            elif event.key == pygame.K_ESCAPE:
+                self.neural_frame["selection"] = None
+                
+            elif event.key == pygame.K_BACKSPACE:
+                if isinstance(self.neural_frame["selection"], list):
+                    self.neural_frame["selection"][2] = self.neural_frame["selection"][2][:-1] or "0"
+                    if self.neural_frame["selection"][2] == "-":
+                        self.neural_frame["selection"][2] = "0"
+                    
+        
 
     def _handle_mouse_down(self, event):
-        response = None
         for res in (
             self.__handle_neuron_click(event),
-            self.__handle_neural_node_click(event),
+            self.__handle_neural_frame_click(event),
             self.__handle_neural_node_creation(event),
             self.__handle_unleash_organism_on_mouse_down(event),
         ):
             if res:
-                response = res
-        return response
+                return res
 
     def __handle_neural_frame_deletion(self, event):
-        if self.neural_frame["selection"]:
-            for node in self.neural_frame["nodes"]:
-                if node["id"] == self.neural_frame["selection"]["id"]:
-                    self.neural_frame["nodes"].remove(node)
-                    for connection in self.neural_frame["connections"].copy():
-                        if (
-                            connection[0]["id"] == node["id"]
-                            or connection[1]["id"] == node["id"]
-                        ):
-                            self.neural_frame["connections"].remove(connection)
+        if selection := self.neural_frame["selection"]:
+            if isinstance(selection, list):
+                for connection in self.neural_frame["connections"]:
+                    if connection[0]["id"] == selection[0]["id"] and connection[1]["id"] == selection[1]["id"]:
+                        self.neural_frame["connections"].remove(connection)
+            else:        
+                for node in self.neural_frame["nodes"]:
+                    if node["id"] == selection["id"]:
+                        self.neural_frame["nodes"].remove(node)
+                        for connection in self.neural_frame["connections"].copy():
+                            if (
+                                connection[0]["id"] == node["id"]
+                                or connection[1]["id"] == node["id"]
+                            ):
+                                self.neural_frame["connections"].remove(connection)
             self.neural_frame["selection"] = None
 
-    def __handle_neural_node_click(self, event):
+    def __handle_neural_frame_click(self, event):
         selected_any = False
+        if isinstance(self.neural_frame["selection"], list):
+            self.neural_frame["selection"] = None
+            return
+        
         for node in self.neural_frame["nodes"]:
             if node[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 selected_any = True
                 if self.neural_frame["selection"]:
                     if self.__valid_connection(self.neural_frame["selection"], node):
                         self.neural_frame["connections"].append(
-                            (self.neural_frame["selection"], node)
+                            [self.neural_frame["selection"], node, "0"]
                         )
                     else:
                         print(f"Invalid Connection: {self.neural_frame['selection']["name"]} -> {node["name"]}")
@@ -310,6 +363,21 @@ class NeuralLab:
 
         if not selected_any:
             self.neural_frame["selection"] = None
+            
+            pos = (
+                event.pos[0] - self.surface_x_offset,
+                event.pos[1] - self.surface_y_offset,
+            )
+            
+            for connection in self.neural_frame["connections"]:
+                if helper.is_point_on_line(
+                    pos,
+                    connection[0][SurfDesc.RECT].center,
+                    connection[1][SurfDesc.RECT].center,
+                    width=5,
+                ):
+                    self.neural_frame["selection"] = connection
+                    break
 
     def __valid_connection(self, node_1, node_2):
         # Ensure both nodes exist
@@ -356,7 +424,7 @@ class NeuralLab:
     def __has_cycle(self, node_1, node_2):
         # Create a directed adjacency list from the connections
         adjacency_list = {}
-        for src, dst in self.neural_frame["connections"]:
+        for src, dst, weight in self.neural_frame["connections"]:
             adjacency_list.setdefault(src["id"], []).append(dst["id"])
 
         # Temporarily add the new connection
@@ -414,14 +482,9 @@ class NeuralLab:
                 surface.blit(text, text.get_rect(center=(radius, radius)))
                 selected_surface.blit(text, text.get_rect(center=(radius, radius)))
 
-            if self.selected_neuron["type"] in [NeuronType.HIDDEN, NeuronType.BIAS]:
-                _id = uuid.uuid4()
-            else:
-                _id = self.selected_neuron.get("id")
-
             # Define the new neuron properties and add it to the frame
             new_neuron = {
-                "id": _id,
+                "id": uuid.uuid4(),
                 "name": self.selected_neuron["name"],
                 "type": self.selected_neuron["type"],
                 SurfDesc.SURFACE: surface,
@@ -466,8 +529,8 @@ class NeuralLab:
         for conn in self.neural_frame["connections"]:
             connections.append(
                 (
-                    (conn[0]["id"], conn[0]["name"], conn[0]["type"]),
-                    (conn[1]["id"], conn[1]["name"], conn[1]["type"]),
+                    (conn[0]["id"], conn[0]["name"], conn[0]["type"], float(conn[2])),
+                    (conn[1]["id"], conn[1]["name"], conn[1]["type"], float(conn[2])),
                 )
             )
 
@@ -559,6 +622,8 @@ class NeuralLab:
         self.surface.blit(
             self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
         )
+        
+        
         for connection in self.neural_frame["connections"]:
             pygame.draw.line(
                 self.surface,
@@ -567,6 +632,40 @@ class NeuralLab:
                 connection[1][SurfDesc.RECT].center,
                 self.neural_frame["graph_desc"]["line"]["thickness"],
             )
+            
+        # Selection is connection node
+        # TODO: Make this cleaner
+        if isinstance(self.neural_frame["selection"], list):
+            connection = self.neural_frame["selection"]
+            # Get the centers of the two connection points
+            p1 = connection[0][SurfDesc.RECT].center
+            p2 = connection[1][SurfDesc.RECT].center
+
+            # Compute the midpoint
+            mid_x = (p1[0] + p2[0]) // 2
+            mid_y = (p1[1] + p2[1]) // 2
+
+            # Draw the line
+            pygame.draw.line(
+                self.surface,
+                Colors.primary,
+                p1,
+                p2,
+                self.neural_frame["graph_desc"]["line"]["thickness"],
+            )
+
+            # Draw the rectangle
+            pygame.draw.circle(
+                self.surface, 
+                color=Colors.primary,
+                center=(mid_x, mid_y),
+                radius=25
+            )
+
+            text = self.body_font.render(connection[2], Colors.bg_color, Colors.bg_color)
+            self.surface.blit(text, text.get_rect(center=(mid_x - 0, mid_y)))
+
+            
         for node in self.neural_frame["nodes"]:
             self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
 
@@ -1164,7 +1263,7 @@ class AttributesLab:
         """Handle keydown events for user input and navigation."""
         if event.key == pygame.K_BACKSPACE:
             self.__handle_backspace(selected_option)
-        elif re.match("[a-zA-Z0-9 ]", event.unicode):
+        elif re.match(r"[a-zA-Z0-9 ]", event.unicode):
             self.__handle_alphanumeric_input(
                 event, selected_option, selected_option_type
             )
@@ -1191,7 +1290,7 @@ class AttributesLab:
     def __handle_color_input(self, event, selected_option):
         """Handle input for color (hex)."""
         data = self.traits_schema["options"][selected_option]["data"]
-        if len(data) < 6 and re.match("[a-fA-F0-9]", event.unicode):
+        if len(data) < 6 and re.match(r"[a-fA-F0-9]", event.unicode):
             self.traits_schema["options"][selected_option]["data"] = (
                 data + event.unicode
             )

@@ -143,7 +143,7 @@ class Critter(Sprite):
             self.radius,
         )
 
-        surface.blit(self.image, self.rect.topleft)
+        surface.blit(self.image, self.rect)
 
     def step(self):
         self.time += 1
@@ -154,7 +154,6 @@ class Critter(Sprite):
 
             if (self.age / self.expected_lifespan) > 0.25:
                 self.mating_state = MatingState.READY
-                print(f"{self.id} is ready to mate")
 
             if self.energy <= 0:
                 self.die()
@@ -165,6 +164,7 @@ class Critter(Sprite):
             self.genome.step(output, self)
 
             self.update_rect()
+
             return
             self.age += 1
             self.mating["timeout"] -= 1
@@ -183,8 +183,9 @@ class Critter(Sprite):
                 return
 
     def update_rect(self):
-        self.rect.x %= self.env_surface.get_width()
-        self.rect.y %= self.env_surface.get_height()
+        self.rect.centerx %= self.env_surface.get_width()
+        self.rect.centery %= self.env_surface.get_height()
+
         self.body.center = self.rect.center
         self.clickable_body.center = self.rect.center
 

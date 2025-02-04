@@ -1,3 +1,4 @@
+import math
 import random
 import noise
 import numpy as np
@@ -41,6 +42,19 @@ def get_random_position(env_window):
         random.randint(0, env_window.get_width()),
         random.randint(0, env_window.get_height()),
     )
+
+
+def is_point_on_line(point, line_start, line_end, width):
+    """Check if a point is within a line of given width."""
+    line_start, line_end, point = (
+        np.array(line_start),
+        np.array(line_end),
+        np.array(point),
+    )
+    distance = np.abs(
+        np.cross(line_end - line_start, line_start - point)
+    ) / np.linalg.norm(line_end - line_start)
+    return distance <= width
 
 
 def distance_between_points(a, b):

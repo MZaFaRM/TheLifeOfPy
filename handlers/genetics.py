@@ -54,9 +54,7 @@ class Genome:
 
             for node_1, node_2 in genome_data["connections"]:
                 self.add_connection_gene(
-                    self.nodes[node_1[0]],
-                    self.nodes[node_2[0]],
-                    np.random.uniform(-1, 1),
+                    self.nodes[node_1[0]], self.nodes[node_2[0]], node_1[3]
                 )
 
     def observe(self, critter):
@@ -239,12 +237,11 @@ class Phenome:
 class NeuronManager:
     sensors = {
         "RNs": {
-            "desc": "Generates random noise",
+            "desc": "Generates random noise, output range -1 - 1",
         },
         "FD": {
-            "desc": "Closeness to nearest food in vision",
+            "desc": "Proximity to the nearest visible food: -1 (directly on food) to 1 (farthest away)",
         },
-        
     }
 
     actuators = {
@@ -301,14 +298,17 @@ class NeuronManager:
         return random.uniform(-1, 1)
 
     def obs_FD(self, critter):
-        """Returns normalized distance to the nearest food source using precomputed data."""
+        """Returns normalized distance to the nearest food source, scaled to range -1 to 1."""
         if (food := self.nearest_food_map.get(critter)) is None:
             return 1.0  # No food found, return max distance
 
         dx = food.rect.centerx - critter.rect.centerx
         dy = food.rect.centery - critter.rect.centery
         distance = math.sqrt(dx**2 + dy**2)
-        return min(distance / critter.vision["radius"], 1.0)
+
+        # Normalize to [0, 1] and then map to [-1, 1]
+        normalized_distance = min(distance / critter.vision["radius"], 1.0)
+        return 2 * normalized_distance - 1
 
     # --- ACTUATOR FUNCTIONS ---
 

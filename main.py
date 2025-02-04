@@ -49,7 +49,8 @@ class Nature:
         self.time_steps += 1
         if packet:
             packet = packet[0]
-            print("Packet: ", str(packet))
+            if packet:
+                print("Packet: ", str(packet))
             if "pause_time" == packet:
                 self.paused = True
             if "play_time" == packet:

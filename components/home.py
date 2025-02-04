@@ -154,7 +154,7 @@ class EnvComponent:
             os.path.join(image_assets, "home", "dot_grid.svg")
         )
         self.surface = pygame.Surface(
-            (self.env_image.get_width(), self.env_image.get_height()), pygame.SRCALPHA
+            (self.env_image.get_width(), self.env_image.get_height())
         )
         self.surface.blit(self.env_image, (0, 0))
         self.plants = []
