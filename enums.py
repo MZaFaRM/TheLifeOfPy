@@ -14,6 +14,9 @@ class SurfDesc(Enum):
     CURRENT_SURFACE = "current_surface"
     RECT = "rect"
     ABSOLUTE_RECT = "absolute_rect"
+    
+class Attrs(Enum):
+    COLOR = "_color"
 
 
 class Base(Enum):

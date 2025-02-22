@@ -1,11 +1,10 @@
-from enum import Enum
 import math
 import random
 import uuid
 import noise
 import numpy as np
 
-from enums import NeuronType
+from enums import Attrs, NeuronType
 
 
 class ConnectionGene:
@@ -224,12 +223,12 @@ class Phenome:
     def __init__(self, phenome_data):
         self.radius = phenome_data.get("radius", 5)
         self.colors = {
-            "alive": phenome_data.get("color", (124, 245, 255)),
+            "alive": phenome_data.get(Attrs.COLOR, (124, 245, 255)),
             "dead": (0, 0, 0),
             "reproducing": (255, 255, 255),
         }
         self.border = {
-            "color": phenome_data.get("color", (100, 57, 255)),
+            Attrs.COLOR: phenome_data.get(Attrs.COLOR, (100, 57, 255)),
             "thickness": 2.5,
         }
 

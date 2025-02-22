@@ -1,14 +1,15 @@
+import random
 from enum import Enum
-import math
+from uuid import uuid4
+
+import noise
+import numpy as np
 import pygame
 from pygame.sprite import Sprite
+
 import helper
-from handlers.genetics import Genome, Phenome
-import numpy as np
-import random
-import noise
-from enums import Base, SurfDesc
-from uuid import uuid4
+from enums import Attrs, Base, SurfDesc
+from handlers.genetics import Genome
 
 
 class MatingState(Enum):
@@ -26,7 +27,7 @@ class Critter(Sprite):
         parents = context.get("parents", None)
         initial_energy = context.get("initial_energy", None)
 
-        color = context.get("color", (124, 245, 255))
+        color = context.get(Attrs.COLOR, (124, 245, 255))
         # self.phenome = Phenome(context.get("phenome"))
         self.color = color
         self.radius = context.get("radius", 5)
@@ -45,13 +46,13 @@ class Critter(Sprite):
         }
 
         self.border = {
-            "color": (100, 57, 255),
+            Attrs.COLOR: (100, 57, 255),
             "thickness": 2.5,
         }
 
         self.vision = {
             "radius": 40,
-            "color": {
+            Attrs.COLOR: {
                 Base.found: (0, 255, 0, 25),
                 Base.looking: (0, 255, 255, 25),
             },
@@ -116,7 +117,7 @@ class Critter(Sprite):
             # Vision circle
             pygame.draw.circle(
                 self.image,
-                self.vision["color"][self.vision["food"]["state"]],
+                self.vision[Attrs.COLOR][self.vision["food"]["state"]],
                 self.center,
                 self.radius + self.vision["radius"],
             )
