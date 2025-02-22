@@ -324,7 +324,7 @@ class NeuronManager:
         if (food := self.nearest_food_map.get(critter)) is not None:
             if critter.body.colliderect(food.rect):
                 self.plants.remove(food)
-                critter.energy += 500
+                critter.energy = (critter.energy + 500) % critter.max_energy
                 critter.fitness += 1
                 self._update_nearest_food()  # Update nearest food for all critters
             else:

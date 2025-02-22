@@ -44,6 +44,30 @@ def get_random_position(env_window):
     )
 
 
+def get_triangle_points(rect):
+    """Returns the three points of an equilateral triangle fitting inside a given rect."""
+    w, h = rect.width, rect.height
+    x, y = rect.topleft  # Top-left of the rect
+
+    # Calculate the height of the equilateral triangle
+    triangle_height = (math.sqrt(3) / 2) * w
+
+    # Center the triangle vertically inside the rect
+    top_vertex = (x + w // 2, y + (h - triangle_height) // 2)  # Top center
+    bottom_left = (x, y + (h + triangle_height) // 2)  # Bottom left
+    bottom_right = (x + w, y + (h + triangle_height) // 2)  # Bottom right
+
+    return [top_vertex, bottom_left, bottom_right]
+
+
+def get_rectangle_points(rect):
+    """Returns the four points of a rectangle fitting inside a given rect."""
+    w, h = rect.width // 3, rect.height
+    x, y = rect.centerx - w // 2, rect.centery - h // 2
+
+    return [x, y, w, h]
+
+
 def is_point_on_line(point, line_start, line_end, width):
     """Check if a point is within a line of given width."""
     line_start, line_end, point = (

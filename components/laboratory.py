@@ -1,4 +1,5 @@
 import contextlib
+import enum
 import os
 import random
 import re
@@ -855,6 +856,12 @@ class NeuralLab:
 
 
 class AttributesLab:
+    class Shapes(enum.Enum):
+        CIRCLE = "circle"
+        SQUARE = "square"
+        TRIANGLE = "triangle"
+        RECTANGLE = "rectangle"
+        
     def __init__(self, main_surface, context=None):
         self.time = 0
         self.main_surface = main_surface
@@ -944,7 +951,7 @@ class AttributesLab:
     def __get_user_input(self):
         return {
             "base_pop": int(
-                self.traits_schema["options"]["Initial Population: "]["data"]
+                self.traits_schema["options"][self.INITIAL_POPULATION]["data"]
             ),
         }
 
@@ -953,25 +960,35 @@ class AttributesLab:
         self.__create_option_surfaces()
 
     def __initialize_traits_schema(self):
+        self.INITIAL_POPULATION = "Initial Population: "
+        self.SPECIES = "Species: "
+        self.TRAITLINE = "Traitline: "
+        self.DOMAIN = "Domain: "
+        self.VISION_RADIUS = "Vision Radius: "
+        self.SIZE = "Size: "
+        self.COLOR = "Color: "
+        self.SPEED = "Speed: "
+        self.MAX_ENERGY = "Max Energy: "
+        
         return {
             "font": pygame.font.Font(Fonts.PixelifySansMedium, 21),
             "text_color": pygame.Color(0, 0, 0),
             "bg_color": pygame.Color(74, 227, 181),
             "yIncrement": 34,
             "highlight_width": 25,
-            "selected_option": "Initial Population: ",
+            "selected_option": self.INITIAL_POPULATION,
             "options": {
-                "Initial Population: ": {
+                self.INITIAL_POPULATION: {
                     "selected": True,
                     "type": "user_input_int",
                     "data": "100",
                 },
-                "Species: ": {
+                self.SPECIES: {
                     "selected": False,
                     "type": "user_input_str",
                     "data": "",
                 },
-                "Traitline: ": {
+                self.TRAITLINE: {
                     "choices": [
                         {"value": "Swordling", "selected": True},
                         {"value": "Mineling", "selected": False},
@@ -980,36 +997,36 @@ class AttributesLab:
                     ],
                     "type": "single_choice_list",
                 },
-                "Domain: ": {
+                self.DOMAIN: {
                     "choices": [
-                        {"value": "Squarionidae", "selected": True},
-                        {"value": "Circulonidae", "selected": False},
-                        {"value": "Trigonidae", "selected": False},
-                        {"value": "Rhombronidae", "selected": False},
+                        {"value": self.Shapes.SQUARE, "selected": True},
+                        {"value": self.Shapes.CIRCLE, "selected": False},
+                        {"value": self.Shapes.TRIANGLE, "selected": False},
+                        {"value": self.Shapes.RECTANGLE, "selected": False},
                     ],
                     "type": "single_choice_list",
                 },
-                "Vision Radius: ": {
+                self.VISION_RADIUS: {
                     "selected": False,
                     "type": "user_input_int",
                     "data": "0",
                 },
-                "Size: ": {
+                self.SIZE: {
                     "selected": False,
                     "type": "user_input_int",
                     "data": "0",
                 },
-                "Color: ": {
+                self.COLOR: {
                     "selected": False,
                     "type": "user_input_color",
                     "data": "1A1A1A",
                 },
-                "Speed: ": {
+                self.SPEED: {
                     "selected": False,
                     "type": "user_input_int",
                     "data": "0",
                 },
-                "Max Energy: ": {
+                self.MAX_ENERGY: {
                     "selected": False,
                     "type": "user_input_int",
                     "data": "0",
@@ -1093,8 +1110,12 @@ class AttributesLab:
                 (SurfDesc.SURFACE, self.traits_schema["bg_color"]),
                 ("surface_selected", self.traits_schema["text_color"]),
             ]:
+                data = choice["value"]
+                if hasattr(choice["value"], "value"):
+                    data = choice["value"].value
+                    
                 text = self.traits_schema["font"].render(
-                    choice["value"],
+                    data,
                     True,
                     (
                         self.traits_schema["text_color"]
@@ -1171,11 +1192,12 @@ class AttributesLab:
 
     def __configure_dp_circle(self):
         self.pic_circle = {
-            "organism_image": pygame.image.load(
-                os.path.join(image_assets, "critters", "triangle.svg"),
-            ),
+            SurfDesc.CURRENT_SURFACE: None,
+            SurfDesc.SURFACE: pygame.Surface((50, 50), pygame.SRCALPHA),
+            "current_shape": self.Shapes.SQUARE,
             "organism_angle": 0,
             "border_angle": 0,
+            "color": (125, 255, 255),
             "border_image": pygame.image.load(
                 os.path.join(
                     image_assets, "laboratory", "attrs_lab", "pic_circle_border.svg"
@@ -1191,16 +1213,35 @@ class AttributesLab:
                     (3 / 4) * self.surface.get_width(),
                     (1 / 2) * self.surface.get_height(),
                 )
-            },
+            }
         }
-
+        
         self.pic_circle[SurfDesc.RECT] = self.pic_circle["bg_image"].get_rect(
             **self.pic_circle["position"]
         )
         self.pic_circle["border_rect"] = self.pic_circle[SurfDesc.RECT]
-        self.pic_circle["organism_rect"] = self.pic_circle["organism_image"].get_rect(
+        self.pic_circle["organism_rect"] = self.pic_circle[SurfDesc.SURFACE].get_rect(
             **self.pic_circle["position"]
         )
+        
+        self.pic_circle[SurfDesc.CURRENT_SURFACE] = self.pic_circle[SurfDesc.SURFACE].copy()
+        self.__draw_critter(
+            self.pic_circle["current_shape"], 
+            self.pic_circle["color"], 
+        )
+        
+    def __draw_critter(self, shape, color):
+        self.pic_circle[SurfDesc.CURRENT_SURFACE] = surface = self.pic_circle[SurfDesc.SURFACE].copy()
+        rect = surface.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2))
+        
+        if shape == self.Shapes.CIRCLE:
+            pygame.draw.circle(surface, color, rect.center, rect.width // 2)
+        elif shape == self.Shapes.SQUARE:
+            pygame.draw.rect(surface, color, surface.get_rect())
+        elif shape == self.Shapes.TRIANGLE:
+            pygame.draw.polygon(surface, color, helper.get_triangle_points(surface.get_rect()))
+        elif shape == self.Shapes.RECTANGLE:
+            pygame.draw.rect(surface, color, helper.get_rectangle_points(surface.get_rect()))
 
     def __handle_neural_network_button(self, event):
         """Handle neural network button clicks."""
@@ -1230,7 +1271,7 @@ class AttributesLab:
         """Handle interactions with traits options."""
         for option, value in self.traits_schema["options"].items():
             if value["type"] == "single_choice_list":
-                self.__handle_single_choice_list(event, value)
+                self.__handle_single_choice_list(event, option, value)
             elif value["type"] in [
                 "user_input_int",
                 "user_input_str",
@@ -1238,15 +1279,21 @@ class AttributesLab:
             ]:
                 self.__handle_user_input(event, value, option)
 
-    def __handle_single_choice_list(self, event, value):
+    def __handle_single_choice_list(self, event, option, value):
         """Handle single choice list interaction."""
         selected_choice = None
         for choice in value["choices"]:
             if choice[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     selected_choice = choice["value"]
+                    break
 
         if selected_choice:
+            self.traits_schema["selected_option"] = option
+            if option == self.DOMAIN:
+                self.pic_circle["shape"] = selected_choice
+                self.__draw_critter(selected_choice, self.pic_circle["color"])
+                
             for choice in value["choices"]:
                 choice["selected"] = choice["value"] == selected_choice
 
@@ -1351,7 +1398,7 @@ class AttributesLab:
     def __rotate_pic_circle_organism(self):
         self.pic_circle["organism_angle"] += 1
         rotated_image = pygame.transform.rotate(
-            self.pic_circle["organism_image"], self.pic_circle["organism_angle"]
+            self.pic_circle[SurfDesc.CURRENT_SURFACE], self.pic_circle["organism_angle"]
         )
         self.pic_circle["organism_rect"] = rotated_image.get_rect(
             center=self.pic_circle[SurfDesc.RECT].center
