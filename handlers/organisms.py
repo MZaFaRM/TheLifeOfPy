@@ -1,11 +1,14 @@
+from copy import deepcopy
 import math
 import random
+import uuid
 
 import numpy as np
 import pygame
 
 import agents
 from config import Colors, Fonts
+from enums import Attributes
 
 # Nearest Food Location (Distance)
 # Nearest Food Direction (Angle)
@@ -82,6 +85,7 @@ class Forest:
 
 class Species:
     def __init__(self, context=None) -> None:
+        self._id = uuid.uuid4()
         self.name = context.get("name", "Species 1")
         self.neuron_manager = context["neuron_manager"]
         self.critter_population = 0
@@ -96,9 +100,11 @@ class Species:
 
     def generate_critters(self, n, context):
         context["genome"]["neuron_manager"] = self.neuron_manager
+        self.name = context.pop(Attributes.SPECIES, "Species 1")
         for _ in range(n):
             self.critters.add(
                 agents.Critter(
+                    species=self._id,
                     surface=self.surface,
                     context=context,
                 )

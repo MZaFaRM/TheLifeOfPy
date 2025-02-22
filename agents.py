@@ -8,7 +8,7 @@ import pygame
 from pygame.sprite import Sprite
 
 import helper
-from enums import Attrs, Base, SurfDesc
+from enums import Attributes, Base, SurfDesc
 from handlers.genetics import Genome
 
 
@@ -19,25 +19,27 @@ class MatingState(Enum):
 
 
 class Critter(Sprite):
-    def __init__(self, surface, context):
+    def __init__(self, species, surface, context):
         self.id = uuid4()
         super().__init__()
 
+        self.species = species
         position = context.get("position", None)
         parents = context.get("parents", None)
         initial_energy = context.get("initial_energy", None)
 
-        color = context.get(Attrs.COLOR, (124, 245, 255))
+        color = context.get(Attributes.COLOR, (124, 245, 255))
         # self.phenome = Phenome(context.get("phenome"))
         self.color = color
-        self.radius = context.get("radius", 5)
+        self.radius = context.get(Attributes.SIZE, 5)
         self.mating_timeout = random.randint(150, 300)
         self.genome = Genome(context.get("genome"))
-        self.max_energy = 1000
+        self.max_energy = context.get(Attributes.MAX_ENERGY, 100)
         self.expected_lifespan = 1000
-        self.speed = 1
+        self.speed = context.get(Attributes.SPEED, 1)
         self.fitness = 0
         self.seed = random.randint(0, 1000000)
+        self.domain = context.get(Attributes.DOMAIN, "circle")
 
         self.colors = {
             "alive": color,
@@ -46,21 +48,19 @@ class Critter(Sprite):
         }
 
         self.border = {
-            Attrs.COLOR: (100, 57, 255),
+            Attributes.COLOR: (100, 57, 255),
             "thickness": 2.5,
         }
 
         self.vision = {
-            "radius": 40,
-            Attrs.COLOR: {
+            "radius": context.get(Attributes.VISION_RADIUS, 40),
+            Attributes.COLOR: {
                 Base.found: (0, 255, 0, 25),
                 Base.looking: (0, 255, 255, 25),
             },
             "food": {"state": Base.looking, SurfDesc.RECT: None},
             "mate": {"state": Base.looking, "mate": None},
         }
-
-        color = "#f94144"
 
         self.angle = 0  # degrees
         self.hunger = 2
@@ -79,7 +79,6 @@ class Critter(Sprite):
         self.parents = parents
 
         self.done = False
-        self.color = self.color
 
         surface_size = (
             (2 * self.radius) + self.border["thickness"] + (2 * self.vision["radius"])
@@ -117,7 +116,7 @@ class Critter(Sprite):
             # Vision circle
             pygame.draw.circle(
                 self.image,
-                self.vision[Attrs.COLOR][self.vision["food"]["state"]],
+                self.vision[Attributes.COLOR][self.vision["food"]["state"]],
                 self.center,
                 self.radius + self.vision["radius"],
             )

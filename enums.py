@@ -14,9 +14,18 @@ class SurfDesc(Enum):
     CURRENT_SURFACE = "current_surface"
     RECT = "rect"
     ABSOLUTE_RECT = "absolute_rect"
-    
-class Attrs(Enum):
+
+
+class Attributes(Enum):
+    BASE_POPULATION = "_base_population"
+    SPECIES = "_species"
+    TRAITLINE = "_traitline"
+    DOMAIN = "_domain"
+    VISION_RADIUS = "_vision_radius"
+    SIZE = "_size"
     COLOR = "_color"
+    SPEED = "_speed"
+    MAX_ENERGY = "_max_energy"
 
 
 class Base(Enum):

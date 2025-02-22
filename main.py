@@ -3,7 +3,7 @@ import pygame
 from gym.spaces import MultiDiscrete
 
 import agents
-from enums import EventType, MessagePacket
+from enums import Attributes, EventType, MessagePacket
 from handlers import genetics
 import handlers.organisms as organisms
 from handlers.ui import UIHandler
@@ -62,7 +62,7 @@ class Nature:
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
                     self.critters = self.species.generate_critters(
-                        n=data.pop("base_pop"), context=data
+                        n=data.pop(Attributes.BASE_POPULATION), context=data
                     )
 
             if packet == MessagePacket(EventType.NAVIGATION, "laboratory"):

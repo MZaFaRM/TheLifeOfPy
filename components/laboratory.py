@@ -1,7 +1,5 @@
-import contextlib
 import enum
 import os
-import random
 import re
 import uuid
 
@@ -10,7 +8,7 @@ import pygame
 import pygame.gfxdraw
 
 from config import Colors, Fonts, image_assets
-from enums import Attrs, EventType, MessagePacket, NeuronType, SurfDesc
+from enums import Attributes, EventType, MessagePacket, NeuronType, SurfDesc
 from handlers.genetics import NeuronManager
 import helper
 
@@ -91,7 +89,7 @@ class LaboratoryComponent:
 
             elif packet == MessagePacket(EventType.NAVIGATION, "home"):
                 user_input = {
-                    "base_pop": self.user_inputs.get("base_pop", 0),
+                    **self.user_inputs,
                     "genome": packet.context.get(EventType.GENESIS, {}),
                 }
 
@@ -197,7 +195,7 @@ class NeuralLab:
         self.neural_frame["graph_desc"] = {
             "circle": {
                 "radius": 25,
-                Attrs.COLOR: {
+                Attributes.COLOR: {
                     NeuronType.SENSOR: (74, 227, 181),
                     NeuronType.ACTUATOR: (0, 255, 127),
                     NeuronType.HIDDEN: (0, 163, 108),
@@ -206,7 +204,7 @@ class NeuralLab:
             },
             "line": {
                 "thickness": 5,
-                Attrs.COLOR: (23, 86, 67),
+                Attributes.COLOR: (23, 86, 67),
             },
         }
         self.surface.blit(
@@ -455,7 +453,7 @@ class NeuralLab:
             # Get the properties of the shape to draw
             shape = self.neural_frame["graph_desc"]["circle"]
             radius = shape["radius"]
-            color = shape[Attrs.COLOR][self.selected_neuron["type"]]
+            color = shape[Attributes.COLOR][self.selected_neuron["type"]]
             pos = (
                 event.pos[0] - self.surface_x_offset,
                 event.pos[1] - self.surface_y_offset,
@@ -628,7 +626,7 @@ class NeuralLab:
         for connection in self.neural_frame["connections"]:
             pygame.draw.line(
                 self.surface,
-                self.neural_frame["graph_desc"]["line"][Attrs.COLOR],
+                self.neural_frame["graph_desc"]["line"][Attributes.COLOR],
                 connection[0][SurfDesc.RECT].center,
                 connection[1][SurfDesc.RECT].center,
                 self.neural_frame["graph_desc"]["line"]["thickness"],
@@ -929,16 +927,16 @@ class AttributesLab:
                 )
             elif value["type"] == "user_input_color":
                 data = self.__update_user_input(
-                    option, value, value[SurfDesc.SURFACE], input_type=Attrs.COLOR
+                    option, value, value[SurfDesc.SURFACE], input_type=Attributes.COLOR
                 )
-                self.pic_circle[Attrs.COLOR] = helper.hex_to_rgb(data.replace("-", "0"))
+                self.pic_circle[Attributes.COLOR] = helper.hex_to_rgb(data.replace("-", "0"))
                 self.pic_circle["update"] = True
                 
                 
         if self.pic_circle["update"]:
             self.__draw_critter(
                 self.pic_circle["shape"], 
-                self.pic_circle[Attrs.COLOR], 
+                self.pic_circle[Attributes.COLOR], 
             )
             self.pic_circle["update"] = False
             
@@ -960,10 +958,24 @@ class AttributesLab:
             self.__handle_keydown_event(event, selected_option, selected_option_type)
 
     def __get_user_input(self):
+        trait_options = self.traits_schema["options"]
+        get_choice = lambda option: next(
+            choice["value"]
+            for choice in trait_options[option]["choices"]
+            if choice["selected"]
+        )
+        get_data = lambda option: trait_options[option]["data"]
+            
         return {
-            "base_pop": int(
-                self.traits_schema["options"][self.INITIAL_POPULATION]["data"]
-            ),
+            Attributes.BASE_POPULATION: int(get_data(self.INITIAL_POPULATION)),
+            Attributes.SPECIES: get_data(self.SPECIES),
+            Attributes.TRAITLINE: get_choice(self.TRAITLINE),
+            Attributes.DOMAIN: get_choice(self.DOMAIN),
+            Attributes.VISION_RADIUS: int(get_data(self.VISION_RADIUS)),
+            Attributes.SIZE: int(get_data(self.SIZE)),
+            Attributes.COLOR: helper.hex_to_rgb(get_data(self.COLOR)),
+            Attributes.SPEED: int(get_data(self.SPEED)),
+            Attributes.MAX_ENERGY: int(get_data(self.MAX_ENERGY)),
         }
 
     def __create_user_input_section(self):
@@ -992,11 +1004,11 @@ class AttributesLab:
             "options": {
                 self.INITIAL_POPULATION: {
                     "type": "user_input_int",
-                    "data": "100",
+                    "data": "10",
                 },
                 self.SPECIES: {
                     "type": "user_input_str",
-                    "data": "",
+                    "data": "Common Square",
                 },
                 self.TRAITLINE: {
                     "choices": [
@@ -1018,11 +1030,11 @@ class AttributesLab:
                 },
                 self.VISION_RADIUS: {
                     "type": "user_input_int",
-                    "data": "0",
+                    "data": "40",
                 },
                 self.SIZE: {
                     "type": "user_input_int",
-                    "data": "0",
+                    "data": "5",
                 },
                 self.COLOR: {
                     "type": "user_input_color",
@@ -1030,11 +1042,11 @@ class AttributesLab:
                 },
                 self.SPEED: {
                     "type": "user_input_int",
-                    "data": "0",
+                    "data": "1",
                 },
                 self.MAX_ENERGY: {
                     "type": "user_input_int",
-                    "data": "0",
+                    "data": "1000",
                 },
             },
         }
@@ -1073,7 +1085,7 @@ class AttributesLab:
         elif value["type"] == "user_input_str":
             self.__create_user_input(option, value, option_surface, x, y, input_type="str")
         elif value["type"] == "user_input_color":
-            self.__create_user_input(option, value, option_surface, x, y, input_type=Attrs.COLOR)
+            self.__create_user_input(option, value, option_surface, x, y, input_type=Attributes.COLOR)
         elif value["type"] == "single_choice_list":
             self.__create_single_choice_list(option, value, option_surface, x, y)
 
@@ -1082,7 +1094,7 @@ class AttributesLab:
         data = value["data"]
         if input_type == "int":
             data = "{:,}".format(int(value["data"]))  # Format integer with commas
-        elif input_type == Attrs.COLOR:
+        elif input_type == Attributes.COLOR:
             data = "#" + data  # Format color as hex
             
         # Add a blinking cursor if the input is selected
@@ -1212,7 +1224,7 @@ class AttributesLab:
             "organism_angle": 0,
             "border_angle": 0,
             "update" : True,
-            Attrs.COLOR: (125, 255, 255),
+            Attributes.COLOR: (125, 255, 255),
             "border_image": pygame.image.load(
                 os.path.join(
                     image_assets, "laboratory", "attrs_lab", "pic_circle_border.svg"
@@ -1309,7 +1321,7 @@ class AttributesLab:
             self.traits_schema["selected_option"] = option
             if option == self.DOMAIN:
                 self.pic_circle["shape"] = selected_choice
-                self.__draw_critter(selected_choice, self.pic_circle[Attrs.COLOR])
+                self.__draw_critter(selected_choice, self.pic_circle[Attributes.COLOR])
                 
             for choice in value["choices"]:
                 choice["selected"] = choice["value"] == selected_choice
@@ -1436,7 +1448,7 @@ class AttributesLab:
         data = value["data"]
         if input_type == "int":
             data = "{:,}".format(int(value["data"] or 0))
-        elif input_type == Attrs.COLOR:
+        elif input_type == Attributes.COLOR:
             data = "#" + data.ljust(6, "-").upper()
 
         if self.traits_schema["selected_option"] == option and (self.time // 20) % 2 == 0:
