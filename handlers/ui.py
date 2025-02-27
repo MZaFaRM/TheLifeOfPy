@@ -11,30 +11,25 @@ class UIHandler:
 
         self.screen_states = {
             "current_screen": "home",
-            "screens": ["home", "laboratory"],
+            "screens": ["home", "laboratory", "graphs"],
             "home": {
-                "components": {
-                    "home": {
-                        "handler": HomeComponent,
-                        "custom_position": {
-                            "topleft": (0, 0),
-                        },
-                    },
+                "handler": HomeComponent,
+                "custom_position": {
+                    "topleft": (0, 0),
                 },
                 "context": {},
             },
             "laboratory": {
-                "components": {
-                    "env": {
-                        "handler": LaboratoryComponent,
-                        "custom_position": {
-                            "center": (
-                                self.surface.get_width() // 2,
-                                self.surface.get_height() // 2,
-                            ),
-                        },
-                    },
+                "handler": LaboratoryComponent,
+                "custom_position": {
+                    "center": (
+                        self.surface.get_width() // 2,
+                        self.surface.get_height() // 2,             ),
                 },
+                "context": {},
+            },
+            "graphs": {
+                "components": {},
                 "context": {},
             },
         }
@@ -43,15 +38,14 @@ class UIHandler:
         self.screen_states["current_screen"] = screen
         self.screen_states["rendered_components"] = {}
 
-        for name, info in self.screen_states[screen]["components"].items():
-            rendered_component = info["handler"](
-                main_surface=self.surface,
-                context=self.screen_states[screen].get("context", {}),
-            )
-            self.screen_states["rendered_components"][name] = {
-                **info,
-                "handler": rendered_component,
-            }
+        rendered_component = self.screen_states[screen]["handler"](
+            main_surface=self.surface,
+            context=self.screen_states[screen].get("context", {}),
+        )
+        self.screen_states["rendered_components"][screen] = {
+            **self.screen_states[screen],
+            "handler": rendered_component,
+        }
 
     def event_handler(self, events):
         for event in events:

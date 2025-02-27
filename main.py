@@ -51,21 +51,19 @@ class Nature:
             packet = packet[0]
             if packet:
                 print("Packet: ", str(packet))
-            if "pause_time" == packet:
+            if packet == "pause_time":
                 self.paused = True
-            if "play_time" == packet:
+            elif packet == "play_time":
                 self.paused = False
-            if MessagePacket(EventType.NAVIGATION, "home") == packet:
+            elif packet == MessagePacket(EventType.NAVIGATION, "home"):
                 self.paused = False
                 self.ui_handler.initialize_screen(screen="home")
-
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
                     self.critters = self.species.generate_critters(
                         n=data.pop(Attributes.BASE_POPULATION), context=data
                     )
-
-            if packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
+            elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
                 self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:

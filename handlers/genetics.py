@@ -285,7 +285,7 @@ class NeuronManager:
             self.nearest_food_map[critter] = min_plant
 
     def _precompute_trig_values(self):
-        """Precomputes sine and cosine for each critter to avoid redundant calculations."""
+        """Pre-computes sine and cosine for each critter to avoid redundant calculations."""
         self.trig_cache = {
             critter: (math.cos(critter.angle), math.sin(critter.angle))
             for critter in self.critters

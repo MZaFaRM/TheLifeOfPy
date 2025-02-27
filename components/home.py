@@ -270,9 +270,39 @@ class SidebarComponent:
                         EventType.NAVIGATION,
                         "laboratory",
                     )
+            elif self.buttons["end_simulation"][SurfDesc.RECT].collidepoint(
+                (rel_x, rel_y)
+            ):
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    button = self.buttons["end_simulation"]
+                    button["current_image"] = button["clicked_image"]
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    return MessagePacket(
+                        EventType.NAVIGATION,
+                        "home",
+                        context={"end_simulation": True},
+                    )
+            elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint(
+                (rel_x, rel_y)
+            ):
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    button = self.buttons["show_graphs"]
+                    button["current_image"] = button["clicked_image"]
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    return MessagePacket(
+                        EventType.NAVIGATION,
+                        "graphs",
+                    )
             else:
                 button = self.buttons["create_organism"]
                 button["current_image"] = button["image"]
+                
+                button = self.buttons["end_simulation"]
+                button["current_image"] = button["image"]
+                
+                button = self.buttons["show_graphs"]
+                button["current_image"] = button["image"]
+                
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))
