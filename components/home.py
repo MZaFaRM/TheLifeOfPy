@@ -39,22 +39,26 @@ class HomeComponent:
         self.time_control_buttons = {
             "pause_time": {
                 "name": "pause_time",
-                "image": os.path.join("home", "pause_time_button.svg"),
-                "clicked_image": os.path.join("home", "pause_time_button_clicked.svg"),
+                SurfDesc.SURFACE: os.path.join("home", "pause_time_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
+                    "home", "pause_time_button_clicked.svg"
+                ),
                 "clicked": True,
                 "x_position": 75,
             },
             "play_time": {
                 "name": "play_time",
-                "image": os.path.join("home", "play_time_button.svg"),
-                "clicked_image": os.path.join("home", "play_time_button_clicked.svg"),
+                SurfDesc.SURFACE: os.path.join("home", "play_time_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
+                    "home", "play_time_button_clicked.svg"
+                ),
                 "clicked": False,
                 "x_position": 125,
             },
             "fast_forward_time": {
                 "name": "fast_forward_time",
-                "image": os.path.join("home", "fast_forward_button.svg"),
-                "clicked_image": os.path.join(
+                SurfDesc.SURFACE: os.path.join("home", "fast_forward_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "fast_forward_button_clicked.svg"
                 ),
                 "clicked": False,
@@ -72,10 +76,10 @@ class HomeComponent:
         y = screen_height - 75
         for _, button_data in self.time_control_buttons.items():
             default_button = pygame.image.load(
-                os.path.join(image_assets, button_data.pop("image"))
+                os.path.join(image_assets, button_data.pop(SurfDesc.SURFACE))
             )
             clicked_button = pygame.image.load(
-                os.path.join(image_assets, button_data.pop("clicked_image"))
+                os.path.join(image_assets, button_data.pop(SurfDesc.CLICKED_SURFACE))
             )
             button_rect = default_button.get_rect(
                 center=(button_data.pop("x_position"), y)
@@ -83,7 +87,7 @@ class HomeComponent:
 
             button_data.update(
                 {
-                    "image": {
+                    SurfDesc.SURFACE: {
                         "default": default_button,
                         "clicked": clicked_button,
                     },
@@ -140,11 +144,11 @@ class HomeComponent:
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
                 self.surface.blit(
-                    button_data["image"]["clicked"], button_data[SurfDesc.RECT]
+                    button_data[SurfDesc.SURFACE]["clicked"], button_data[SurfDesc.RECT]
                 )
             else:
                 self.surface.blit(
-                    button_data["image"]["default"], button_data[SurfDesc.RECT]
+                    button_data[SurfDesc.SURFACE]["default"], button_data[SurfDesc.RECT]
                 )
 
 
@@ -191,22 +195,57 @@ class SidebarComponent:
         self.main_surface = main_surface
         self.surface = pygame.Surface((408, 988), pygame.SRCALPHA)
 
+        self.DEFAULT = "default"
+        self.SHOW_GRAPHS = "show_graphs"
+
         self.sidebar_screens = {
-            "current_screen": "default",
+            SurfDesc.CURRENT_SURFACE: self.DEFAULT,
             "update": True,
-            "screens": ["default", "show_graphs"],
-            "default": {
-                "alive_counter": Counter(),
-                "dead_counter": Counter(),
+            "screens": [self.DEFAULT, self.SHOW_GRAPHS],
+            self.DEFAULT: {
                 "function": self.setup_default_sidebar,
                 "bg_image": pygame.image.load(
                     os.path.join(image_assets, "home", "sidebar.svg")
                 ),
             },
+            self.SHOW_GRAPHS: {
+                "function": self.setup_graph_sidebar,
+                "bg_image": pygame.image.load(
+                    os.path.join(image_assets, "graphs", "main.svg")
+                ),
+            },
         }
 
+    def setup_graph_sidebar(self):
+        self.surface.blit(self.sidebar_screens[self.SHOW_GRAPHS]["bg_image"], (0, 0))
+        back_button = pygame.image.load(
+            os.path.join(image_assets, "graphs", "back_button.svg")
+        )
+        back_button_clicked = pygame.image.load(
+            os.path.join(image_assets, "graphs", "back_button_clicked.svg")
+        )
+        back_button_rect = back_button.get_rect(center=(50, 50))
+
+        self.sidebar_screens[self.SHOW_GRAPHS].update(
+            {
+                "back_button": {
+                    SurfDesc.CURRENT_SURFACE: back_button,
+                    SurfDesc.SURFACE: back_button,
+                    SurfDesc.CLICKED_SURFACE: back_button_clicked,
+                    SurfDesc.RECT: back_button_rect,
+                }
+            }
+        )
+
     def setup_default_sidebar(self):
-        self.surface.blit(self.sidebar_screens["default"]["bg_image"], (0, 0))
+        self.surface.blit(self.sidebar_screens[self.DEFAULT]["bg_image"], (0, 0))
+
+        self.sidebar_screens[self.DEFAULT].update(
+            {
+                "alive_counter": Counter(),
+                "dead_counter": Counter(),
+            }
+        )
 
         # For button click checks
         self.surface_x = self.main_surface.get_width() - self.surface.get_width() - 50
@@ -218,9 +257,9 @@ class SidebarComponent:
         self.buttons = {
             "create_organism": {
                 "name": "create_organism",
-                "current_image": None,
-                "image": os.path.join("home", "create_organism_button.svg"),
-                "clicked_image": os.path.join(
+                SurfDesc.CURRENT_SURFACE: None,
+                SurfDesc.SURFACE: os.path.join("home", "create_organism_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "create_organism_button_clicked.svg"
                 ),
                 "position": (
@@ -230,9 +269,9 @@ class SidebarComponent:
             },
             "end_simulation": {
                 "name": "end_simulation",
-                "current_image": None,
-                "image": os.path.join("home", "end_simulation_button.svg"),
-                "clicked_image": os.path.join(
+                SurfDesc.CURRENT_SURFACE: None,
+                SurfDesc.SURFACE: os.path.join("home", "end_simulation_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "end_simulation_button_clicked.svg"
                 ),
                 "position": (
@@ -242,9 +281,11 @@ class SidebarComponent:
             },
             "show_graphs": {
                 "name": "show_graphs",
-                "current_image": None,
-                "image": os.path.join("home", "show_graphs_button.svg"),
-                "clicked_image": os.path.join("home", "show_graphs_button_clicked.svg"),
+                SurfDesc.CURRENT_SURFACE: None,
+                SurfDesc.SURFACE: os.path.join("home", "show_graphs_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
+                    "home", "show_graphs_button_clicked.svg"
+                ),
                 "position": (
                     sidebar_window_width // 2,
                     sidebar_window_height - 75,
@@ -256,8 +297,8 @@ class SidebarComponent:
         for button in self.buttons.values():
             self.load_and_store_button(
                 name=button["name"],
-                image=button["image"],
-                clicked_image=button["clicked_image"],
+                image=button[SurfDesc.SURFACE],
+                clicked_image=button[SurfDesc.CLICKED_SURFACE],
                 position=button.pop("position"),
             )
 
@@ -266,48 +307,62 @@ class SidebarComponent:
             # Get mouse position relative to the sidebar
             mouse_x, mouse_y = event.pos
             rel_x, rel_y = mouse_x - self.surface_x, mouse_y - self.surface_y
-            # Check if the mouse is within the bounds of the button
-            if self.buttons["create_organism"][SurfDesc.RECT].collidepoint(
-                (rel_x, rel_y)
-            ):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    button = self.buttons["create_organism"]
-                    button["current_image"] = button["clicked_image"]
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    return MessagePacket(
-                        EventType.NAVIGATION,
-                        "laboratory",
-                    )
-            elif self.buttons["end_simulation"][SurfDesc.RECT].collidepoint(
-                (rel_x, rel_y)
-            ):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    button = self.buttons["end_simulation"]
-                    button["current_image"] = button["clicked_image"]
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    return MessagePacket(
-                        EventType.NAVIGATION,
-                        "home",
-                        context={"end_simulation": True},
-                    )
-            elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint(
-                (rel_x, rel_y)
-            ):
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    button = self.buttons["show_graphs"]
-                    button["current_image"] = button["clicked_image"]
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    self.sidebar_screens["current_screen"] = "show_graphs"
-                    self.sidebar_screens["update"] = True
-            else:
+            if self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.DEFAULT:
+                return self.handle_default_sidebar_event(event, rel_x, rel_y)
+            elif self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.SHOW_GRAPHS:
+                return self.handle_graphs_sidebar_event(event, rel_x, rel_y)
+
+    def handle_graphs_sidebar_event(self, event, rel_x, rel_y):
+        self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][
+            SurfDesc.CURRENT_SURFACE
+        ] = self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][SurfDesc.SURFACE]
+
+        if self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][
+            SurfDesc.RECT
+        ].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][
+                    SurfDesc.CURRENT_SURFACE
+                ] = self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][
+                    SurfDesc.CLICKED_SURFACE
+                ]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.DEFAULT
+                self.sidebar_screens["update"] = True
+
+    def handle_default_sidebar_event(self, event, rel_x, rel_y):
+        for name in ["create_organism", "end_simulation", "show_graphs"]:
+            self.buttons[name][SurfDesc.CURRENT_SURFACE] = self.buttons[name][
+                SurfDesc.SURFACE
+            ]
+
+        # Check if the mouse is within the bounds of the button
+        if self.buttons["create_organism"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["create_organism"]
-                button["current_image"] = button["image"]
-
+                button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                return MessagePacket(
+                    EventType.NAVIGATION,
+                    "laboratory",
+                )
+        elif self.buttons["end_simulation"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["end_simulation"]
-                button["current_image"] = button["image"]
-
+                button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                return MessagePacket(
+                    EventType.NAVIGATION,
+                    "home",
+                    context={"end_simulation": True},
+                )
+        elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["show_graphs"]
-                button["current_image"] = button["image"]
+                button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.SHOW_GRAPHS
+                self.sidebar_screens["update"] = True
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))
@@ -320,25 +375,23 @@ class SidebarComponent:
         # Store button's image and rect in a dictionary for later reference
         self.buttons[name].update(
             {
-                "current_image": button_image,
-                "image": button_image,
+                SurfDesc.CURRENT_SURFACE: button_image,
+                SurfDesc.SURFACE: button_image,
                 SurfDesc.RECT: button_rect,
-                "clicked_image": clicked_button_image,
+                SurfDesc.CLICKED_SURFACE: clicked_button_image,
             }
         )
 
     def update(self, context=None):
-        if self.sidebar_screens["current_screen"] == "show_graphs":
+        if self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.SHOW_GRAPHS:
             if self.sidebar_screens["update"]:
-                self.surface.fill(Colors.bg_color)
-                self.surface.blit(self.sidebar_image, (0, 0))
+                self.sidebar_screens[self.SHOW_GRAPHS]["function"]()
                 self.sidebar_screens["update"] = False
-
+            self.update_graph_sidebar(context)
         else:
             if self.sidebar_screens["update"]:
-                self.sidebar_screens["default"]["function"]()
+                self.sidebar_screens[self.DEFAULT]["function"]()
                 self.sidebar_screens["update"] = False
-
             self.update_default_sidebar(context)
 
     def update_default_sidebar(self, context):
@@ -351,8 +404,8 @@ class SidebarComponent:
             else:
                 dead += 1
 
-        alive_counter = self.sidebar_screens["default"]["alive_counter"]
-        dead_counter = self.sidebar_screens["default"]["dead_counter"]
+        alive_counter = self.sidebar_screens[self.DEFAULT]["alive_counter"]
+        dead_counter = self.sidebar_screens[self.DEFAULT]["dead_counter"]
 
         alive_counter.draw(value=alive)
         dead_counter.draw(value=dead)
@@ -361,4 +414,10 @@ class SidebarComponent:
         self.surface.blit(dead_counter.surface, (290, 325))
 
         for button in self.buttons.values():
-            self.surface.blit(button["current_image"], button[SurfDesc.RECT])
+            self.surface.blit(button[SurfDesc.CURRENT_SURFACE], button[SurfDesc.RECT])
+
+    def update_graph_sidebar(self, context):
+        back_button = self.sidebar_screens[self.SHOW_GRAPHS]["back_button"]
+        self.surface.blit(
+            back_button[SurfDesc.CURRENT_SURFACE], back_button[SurfDesc.RECT]
+        )
