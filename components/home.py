@@ -188,21 +188,29 @@ class EnvComponent:
 class SidebarComponent:
     def __init__(self, main_surface, context=None):
         self.context = context
-        self.sidebar_image = pygame.image.load(
-            os.path.join(image_assets, "home", "sidebar.svg")
-        )
-        self.surface = pygame.Surface(
-            (self.sidebar_image.get_width(), self.sidebar_image.get_height()),
-            pygame.SRCALPHA,
-        )
-        self.surface.blit(self.sidebar_image, (0, 0))
+        self.main_surface = main_surface
+        self.surface = pygame.Surface((408, 988), pygame.SRCALPHA)
+
+        self.sidebar_screens = {
+            "current_screen": "default",
+            "update": True,
+            "screens": ["default", "show_graphs"],
+            "default": {
+                "alive_counter": Counter(),
+                "dead_counter": Counter(),
+                "function": self.setup_default_sidebar,
+                "bg_image": pygame.image.load(
+                    os.path.join(image_assets, "home", "sidebar.svg")
+                ),
+            },
+        }
+
+    def setup_default_sidebar(self):
+        self.surface.blit(self.sidebar_screens["default"]["bg_image"], (0, 0))
 
         # For button click checks
-        self.surface_x = main_surface.get_width() - self.surface.get_width() - 50
+        self.surface_x = self.main_surface.get_width() - self.surface.get_width() - 50
         self.surface_y = 50
-
-        self.alive_counter = Counter()
-        self.dead_counter = Counter()
 
         sidebar_window_width = self.surface.get_width()
         sidebar_window_height = self.surface.get_height()
@@ -289,20 +297,17 @@ class SidebarComponent:
                     button = self.buttons["show_graphs"]
                     button["current_image"] = button["clicked_image"]
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    return MessagePacket(
-                        EventType.NAVIGATION,
-                        "graphs",
-                    )
+                    self.sidebar_screens["current_screen"] = "show_graphs"
+                    self.sidebar_screens["update"] = True
             else:
                 button = self.buttons["create_organism"]
                 button["current_image"] = button["image"]
-                
+
                 button = self.buttons["end_simulation"]
                 button["current_image"] = button["image"]
-                
+
                 button = self.buttons["show_graphs"]
                 button["current_image"] = button["image"]
-                
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))
@@ -323,6 +328,20 @@ class SidebarComponent:
         )
 
     def update(self, context=None):
+        if self.sidebar_screens["current_screen"] == "show_graphs":
+            if self.sidebar_screens["update"]:
+                self.surface.fill(Colors.bg_color)
+                self.surface.blit(self.sidebar_image, (0, 0))
+                self.sidebar_screens["update"] = False
+
+        else:
+            if self.sidebar_screens["update"]:
+                self.sidebar_screens["default"]["function"]()
+                self.sidebar_screens["update"] = False
+
+            self.update_default_sidebar(context)
+
+    def update_default_sidebar(self, context):
         critters = context.get("critters")
         alive = 0
         dead = 0
@@ -332,11 +351,14 @@ class SidebarComponent:
             else:
                 dead += 1
 
-        self.alive_counter.draw(value=alive)
-        self.dead_counter.draw(value=dead)
+        alive_counter = self.sidebar_screens["default"]["alive_counter"]
+        dead_counter = self.sidebar_screens["default"]["dead_counter"]
 
-        self.surface.blit(self.alive_counter.surface, (115, 325))
-        self.surface.blit(self.dead_counter.surface, (290, 325))
+        alive_counter.draw(value=alive)
+        dead_counter.draw(value=dead)
+
+        self.surface.blit(alive_counter.surface, (115, 325))
+        self.surface.blit(dead_counter.surface, (290, 325))
 
         for button in self.buttons.values():
             self.surface.blit(button["current_image"], button[SurfDesc.RECT])
