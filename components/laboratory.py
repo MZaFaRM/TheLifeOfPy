@@ -934,10 +934,7 @@ class AttributesLab:
                 
                 
         if self.pic_circle["update"]:
-            self.__draw_critter(
-                self.pic_circle["shape"], 
-                self.pic_circle[Attributes.COLOR], 
-            )
+            self.__draw_critter()
             self.pic_circle["update"] = False
             
 
@@ -1012,8 +1009,8 @@ class AttributesLab:
                 },
                 self.TRAITLINE: {
                     "choices": [
-                        {"value": "Swordling", "selected" : True},
-                        {"value": "Mineling", "selected" : False},
+                        {"value": "None", "selected" : True},
+                        {"value": "Swordling", "selected" : False},
                         {"value": "Shieldling", "selected" : False},
                         {"value": "Camoufling", "selected" : False},
                     ],
@@ -1219,7 +1216,8 @@ class AttributesLab:
     def __create_dp_circle(self):
         self.pic_circle = {
             SurfDesc.CURRENT_SURFACE: None,
-            SurfDesc.SURFACE: pygame.Surface((50, 50), pygame.SRCALPHA),
+            SurfDesc.SURFACE: pygame.Surface((250, 250), pygame.SRCALPHA),
+            "defense": "None",
             "shape": self.Shapes.SQUARE,
             "organism_angle": 0,
             "border_angle": 0,
@@ -1253,18 +1251,35 @@ class AttributesLab:
         
         self.pic_circle[SurfDesc.CURRENT_SURFACE] = self.pic_circle[SurfDesc.SURFACE].copy()
         
-    def __draw_critter(self, shape, color):
+    def __draw_critter(self):
+        shape = self.pic_circle["shape"]
+        color = self.pic_circle[Attributes.COLOR]
+        defense = self.pic_circle["defense"]
+        
         self.pic_circle[SurfDesc.CURRENT_SURFACE] = surface = self.pic_circle[SurfDesc.SURFACE].copy()
-        rect = surface.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2))
+        rect = pygame.Rect(0, 0, 50, 50)
+        rect.center = (surface.get_width() // 2, surface.get_height() // 2)
+        
+        if defense == "Swordling":
+            pygame.draw.circle(surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75)
+        elif defense == "Shieldling":
+            border_rect = pygame.Rect(0, 0, 75, 75)
+            border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
+            pygame.draw.rect(surface, (255, 255, 255), border_rect, 5)
+        elif defense == "Camoufling":
+            color = (color[0], color[1], color[2], int(0.5 * 255))
         
         if shape == self.Shapes.CIRCLE:
             pygame.draw.circle(surface, color, rect.center, rect.width // 2)
         elif shape == self.Shapes.SQUARE:
-            pygame.draw.rect(surface, color, surface.get_rect())
+            pygame.draw.rect(surface, color, rect)
         elif shape == self.Shapes.TRIANGLE:
-            pygame.draw.polygon(surface, color, helper.get_triangle_points(surface.get_rect()))
+            pygame.draw.polygon(surface, color, helper.get_triangle_points(rect))
         elif shape == self.Shapes.RECTANGLE:
-            pygame.draw.rect(surface, color, helper.get_rectangle_points(surface.get_rect()))
+            for bar in helper.get_rectangle_points(rect):
+                pygame.draw.rect(surface, color, bar)
+            
+            
 
     def __handle_neural_network_button(self, event):
         """Handle neural network button clicks."""
@@ -1321,7 +1336,10 @@ class AttributesLab:
             self.traits_schema["selected_option"] = option
             if option == self.DOMAIN:
                 self.pic_circle["shape"] = selected_choice
-                self.__draw_critter(selected_choice, self.pic_circle[Attributes.COLOR])
+                self.pic_circle["update"] = True
+            elif option == self.TRAITLINE:
+                self.pic_circle["defense"] = selected_choice
+                self.pic_circle["update"] = True
                 
             for choice in value["choices"]:
                 choice["selected"] = choice["value"] == selected_choice
@@ -1416,10 +1434,18 @@ class AttributesLab:
                 new_index = (selected_index + 1) % len(
                     self.traits_schema["options"][selected_option]["choices"]
                 )
+                
+            self.traits_schema["options"][selected_option]["choices"][selected_index]["selected"] = False
+            self.traits_schema["options"][selected_option]["choices"][new_index]["selected"] = True
 
             if selected_option == self.DOMAIN:
                 self.pic_circle["update"] = True
                 self.pic_circle["shape"] = (
+                    self.traits_schema["options"][selected_option]["choices"][new_index]["value"]
+                )
+            elif selected_option == self.TRAITLINE:
+                self.pic_circle["update"] = True
+                self.pic_circle["defense"] = (
                     self.traits_schema["options"][selected_option]["choices"][new_index]["value"]
                 )
                 

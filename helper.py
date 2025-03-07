@@ -61,11 +61,16 @@ def get_triangle_points(rect):
 
 
 def get_rectangle_points(rect):
-    """Returns the four points of a rectangle fitting inside a given rect."""
-    w, h = rect.width // 3, rect.height
+    """Returns two rectangles forming a cross inside a given rect."""
+    w, h = rect.width // 3, rect.height  # Width for vertical bar
     x, y = rect.centerx - w // 2, rect.centery - h // 2
+    vertical_bar = [x, y, w, h]
 
-    return [x, y, w, h]
+    w, h = rect.width, rect.height // 3  # Height for horizontal bar
+    x, y = rect.centerx - w // 2, rect.centery - h // 2
+    horizontal_bar = [x, y, w, h]
+
+    return [vertical_bar, horizontal_bar]  # Returns both parts of the cross
 
 
 def is_point_on_line(point, line_start, line_end, width):
