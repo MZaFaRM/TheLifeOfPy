@@ -60,7 +60,7 @@ class Nature:
                 self.ui_handler.initialize_screen(screen="home")
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
-                    self.critters = self.species.generate_critters(
+                    self.critters = self.species.create_species(
                         n=data.pop(Attributes.BASE_POPULATION), context=data
                     )
             elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):

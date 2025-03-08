@@ -181,13 +181,13 @@ class Genome:
                 connection.weight,
             )
 
-    def crossover(self, parent1, parent2):
+    def pentagonover(self, parent1, parent2):
         child = Genome()
         child.species = self.species
         child.node_genes = parent1.node_genes.copy()
         child.connection_genes = parent1.connection_genes.copy()
 
-        # Crossover connection genes
+        # Pentagonover connection genes
         for connection1 in parent1.connection_genes:
             matching = False
             for connection2 in parent2.connection_genes:
@@ -312,16 +312,20 @@ class NeuronManager:
     # --- ACTUATOR FUNCTIONS ---
 
     def act_Mv(self, critter):
-        """Moves the critter in its current direction with Perlin noise influence."""
-        direction = noise.snoise2(((critter.seed + critter.age) / 1000) % 1000, 0)
-        angle = (direction + 1) * math.pi
-        critter.rect.x += math.cos(angle)
-        critter.rect.y += math.sin(angle)
+        """Smoothly adjusts movement over time for flowy motion."""
+        target_direction = noise.snoise2(((critter.seed + critter.age) / 1000) % 1000, 0)
+        target_angle = (target_direction + 1) * math.pi
+
+        # Gradually change the angle instead of jumping
+        critter.angle += (target_angle - critter.angle) * 0.1  # Smooth transition
+
+        critter.rect.x += math.cos(critter.angle)
+        critter.rect.y += math.sin(critter.angle)
 
     def act_Eat(self, critter):
         """Eats the nearest food source if in range."""
         if (food := self.nearest_food_map.get(critter)) is not None:
-            if critter.body.colliderect(food.rect):
+            if critter.body_rect.colliderect(food.rect):
                 self.plants.remove(food)
                 critter.energy = (critter.energy + 500) % critter.max_energy
                 critter.fitness += 1

@@ -1,3 +1,4 @@
+import colorsys
 import math
 import random
 import noise
@@ -44,33 +45,40 @@ def get_random_position(env_window):
     )
 
 
-def get_triangle_points(rect):
-    """Returns the three points of an equilateral triangle fitting inside a given rect."""
-    w, h = rect.width, rect.height
-    x, y = rect.topleft  # Top-left of the rect
+def get_triangle_points(rect, rotation_degrees=90):
+    """Generates a triangle directly with a given rotation, inside the given rect."""
+    cx, cy = rect.center  # Center of the rectangle
+    radius = min(rect.width, rect.height) / 2  # Fit inside the rect
 
-    # Calculate the height of the equilateral triangle
-    triangle_height = (math.sqrt(3) / 2) * w
+    # Convert rotation from degrees to radians
+    rotation_radians = math.radians(rotation_degrees)
 
-    # Center the triangle vertically inside the rect
-    top_vertex = (x + w // 2, y + (h - triangle_height) // 2)  # Top center
-    bottom_left = (x, y + (h + triangle_height) // 2)  # Bottom left
-    bottom_right = (x + w, y + (h + triangle_height) // 2)  # Bottom right
+    points = []
+    for i in range(3):
+        angle = rotation_radians + (i * 2 * math.pi / 3)  # Spread points evenly
+        x = cx + radius * math.cos(angle)
+        y = cy + radius * math.sin(angle)
+        points.append((x, y))
 
-    return [top_vertex, bottom_left, bottom_right]
+    return points
 
 
-def get_rectangle_points(rect):
-    """Returns two rectangles forming a cross inside a given rect."""
-    w, h = rect.width // 3, rect.height  # Width for vertical bar
-    x, y = rect.centerx - w // 2, rect.centery - h // 2
-    vertical_bar = [x, y, w, h]
+def get_pentagon_points(rect, rotation_degrees=90):
+    """Generates a pentagon directly with a given rotation, inside the given rect."""
+    cx, cy = rect.center  # Center of the rectangle
+    radius = min(rect.width, rect.height) / 2  # Fit inside the rect
 
-    w, h = rect.width, rect.height // 3  # Height for horizontal bar
-    x, y = rect.centerx - w // 2, rect.centery - h // 2
-    horizontal_bar = [x, y, w, h]
+    # Convert rotation from degrees to radians
+    rotation_radians = math.radians(rotation_degrees)
 
-    return [vertical_bar, horizontal_bar]  # Returns both parts of the cross
+    points = []
+    for i in range(5):
+        angle = rotation_radians + (i * 2 * math.pi / 5)  # Spread points evenly
+        x = cx + radius * math.cos(angle)
+        y = cy + radius * math.sin(angle)
+        points.append((x, y))
+
+    return points
 
 
 def is_point_on_line(point, line_start, line_end, width):
@@ -124,3 +132,16 @@ def scale_image_by_factor(image, factor):
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+
+def rgb_to_hex(rgb_color):
+    return "#{:02x}{:02x}{:02x}".format(*rgb_color)
+
+
+def get_random_color(seed=None, saturation=0.7, brightness=0.8):
+    """Generates a distinct color using the golden angle method with a random index."""
+    golden_angle = 137.5 / 360  # Convert degrees to fraction
+    index = random.randint(0, 10**6) if seed is None else seed  # Random large index
+    hue = (index * golden_angle) % 1.0  # Distribute hues evenly
+    r, g, b = colorsys.hsv_to_rgb(hue, saturation, brightness)
+    return rgb_to_hex((int(r * 255), int(g * 255), int(b * 255)))

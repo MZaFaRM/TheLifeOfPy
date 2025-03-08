@@ -8,7 +8,7 @@ import pygame
 import pygame.gfxdraw
 
 from config import Colors, Fonts, image_assets
-from enums import Attributes, EventType, MessagePacket, NeuronType, SurfDesc
+from enums import Attributes, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
 from handlers.genetics import NeuronManager
 import helper
 
@@ -347,8 +347,9 @@ class NeuralLab:
                 selected_any = True
                 if self.neural_frame["selection"]:
                     if self.__valid_connection(self.neural_frame["selection"], node):
+                        # Add the connection, with default weight of 1
                         self.neural_frame["connections"].append(
-                            [self.neural_frame["selection"], node, "0"]
+                            [self.neural_frame["selection"], node, "1"]
                         )
                     else:
                         print(f"Invalid Connection: {self.neural_frame['selection']["name"]} -> {node["name"]}")
@@ -653,7 +654,7 @@ class NeuralLab:
                 self.neural_frame["graph_desc"]["line"]["thickness"],
             )
 
-            # Draw the rectangle
+            # Draw the pentagon
             pygame.draw.circle(
                 self.surface, 
                 color=Colors.primary,
@@ -853,13 +854,7 @@ class NeuralLab:
             text_y += 25
 
 
-class AttributesLab:
-    class Shapes(enum.Enum):
-        CIRCLE = "circle"
-        SQUARE = "square"
-        TRIANGLE = "triangle"
-        RECTANGLE = "rectangle"
-        
+class AttributesLab:        
     def __init__(self, main_surface, context=None):
         self.time = 0
         self.main_surface = main_surface
@@ -1018,10 +1013,10 @@ class AttributesLab:
                 },
                 self.DOMAIN: {
                     "choices": [
-                        {"value": self.Shapes.SQUARE, "selected": True},
-                        {"value": self.Shapes.CIRCLE, "selected": False},
-                        {"value": self.Shapes.TRIANGLE, "selected": False},
-                        {"value": self.Shapes.RECTANGLE, "selected": False},
+                        {"value": Shapes.SQUARE, "selected": True},
+                        {"value": Shapes.CIRCLE, "selected": False},
+                        {"value": Shapes.TRIANGLE, "selected": False},
+                        {"value": Shapes.PENTAGON, "selected": False},
                     ],
                     "type": "single_choice_list",
                 },
@@ -1031,11 +1026,11 @@ class AttributesLab:
                 },
                 self.SIZE: {
                     "type": "user_input_int",
-                    "data": "5",
+                    "data": "10",
                 },
                 self.COLOR: {
                     "type": "user_input_color",
-                    "data": "FF0078",
+                    "data": helper.get_random_color()[1:],
                 },
                 self.SPEED: {
                     "type": "user_input_int",
@@ -1118,7 +1113,7 @@ class AttributesLab:
         # Blit the text surface onto the option surface
         option_surface.blit(text_surface, (200, 0))
 
-        # Update the absolute rectangle for the input field
+        # Update the absolute pentagon for the input field
         value[SurfDesc.ABSOLUTE_RECT] = text_surface.get_rect(
             topleft=(
                 x + 200 + self.surface_x_offset,
@@ -1218,7 +1213,7 @@ class AttributesLab:
             SurfDesc.CURRENT_SURFACE: None,
             SurfDesc.SURFACE: pygame.Surface((250, 250), pygame.SRCALPHA),
             "defense": "None",
-            "shape": self.Shapes.SQUARE,
+            "shape": Shapes.SQUARE,
             "organism_angle": 0,
             "border_angle": 0,
             "update" : True,
@@ -1269,15 +1264,14 @@ class AttributesLab:
         elif defense == "Camoufling":
             color = (color[0], color[1], color[2], int(0.5 * 255))
         
-        if shape == self.Shapes.CIRCLE:
+        if shape == Shapes.CIRCLE:
             pygame.draw.circle(surface, color, rect.center, rect.width // 2)
-        elif shape == self.Shapes.SQUARE:
+        elif shape == Shapes.SQUARE:
             pygame.draw.rect(surface, color, rect)
-        elif shape == self.Shapes.TRIANGLE:
+        elif shape == Shapes.TRIANGLE:
             pygame.draw.polygon(surface, color, helper.get_triangle_points(rect))
-        elif shape == self.Shapes.RECTANGLE:
-            for bar in helper.get_rectangle_points(rect):
-                pygame.draw.rect(surface, color, bar)
+        elif shape == Shapes.PENTAGON:
+            pygame.draw.polygon(surface, color, helper.get_pentagon_points(rect))
             
             
 

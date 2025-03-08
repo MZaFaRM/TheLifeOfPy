@@ -8,7 +8,7 @@ import pygame
 from pygame.sprite import Sprite
 
 import helper
-from enums import Attributes, Base, SurfDesc
+from enums import Attributes, Base, Shapes, SurfDesc
 from handlers.genetics import Genome
 
 
@@ -31,7 +31,7 @@ class Critter(Sprite):
         color = context.get(Attributes.COLOR, (124, 245, 255))
         # self.phenome = Phenome(context.get("phenome"))
         self.color = color
-        self.radius = context.get(Attributes.SIZE, 5)
+        self.size = context.get(Attributes.SIZE, 5)
         self.mating_timeout = random.randint(150, 300)
         self.genome = Genome(context.get("genome"))
         self.max_energy = context.get(Attributes.MAX_ENERGY, 100)
@@ -63,6 +63,7 @@ class Critter(Sprite):
         }
 
         self.angle = 0  # degrees
+        self.rotation = 0  # degrees
         self.hunger = 2
         self.alive = True
         self.time = 0
@@ -81,7 +82,7 @@ class Critter(Sprite):
         self.done = False
 
         surface_size = (
-            (2 * self.radius) + self.border["thickness"] + (2 * self.vision["radius"])
+            self.size + self.border["thickness"] + (2 * self.vision["radius"])
         )
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
 
@@ -95,53 +96,43 @@ class Critter(Sprite):
             -2 * self.vision["radius"] - 10,
             -2 * self.vision["radius"] - 10,
         )
-        self.body = self.rect.inflate(
-            -2 * self.vision["radius"] + 10, -2 * self.vision["radius"] + 10
+        self.body_rect = self.rect.inflate(
+            -2 * self.vision["radius"] + 10,
+            -2 * self.vision["radius"] + 10,
         )
 
     def draw(self, surface, vision_circle=False):
         if not self.alive:
             return
 
-        # radius = self.radius
-        # border_thickness = self.border["thickness"]
-        # total_radius = radius + border_thickness
-        # center = (total_radius, total_radius)
-
-        # self.surface = pygame.Surface(
-        #     (total_radius * 2, total_radius * 2), pygame.SRCALPHA
-        # )
-
-        if vision_circle:
-            # Vision circle
-            pygame.draw.circle(
-                self.image,
-                self.vision[Attributes.COLOR][self.vision["food"]["state"]],
-                self.center,
-                self.radius + self.vision["radius"],
-            )
-
-        color = (0, 0, 0)
-
-        # Border
-        pygame.draw.circle(
-            self.image,
-            color,
-            self.center,
-            self.radius + self.border["thickness"],
-        )
+        if self.time > 1:
+            return surface.blit(self.image, self.rect)
 
         color = self.color
-        if not self.alive:
-            color = (0, 0, 0)
+
+        rect = pygame.Rect(0, 0, self.size, self.size)
+        rect.center = self.center
 
         # Critter
-        pygame.draw.circle(
-            self.image,
-            color,
-            self.center,
-            self.radius,
-        )
+        if self.domain == Shapes.CIRCLE:
+            pygame.draw.circle(self.image, color, self.center, self.size // 2)
+        elif self.domain == Shapes.SQUARE:
+            pygame.draw.rect(self.image, color, rect)
+        elif self.domain == Shapes.TRIANGLE:
+            pygame.draw.polygon(self.image, color, helper.get_triangle_points(rect))
+        elif self.domain == Shapes.PENTAGON:
+            pygame.draw.polygon(self.image, color, helper.get_pentagon_points(rect))
+
+        # if defense == "Swordling":
+        #     pygame.draw.circle(
+        #         surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75
+        #     )
+        # elif defense == "Shieldling":
+        #     border_rect = pygame.Rect(0, 0, 75, 75)
+        #     border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
+        #     pygame.draw.rect(surface, (255, 255, 255), border_rect, 5)
+        # elif defense == "Camoufling":
+        #     color = (color[0], color[1], color[2], int(0.5 * 255))
 
         surface.blit(self.image, self.rect)
 
@@ -186,7 +177,7 @@ class Critter(Sprite):
         self.rect.centerx %= self.env_surface.get_width()
         self.rect.centery %= self.env_surface.get_height()
 
-        self.body.center = self.rect.center
+        self.body_rect.center = self.rect.center
         self.clickable_body.center = self.rect.center
 
     def set_mate(self, mate):
@@ -257,7 +248,6 @@ class Critter(Sprite):
                 self.env,
                 self.env_window,
                 self.critter_manager,
-                radius=self.radius,
             )
         )
 

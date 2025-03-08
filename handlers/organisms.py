@@ -98,7 +98,7 @@ class Species:
         self.critter_population += 1
         return 1
 
-    def generate_critters(self, n, context):
+    def create_species(self, n, context):
         context["genome"]["neuron_manager"] = self.neuron_manager
         self.name = context.pop(Attributes.SPECIES, "Species 1")
         for _ in range(n):
@@ -161,7 +161,7 @@ class Species:
     def get_critters(self):
         return self.critters
 
-    def crossover(self):
+    def pentagonover(self):
         pass
 
 

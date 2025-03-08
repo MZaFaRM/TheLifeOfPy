@@ -47,6 +47,13 @@ class EventType(Enum):
     GENESIS = "genesis"
 
 
+class Shapes(Enum):
+    CIRCLE = "circle"
+    SQUARE = "square"
+    TRIANGLE = "triangle"
+    PENTAGON = "pentagon"
+
+
 class MessagePacket:
     def __init__(
         self,
