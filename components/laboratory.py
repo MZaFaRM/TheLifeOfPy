@@ -261,53 +261,73 @@ class NeuralLab:
         elif event.type == pygame.MOUSEBUTTONUP:
             return self._handle_mouse_up(event)
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_DELETE:
-                return self.__handle_neural_frame_deletion(event)
-            elif re.match(r"[-+\.0-9]", event.unicode):
-                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
-                    current_value = self.neural_frame["selection"]["value"][2]
-
-                    # Determine current sign (default to "+")
-                    if current_value in ["0", "-0", "+0"]:  
-                        sign = ""  # No sign for just "0"
-                    else:
-                        sign = current_value[0] if current_value[0] in "+-" else "+"
-
-                    if event.unicode in ["-", "+"]:
-                        # Apply sign if it's not just "0"
-                        if current_value != "0":
-                            self.neural_frame["selection"]["value"][2] = event.unicode + current_value.lstrip("+-")
-
-                    elif event.unicode == ".":
-                        # Ensure only one decimal point exists
-                        if "." not in current_value:
-                            self.neural_frame["selection"]["value"][2] += "."
-
-                    elif event.unicode.isdigit():
-                        # Handle leading zero cases
-                        if current_value in ["0", "-0", "+0"]:
-                            if event.unicode == "0":
-                                return  # Prevent leading multiple zeros (e.g., "+00")
-                            else:
-                                # Replace "0" with the digit while keeping sign if needed
-                                self.neural_frame["selection"]["value"][2] = sign + event.unicode
-                        else:
-                            self.neural_frame["selection"]["value"][2] += event.unicode
-                        
-            elif event.key == pygame.K_RETURN:
-                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
-                    self.neural_frame["selection"] = {"type": None, "value": None}
-                    
-            elif event.key == pygame.K_ESCAPE:
-                self.neural_frame["selection"] = {"type": None, "value": None}
-                
-            elif event.key == pygame.K_BACKSPACE:
-                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
-                    self.neural_frame["selection"]["value"][2] = self.neural_frame["selection"]["value"][2][:-1] or "0"
-                    if self.neural_frame["selection"]["value"][2] == "-":
-                        self.neural_frame["selection"]["value"][2] = "0"
-                    
+            return self._handle_keydown(event)
         
+    def _handle_keydown(self, event):
+        """Handles key press events related to neuron selection and editing."""
+        selection = self.neural_frame["selection"]
+        neuron_type = selection["type"]
+        value = selection["value"]
+
+        # Handle neuron deletion
+        if event.key == pygame.K_DELETE:
+            return self.__handle_neural_frame_deletion(event)
+
+        # Deselect any selected neuron when Enter or Escape is pressed
+        elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+            self.neural_frame["selection"] = {"type": None, "value": None}
+
+        # Handle backspace key for bias and connection neurons
+        elif event.key == pygame.K_BACKSPACE:
+            if neuron_type in {NeuronType.BIAS, NeuronType.CONN}:
+                # Determine which value to modify (name for BIAS, weight for CONN)
+                target = value["name"] if neuron_type == NeuronType.BIAS else value[2]
+                new_value = self._handle_backspace(target)
+                
+                # Update the appropriate field
+                if neuron_type == NeuronType.BIAS:
+                    value["name"] = new_value
+                else:
+                    value[2] = new_value
+
+        # Handle numeric input for bias and connection neurons
+        elif re.match(r"[-+\.0-9]", event.unicode) and neuron_type in {NeuronType.BIAS, NeuronType.CONN}:
+            # Determine which value to modify
+            target = value["name"] if neuron_type == NeuronType.BIAS else value[2]
+            new_value = self._handle_numeric_input(event, target)
+
+            # Update the appropriate field
+            if neuron_type == NeuronType.BIAS:
+                value["name"] = new_value
+            else:
+                value[2] = new_value
+
+    def _handle_numeric_input(self, event, data):
+        """Handles numeric input for connection values."""
+        if event.unicode == "-":
+            if data != "0":
+                data = event.unicode + data.lstrip("-")
+        elif event.unicode == "+":
+            if data != "0":
+                data = data.lstrip("+-")
+        
+        elif event.unicode == ".":
+            if "." not in data:
+                data += "."
+        
+        elif event.unicode.isdigit():
+            if data in {"0", "-0", "+0"}:
+                data = data[0] + event.unicode if data[0] in "+-" else event.unicode
+            else:
+                data += event.unicode
+        return data
+
+    def _handle_backspace(self, data):
+        """Handles backspace deletion for connection values."""
+        data = data[:-1] or "0"
+        if data == "-":
+            data = "0"
+        return data
 
     def _handle_mouse_down(self, event):
         for res in (
@@ -618,17 +638,37 @@ class NeuralLab:
             
         # Selection is connection node
         if self.neural_frame["selection"]["type"] == NeuronType.CONN:
-            connection = self.neural_frame["selection"]["value"]
-            # Get the centers of the two connection points
-            p1 = connection[0][SurfDesc.RECT].center
-            p2 = connection[1][SurfDesc.RECT].center
+            self.draw_connection_line(self.neural_frame["selection"]["value"])                
+            
+        for node in self.neural_frame["nodes"]:
+            self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
+            if node["type"] == NeuronType.BIAS:
+                text = node["name"]
+                
+                # If selected add blinking cursor
+                if self.neural_frame["selection"]["type"] == NeuronType.BIAS \
+                    and self.neural_frame["selection"]["value"]["id"] == node["id"] \
+                        and int(time.time()) % 2 == 0:
+                        text += "_"                    
+                        
+                text_surface = self.body_font.render(text, True, Colors.bg_color)
+                self.surface.blit(text_surface, 
+                    text_surface.get_rect(
+                        center=(node[SurfDesc.RECT].center)
+                    )
+                )
+
+    def draw_connection_line(self, connection):
+        # Get the centers of the two connection points
+        p1 = connection[0][SurfDesc.RECT].center
+        p2 = connection[1][SurfDesc.RECT].center
 
             # Compute the midpoint
-            mid_x = (p1[0] + p2[0]) // 2
-            mid_y = (p1[1] + p2[1]) // 2
+        mid_x = (p1[0] + p2[0]) // 2
+        mid_y = (p1[1] + p2[1]) // 2
 
             # Draw the line
-            pygame.draw.line(
+        pygame.draw.line(
                 self.surface,
                 Colors.primary,
                 p1,
@@ -637,27 +677,15 @@ class NeuralLab:
             )
 
             # Draw the pentagon
-            pygame.draw.circle(
+        pygame.draw.circle(
                 self.surface, 
                 color=Colors.primary,
                 center=(mid_x, mid_y),
                 radius=25
             )
 
-            text = self.body_font.render(connection[2], Colors.bg_color, Colors.bg_color)
-            self.surface.blit(text, text.get_rect(center=(mid_x - 0, mid_y)))
-
-            
-        for node in self.neural_frame["nodes"]:
-            self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
-
-        if self.neural_frame["selection"]["type"] == NeuronType.BIAS:
-            text = self.neural_frame["selection"]["value"]["name"]
-            if time.time() % 3 == 0:
-                text += "_"
-                
-            text_surface = self.body_font.render(text, True, Colors.bg_color)
-            self.surface.blit(text_surface, text_surface.get_rect(center=(self.neural_frame["selection"]["value"][SurfDesc.RECT].center)))
+        text = self.body_font.render(connection[2], Colors.bg_color, Colors.bg_color)
+        self.surface.blit(text, text.get_rect(center=(mid_x - 0, mid_y)))
 
     def _setup_surface(self):
         surface = pygame.Surface(
