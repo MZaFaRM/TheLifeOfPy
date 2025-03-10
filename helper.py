@@ -95,7 +95,7 @@ def is_point_on_line(point, line_start, line_end, width):
 
 
 def distance_between_points(a, b):
-    return pow(b[0] - a[0], 2) + pow(b[1] - a[1], 2) ** 0.5
+    return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
 def normalize_position(rect, env_window):

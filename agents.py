@@ -19,17 +19,17 @@ class MatingState(Enum):
 
 
 class Critter(Sprite):
-    def __init__(self, species, surface, context):
+    def __init__(self, surface, context):
         self.id = uuid4()
         super().__init__()
 
-        self.species = species
         position = context.get("position", None)
         parents = context.get("parents", None)
         initial_energy = context.get("initial_energy", None)
 
         color = context.get(Attributes.COLOR, (124, 245, 255))
         # self.phenome = Phenome(context.get("phenome"))
+        self.species = context.get("species", None)
         self.color = color
         self.size = context.get(Attributes.SIZE, 5)
         self.mating_timeout = random.randint(150, 300)

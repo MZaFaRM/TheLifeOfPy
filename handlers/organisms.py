@@ -9,6 +9,7 @@ import agents
 from config import Colors, Fonts
 from enums import Attributes
 
+
 class Forest:
     def __init__(self, context=None) -> None:
         self.env_surface = context["env_surface"]
@@ -22,14 +23,14 @@ class Forest:
             ]
         )
         self.radii = np.array([random.randint(50, 100) for _ in range(5)])
-        self.plants = pygame.sprite.Group()
+        self.plants = []
 
     def bulk_generate_plants_patch(self, n):
         cluster_points = self.get_random_coords(n)
         for _ in range(n):
             # Use single-layer Perlin noise for simplicity
             for x, y in cluster_points:
-                self.plants.add(
+                self.plants.append(
                     agents.Plant(
                         self.env_surface,
                         pos=(x, y),
@@ -55,7 +56,7 @@ class Forest:
         self.radii += 10
         cluster_points = self.get_random_coords(10)
         for x, y in cluster_points:
-            self.plants.add(agents.Plant(self.env_surface, pos=(x, y)))
+            self.plants.append(agents.Plant(self.env_surface, pos=(x, y)))
 
     def get_plants(self):
         return self.plants
@@ -66,14 +67,12 @@ class Forest:
 
 class Species:
     def __init__(self, context=None) -> None:
-        self._id = uuid.uuid4()
-        self.name = context.get("name", "Species 1")
         self.neuron_manager = context["neuron_manager"]
         self.critter_population = 0
         self.surface = context["env_surface"]
         self.alive_count = 0
         self.dead_count = 0
-        self.critters = pygame.sprite.Group()
+        self.critters = []
 
     def register_critter(self, critter):
         self.critter_population += 1
@@ -81,11 +80,9 @@ class Species:
 
     def create_species(self, n, context):
         context["genome"]["neuron_manager"] = self.neuron_manager
-        self.name = context.pop(Attributes.SPECIES, "Species 1")
         for _ in range(n):
-            self.critters.add(
+            self.critters.append(
                 agents.Critter(
-                    species=self._id,
                     surface=self.surface,
                     context=context,
                 )

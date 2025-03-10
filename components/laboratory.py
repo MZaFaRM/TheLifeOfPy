@@ -617,7 +617,7 @@ class NeuralLab:
                 self.neural_frame["graph_desc"]["line"][Attributes.COLOR],
                 connection[0][SurfDesc.RECT].center,
                 connection[1][SurfDesc.RECT].center,
-                max(abs(int(connection[2])), 1) * 2 # Weight * 2
+                max(abs(int(float(connection[2]))), 1) * 2 # Weight * 2
             )
             
         # Selection is connection node
@@ -642,7 +642,7 @@ class NeuralLab:
                 Colors.primary,
                 p1,
                 p2,
-                max(abs(int(connection[2])), 1) * 2 # Weight * 2
+                max(abs(int(float(connection[2]))), 1) * 2 # Weight * 2
             )
 
             # Draw the pentagon
@@ -1348,7 +1348,7 @@ class AttributesLab:
     def __handle_keydown_event(self, event, selected_option, selected_option_type):
         """Handle keydown events for user input and navigation."""
         if event.key == pygame.K_BACKSPACE:
-            self.__handle_backspace(selected_option)
+            self.__handle_backspace(selected_option, selected_option_type)
         elif re.match(r"[a-zA-Z0-9 ]", event.unicode):
             self.__handle_alphanumeric_input(
                 event, selected_option, selected_option_type
@@ -1358,11 +1358,20 @@ class AttributesLab:
         elif event.key in [pygame.K_LEFT, pygame.K_RIGHT]:
             self.__handle_arrow_navigation(event, selected_option, selected_option_type)
 
-    def __handle_backspace(self, selected_option):
+    def __handle_backspace(self, selected_option, selected_option_type):
         """Handle backspace for input fields."""
-        self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
-            "options"
-        ][selected_option]["data"][:-1]
+        if selected_option_type == "user_input_str":
+            self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
+                "options"
+            ][selected_option]["data"][:-1]
+        elif selected_option_type == "user_input_int":
+            self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
+                "options"
+            ][selected_option]["data"][:-1] or "0"
+        elif selected_option_type == "user_input_color":
+            self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
+                "options"
+            ][selected_option]["data"][:-1]
 
     def __handle_alphanumeric_input(self, event, selected_option, selected_option_type):
         """Handle alphanumeric input for text, color, or integer fields."""
