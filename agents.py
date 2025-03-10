@@ -34,7 +34,7 @@ class Critter(Sprite):
         self.size = context.get(Attributes.SIZE, 5)
         self.mating_timeout = random.randint(150, 300)
         self.genome = Genome(context.get("genome"))
-        self.max_energy = context.get(Attributes.MAX_ENERGY, 100)
+        self.max_energy = context.get(Attributes.MAX_ENERGY, 1000)
         self.expected_lifespan = 1000
         self.speed = context.get(Attributes.SPEED, 1)
         self.fitness = 0

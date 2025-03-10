@@ -291,7 +291,7 @@ class NeuronManager:
                     critter.rect.center, plant.rect.center
                 ),
             )
-            self.context["closest_food"][critter.id] = closest_food
+            self.context["closest_food"] = {critter.id: closest_food}
             min_distance = helper.distance_between_points(
                 critter.rect.center, closest_food.rect.center
             )
@@ -322,7 +322,7 @@ class NeuronManager:
         if (food := self.context["closest_food"].get(critter.id)) is not None:
             if critter.body_rect.colliderect(food.rect):
                 self.plants.remove(food)
-                critter.energy = (critter.energy + 500) % critter.max_energy
+                critter.energy += 500
                 critter.fitness += 1
             else:
                 # Move food 1d closer to critter

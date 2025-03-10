@@ -197,10 +197,10 @@ class NeuralLab:
             "circle": {
                 "radius": 25,
                 Attributes.COLOR: {
-                    NeuronType.SENSOR: (74, 227, 181),
-                    NeuronType.ACTUATOR: (0, 255, 127),
-                    NeuronType.HIDDEN: (0, 163, 108),
-                    NeuronType.BIAS: (0, 139, 139),
+                    NeuronType.SENSOR: (74, 227, 181, 175),
+                    NeuronType.ACTUATOR: (0, 255, 127, 175),
+                    NeuronType.HIDDEN: (0, 163, 108, 175),
+                    NeuronType.BIAS: (0, 139, 139, 175),
                 },
             },
             "line": {
@@ -277,30 +277,15 @@ class NeuralLab:
         elif event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
             self.neural_frame["selection"] = {"type": None, "value": None}
 
-        # Handle backspace key for bias and connection neurons
+        # Handle backspace key for connection neurons
         elif event.key == pygame.K_BACKSPACE:
-            if neuron_type in {NeuronType.BIAS, NeuronType.CONN}:
-                # Determine which value to modify (name for BIAS, weight for CONN)
-                target = value["name"] if neuron_type == NeuronType.BIAS else value[2]
-                new_value = self._handle_backspace(target)
-                
-                # Update the appropriate field
-                if neuron_type == NeuronType.BIAS:
-                    value["name"] = new_value
-                else:
-                    value[2] = new_value
+            if neuron_type == NeuronType.CONN:
+                value[2] = self._handle_backspace(value[2])
 
-        # Handle numeric input for bias and connection neurons
-        elif re.match(r"[-+\.0-9]", event.unicode) and neuron_type in {NeuronType.BIAS, NeuronType.CONN}:
+        # Handle numeric input for connection neurons
+        elif re.match(r"[-+\.0-9]", event.unicode) and neuron_type == NeuronType.CONN:
             # Determine which value to modify
-            target = value["name"] if neuron_type == NeuronType.BIAS else value[2]
-            new_value = self._handle_numeric_input(event, target)
-
-            # Update the appropriate field
-            if neuron_type == NeuronType.BIAS:
-                value["name"] = new_value
-            else:
-                value[2] = new_value
+            value[2] = self._handle_numeric_input(event, value[2])
 
     def _handle_numeric_input(self, event, data):
         """Handles numeric input for connection values."""
@@ -503,11 +488,10 @@ class NeuralLab:
             ),
         }
 
-        # Render text if it's not a hidden neuron
-        if self.selected_neuron["type"] in [NeuronType.SENSOR, NeuronType.ACTUATOR]:
-            text = self.body_font.render(self.selected_neuron["name"], True, Colors.bg_color)
-            surface.blit(text, text.get_rect(center=(radius, radius)))
-            selected_surface.blit(text, text.get_rect(center=(radius, radius)))
+        # Write name of the neuron on the surface
+        text = self.body_font.render(self.selected_neuron["name"], True, Colors.bg_color)
+        surface.blit(text, text.get_rect(center=(radius, radius)))
+        selected_surface.blit(text, text.get_rect(center=(radius, radius)))
 
         # Add the new neuron to the frame and reset selection
         self.neural_frame["nodes"].append(new_neuron)
@@ -642,21 +626,6 @@ class NeuralLab:
             
         for node in self.neural_frame["nodes"]:
             self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
-            if node["type"] == NeuronType.BIAS:
-                text = node["name"]
-                
-                # If selected add blinking cursor
-                if self.neural_frame["selection"]["type"] == NeuronType.BIAS \
-                    and self.neural_frame["selection"]["value"]["id"] == node["id"] \
-                        and int(time.time()) % 2 == 0:
-                        text += "_"                    
-                        
-                text_surface = self.body_font.render(text, True, Colors.bg_color)
-                self.surface.blit(text_surface, 
-                    text_surface.get_rect(
-                        center=(node[SurfDesc.RECT].center)
-                    )
-                )
 
     def draw_connection_line(self, connection):
         # Get the centers of the two connection points
@@ -846,7 +815,7 @@ class NeuralLab:
         clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
 
         self.bias_neuron = {
-            "name": "1",
+            "name": "B",
             "desc": helper.split_text(
                 "Bias shifts the neuron's output to help it activate."
             ),
