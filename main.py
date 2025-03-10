@@ -42,11 +42,8 @@ class Nature:
         self.plants = self.forest.bulk_generate_plants_patch(n=20)
 
     def step(self):
-        reward = 0
-
         events = pygame.event.get()
         packet = list(self.ui_handler.event_handler(events))
-        self.time_steps += 1
         if packet:
             packet = packet[0]
             if packet:
@@ -56,7 +53,6 @@ class Nature:
             elif packet == "play_time":
                 self.paused = False
             elif packet == MessagePacket(EventType.NAVIGATION, "home"):
-                self.paused = False
                 self.ui_handler.initialize_screen(screen="home")
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
@@ -67,8 +63,9 @@ class Nature:
                 self.ui_handler.initialize_screen(screen="laboratory")
 
         if self.paused:
-            return reward, self.done, self.truncated
+            return self.done, self.truncated
 
+        self.time_steps += 1
         self.species.step(events)
 
         self.neuron_manager.update(
@@ -83,7 +80,7 @@ class Nature:
         if self.time_steps % 75 == 0:
             self.forest.create_plant_patch()
 
-        return reward, self.done, self.truncated
+        return self.done, self.truncated
 
     def render(self):
         self.ui_handler.update_screen(
@@ -91,6 +88,7 @@ class Nature:
                 "critters": self.species.get_critters(),
                 "dead_critters": self.species.get_critters(alive=False),
                 "time": self.time_steps,
+                "paused": self.paused,
                 "plants": self.forest.get_plants(),
             }
         )

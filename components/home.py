@@ -43,7 +43,7 @@ class HomeComponent:
                 SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "pause_time_button_clicked.svg"
                 ),
-                "clicked": True,
+                "clicked": False,
                 "x_position": 75,
             },
             "play_time": {
@@ -52,17 +52,8 @@ class HomeComponent:
                 SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "play_time_button_clicked.svg"
                 ),
-                "clicked": False,
+                "clicked": True,
                 "x_position": 125,
-            },
-            "fast_forward_time": {
-                "name": "fast_forward_time",
-                SurfDesc.SURFACE: os.path.join("home", "fast_forward_button.svg"),
-                SurfDesc.CLICKED_SURFACE: os.path.join(
-                    "home", "fast_forward_button_clicked.svg"
-                ),
-                "clicked": False,
-                "x_position": 175,
             },
         }
 
@@ -98,7 +89,7 @@ class HomeComponent:
         self.counter_surface = pygame.Surface((300, 35), pygame.SRCALPHA)
         self.counter_font = pygame.font.Font(Fonts.PixelifySansMedium, 35)
         self.counter_rect = self.counter_surface.get_rect(
-            topleft=(215, screen_height - 90)
+            topleft=(160, screen_height - 90)
         )
 
         self._initialize_screen(context)
@@ -138,6 +129,13 @@ class HomeComponent:
         )
 
     def update(self, context=None):
+        if context.get("paused"):
+            self.time_control_buttons["pause_time"]["clicked"] = True
+            self.time_control_buttons["play_time"]["clicked"] = False
+        else:
+            self.time_control_buttons["pause_time"]["clicked"] = False
+            self.time_control_buttons["play_time"]["clicked"] = True
+            
         for component in self.components:
             component["rendered_handler"].update(context=context)
             rect = component["rendered_handler"].surface.get_rect(
@@ -147,6 +145,7 @@ class HomeComponent:
 
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
         self.surface.blit(self.env_title, self.env_title_rect)
+        
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
                 self.surface.blit(
