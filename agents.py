@@ -14,37 +14,31 @@ from handlers.genetics import Genome
 
 class Critter(Sprite):
     def __init__(self, surface, context):
+        # Unique ID and inheritance setup
         self.id = uuid4()
         super().__init__()
 
+        # Retrieve context-based properties
         position = context.get("position", None)
         parents = context.get("parents", None)
         initial_energy = context.get("initial_energy", None)
 
-        color = context.get(Attributes.COLOR, (124, 245, 255))
-        # self.phenome = Phenome(context.get("phenome"))
-        self.species = context.get("species", None)
-        self.color = color
-        self.size = context.get(Attributes.SIZE, 5)
-        self.mating_timeout = random.randint(150, 300)
+        # Genetic & species attributes
         self.genome = Genome(context.get("genome"))
-        self.max_energy = context.get(Attributes.MAX_ENERGY, 1000)
-        self.speed = context.get(Attributes.SPEED, 1)
-        self.fitness = 0
-        self.seed = random.randint(0, 1000000)
+        self.species = context.get("species", None)
         self.domain = context.get(Attributes.DOMAIN, "circle")
 
-        self.colors = {
-            "alive": color,
-            "dead": (0, 0, 0),
-            "reproducing": (255, 255, 255),
-        }
+        # Physical properties
+        self.color = context.get(Attributes.COLOR, (124, 245, 255))
+        self.size = context.get(Attributes.SIZE, 5)
+        self.speed = context.get(Attributes.SPEED, 1)
+        self.max_energy = context.get(Attributes.MAX_ENERGY, 1000)
 
-        self.border = {
-            Attributes.COLOR: (100, 57, 255),
-            "thickness": 2.5,
-        }
+        # Defense mechanism
+        self.defense_active = False
+        self.defense_mechanism = context.get(Attributes.DEFENSE_MECHANISM, None)
 
+        # Vision-related properties
         self.vision = {
             "radius": context.get(Attributes.VISION_RADIUS, 40),
             Attributes.COLOR: {
@@ -55,36 +49,50 @@ class Critter(Sprite):
             "mate": {"state": Base.looking, "mate": None},
         }
 
-        self.angle = 0  # degrees
-        self.rotation = 0  # degrees
-        self.hunger = 2
+        # Visual representation
+        self.colors = {
+            "alive": self.color,
+            "dead": (0, 0, 0),
+            "reproducing": (255, 255, 255),
+        }
+        self.border = {
+            Attributes.COLOR: (100, 57, 255),
+            "thickness": 2.5,
+        }
+
+        # Lifecycle properties
         self.alive = True
-        self.time = 0
         self.age = 0
+        self.time = 0
         self.max_lifespan = context.get(Attributes.MAX_LIFESPAN, 1000)
+        self.energy = initial_energy if initial_energy else self.max_energy
+        self.fitness = 0
+
+        # Movement & mating properties
+        self.mating_timeout = random.randint(150, 300)
+        self.mating_state = MatingState.NOT_READY
         self.acceleration_factor = 0.1
         self.td = random.randint(0, 1000)  # for pnoise generation
-        self.energy = initial_energy if initial_energy else self.max_energy
+        self.angle = 0  # degrees
+        self.rotation = 0  # degrees
 
-        self.mating_state = MatingState.NOT_READY
-        self.defense_active = False
-
+        # Environment setup
         self.env_surface = surface
-        self.noise = noise
-
+        self.seed = random.randint(0, 1000)
         self.parents = parents
-
         self.done = False
 
+        # Positioning & visual rendering
         surface_size = (
             self.size + self.border["thickness"] + (2 * self.vision["radius"])
         )
         self.image = pygame.Surface((surface_size, surface_size), pygame.SRCALPHA)
+        self.defense_image = self.image.copy()
 
-        # Calculate center of the surface
+        # Center calculation
         self.center = (surface_size // 2, surface_size // 2)
 
-        # Get rect for positioning
+        # Rect & collision setup
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
         self.previous_position = self.rect.center
@@ -96,39 +104,63 @@ class Critter(Sprite):
             -2 * self.vision["radius"] + 10,
             -2 * self.vision["radius"] + 10,
         )
+        self.body_rect.center = self.center
+        self.defense_rect = self.body_rect.inflate(20, 20)
 
     def draw(self, surface):
         if not self.alive:
             return
 
         if self.time > 1:
-            return surface.blit(self.image, self.rect)
+            if self.defense_active:
+                return surface.blit(self.defense_image, self.rect)
+            else:
+                return surface.blit(self.image, self.rect)
 
         color = self.color
 
-        rect = pygame.Rect(0, 0, self.size, self.size)
-        rect.center = self.center
+        self.body_rect = pygame.Rect(0, 0, self.size, self.size)
+        self.body_rect.center = self.center
+
+        # Defense mechanism
+        if self.defense_mechanism == "Swordling":
+            square_1 = helper.get_square_points(self.defense_rect)
+            square_2 = helper.get_square_points(self.defense_rect, 45)
+            pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_1)
+            pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_2)
+        elif self.defense_mechanism == "Shieldling":
+            pygame.draw.rect(
+                self.defense_image,
+                (255, 255, 255),
+                self.defense_rect.inflate(-10, -10),
+                3,
+            )
+        elif self.defense_mechanism == "Camoufling":
+            color = (color[0], color[1], color[2], int(0.2 * 255))
+
+        self.defense_rect.inflate_ip(20, 20)
 
         # Critter
         if self.domain == Shapes.CIRCLE:
             pygame.draw.circle(self.image, color, self.center, self.size // 2)
+            pygame.draw.circle(self.defense_image, color, self.center, self.size // 2)
         elif self.domain == Shapes.SQUARE:
-            pygame.draw.rect(self.image, color, rect)
+            pygame.draw.rect(self.image, color, self.body_rect)
+            pygame.draw.rect(self.defense_image, color, self.body_rect)
         elif self.domain == Shapes.TRIANGLE:
-            pygame.draw.polygon(self.image, color, helper.get_triangle_points(rect))
+            pygame.draw.polygon(
+                self.image, color, helper.get_triangle_points(self.body_rect)
+            )
+            pygame.draw.polygon(
+                self.defense_image, color, helper.get_triangle_points(self.body_rect)
+            )
         elif self.domain == Shapes.PENTAGON:
-            pygame.draw.polygon(self.image, color, helper.get_pentagon_points(rect))
-
-        # if defense == "Swordling":
-        #     pygame.draw.circle(
-        #         surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75
-        #     )
-        # elif defense == "Shieldling":
-        #     border_rect = pygame.Rect(0, 0, 75, 75)
-        #     border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
-        #     pygame.draw.rect(surface, (255, 255, 255), border_rect, 5)
-        # elif defense == "Camoufling":
-        #     color = (color[0], color[1], color[2], int(0.5 * 255))
+            pygame.draw.polygon(
+                self.image, color, helper.get_pentagon_points(self.body_rect)
+            )
+            pygame.draw.polygon(
+                self.defense_image, color, helper.get_pentagon_points(self.body_rect)
+            )
 
         surface.blit(self.image, self.rect)
 
@@ -251,6 +283,8 @@ class Critter(Sprite):
     def die(self):
         self.alive = False
         self.done = True
+        self.color = (255, 255, 255)
+        self.time = -5
 
     def eat(self):
         self.hunger -= 1

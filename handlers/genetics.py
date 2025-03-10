@@ -265,7 +265,8 @@ class NeuronManager:
         "MvA": {"desc": "Move towards the nearest any-species critter, if found."},
         "MvF": {"desc": "Move towards the nearest food source, if found"},    
         "MvM": {"desc": "Move towards the mouse pointer, if found"},
-        "ADe" : {"desc": "Activates defense mechanism when triggered, deactivates otherwise."},
+        "ADe" : {"desc": "Activates defense mechanism when triggered"},
+        "DDe" : {"desc": "Deactivates defense mechanism when triggered"},
         "Mte" : {"desc": "Mate if a critter of same species is found & ready to mate"},
         
         
@@ -427,6 +428,9 @@ class NeuronManager:
         target_direction = noise.snoise2(
             ((critter.seed + critter.age) / 1000) % 1000, 0
         )
+        if not critter.alive:
+            print("Dead Wanderer")
+
         target_angle = (target_direction + 1) * math.pi
 
         # Gradually change the angle instead of jumping
@@ -516,6 +520,30 @@ class NeuronManager:
             if mouse_rect != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, mouse_rect)
                 critter.rect.x, critter.rect.y = new_x, new_y
+
+    def act_ADe(self, critter):
+        """Activates defense mechanism when triggered, deactivates otherwise."""
+        setattr(critter, "defense_active", True)
+        if critter.defense_mechanism == "Swordling":
+            collision_indices = critter.defense_rect.collidelistall(
+                [other.rect for other in self.critters]
+            )
+            if collision_indices:
+                for i in collision_indices:
+                    other = self.critters[i]
+                    if other.id == critter.id:
+                        continue
+                    elif other.defense_active and other.defense_mechanism in [
+                        "Shieldling",
+                        "Camouflaging",
+                    ]:
+                        continue
+                    else:
+                        other.die()
+
+    def act_DDe(self, critter):
+        """Deactivates defense mechanism when triggered."""
+        setattr(critter, "defense_active", False)
 
     # --- HELPER FUNCTIONS ---
     def _get_normalized_nearest_distance(

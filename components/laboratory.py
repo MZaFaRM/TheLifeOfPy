@@ -325,7 +325,8 @@ class NeuralLab:
                 return res
 
     def __handle_neural_frame_deletion(self, event):
-        if selection := self.neural_frame["selection"]:
+        if self.neural_frame["selection"]["value"]:
+            selection = self.neural_frame["selection"]
             if selection["type"] == NeuronType.CONN:
                 for connection in self.neural_frame["connections"]:
                     if connection[0]["id"] == selection["value"][0]["id"] and connection[1]["id"] == selection["value"][1]["id"]:
@@ -957,7 +958,7 @@ class AttributesLab:
         return {
             Attributes.BASE_POPULATION: int(get_data(self.INITIAL_POPULATION)),
             Attributes.SPECIES: get_data(self.SPECIES),
-            Attributes.TRAITLINE: get_choice(self.TRAITLINE),
+            Attributes.DEFENSE_MECHANISM: get_choice(self.DEFENSE_MECHANISM),
             Attributes.DOMAIN: get_choice(self.DOMAIN),
             Attributes.VISION_RADIUS: int(get_data(self.VISION_RADIUS)),
             Attributes.SIZE: int(get_data(self.SIZE)),
@@ -974,7 +975,7 @@ class AttributesLab:
     def __create_traits_schema(self):
         self.INITIAL_POPULATION = "Initial Population: "
         self.SPECIES = "Species: "
-        self.TRAITLINE = "Traitline: "
+        self.DEFENSE_MECHANISM = "Defense Mechanism: "
         self.DOMAIN = "Domain: "
         self.VISION_RADIUS = "Vision Radius: "
         self.SIZE = "Size: "
@@ -1000,7 +1001,7 @@ class AttributesLab:
                     "type": "user_input_str",
                     "data": "Common Square",
                 },
-                self.TRAITLINE: {
+                self.DEFENSE_MECHANISM: {
                     "choices": [
                         {"value": "None", "selected" : True},
                         {"value": "Swordling", "selected" : False},
@@ -1333,7 +1334,7 @@ class AttributesLab:
             if option == self.DOMAIN:
                 self.pic_circle["shape"] = selected_choice
                 self.pic_circle["update"] = True
-            elif option == self.TRAITLINE:
+            elif option == self.DEFENSE_MECHANISM:
                 self.pic_circle["defense"] = selected_choice
                 self.pic_circle["update"] = True
                 
@@ -1448,7 +1449,7 @@ class AttributesLab:
                 self.pic_circle["shape"] = (
                     self.traits_schema["options"][selected_option]["choices"][new_index]["value"]
                 )
-            elif selected_option == self.TRAITLINE:
+            elif selected_option == self.DEFENSE_MECHANISM:
                 self.pic_circle["update"] = True
                 self.pic_circle["defense"] = (
                     self.traits_schema["options"][selected_option]["choices"][new_index]["value"]

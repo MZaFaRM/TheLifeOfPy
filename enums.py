@@ -28,7 +28,7 @@ class SurfDesc(Enum):
 class Attributes(Enum):
     BASE_POPULATION = "_base_population"
     SPECIES = "_species"
-    TRAITLINE = "_traitline"
+    DEFENSE_MECHANISM = "_defense_mechanism"
     DOMAIN = "_domain"
     VISION_RADIUS = "_vision_radius"
     SIZE = "_size"

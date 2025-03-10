@@ -2,7 +2,7 @@ import os
 
 import pygame
 
-from config import Colors, image_assets
+from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket, SurfDesc
 from handlers.organisms import Counter
 
@@ -95,6 +95,12 @@ class HomeComponent:
                 }
             )
 
+        self.counter_surface = pygame.Surface((300, 35), pygame.SRCALPHA)
+        self.counter_font = pygame.font.Font(Fonts.PixelifySansMedium, 35)
+        self.counter_rect = self.counter_surface.get_rect(
+            topleft=(215, screen_height - 90)
+        )
+
         self._initialize_screen(context)
 
     def _initialize_screen(self, context):
@@ -150,6 +156,12 @@ class HomeComponent:
                 self.surface.blit(
                     button_data[SurfDesc.SURFACE]["default"], button_data[SurfDesc.RECT]
                 )
+
+        self.counter_surface.fill((0, 0, 0, 0))
+        text = self.counter_font.render(f"{context["time"]:,} Ts", True, Colors.primary)
+        text_rect = text.get_rect(topleft=(0, 0))
+        self.counter_surface.blit(text, text_rect)
+        self.surface.blit(self.counter_surface, self.counter_rect)
 
 
 class EnvComponent:

@@ -90,6 +90,7 @@ class Nature:
             context={
                 "critters": self.species.get_critters(),
                 "dead_critters": self.species.get_critters(alive=False),
+                "time": self.time_steps,
                 "plants": self.forest.get_plants(),
             }
         )

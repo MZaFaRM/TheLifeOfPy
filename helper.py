@@ -43,6 +43,23 @@ def get_random_position(env_window):
         random.randint(0, env_window.get_width()),
         random.randint(0, env_window.get_height()),
     )
+    
+def get_square_points(rect, rotation_degrees=90):
+    """Generates a square directly with a given rotation, inside the given rect."""
+    cx, cy = rect.center  # Center of the rectangle
+    radius = min(rect.width, rect.height) / 2  # Fit inside the rect
+
+    # Convert rotation from degrees to radians
+    rotation_radians = math.radians(rotation_degrees)
+
+    points = []
+    for i in range(4):
+        angle = rotation_radians + (i * math.pi / 2)  # Spread points evenly
+        x = cx + radius * math.cos(angle)
+        y = cy + radius * math.sin(angle)
+        points.append((x, y))
+
+    return points
 
 
 def get_triangle_points(rect, rotation_degrees=90):
