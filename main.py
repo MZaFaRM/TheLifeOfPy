@@ -69,18 +69,15 @@ class Nature:
         if self.paused:
             return reward, self.done, self.truncated
 
-        self.neuron_manager.update(self.critters, self.plants)
+        self.neuron_manager.update(
+            self.species.get_critters(),
+            self.forest.get_plants(),
+        )
 
         # self.graph_manager.update_population(self.time_steps, critter_data)
         self.clock.tick(1000)
         # self.done = all(critter.done for critter in critters)
         self.truncated = False  # or len(self.critters) == 0
-        if self.critters and all(critter.done for critter in self.critters):
-            max_fitness = max([critter.fitness for critter in self.critters])
-            print(f"Max fitness: {max_fitness}")
-            min_fitness = min([critter.fitness for critter in self.critters])
-            print(f"Min fitness: {min_fitness}")
-            return
 
         if self.time_steps % 75 == 0:
             self.forest.create_plant_patch()

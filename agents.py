@@ -101,7 +101,7 @@ class Critter(Sprite):
             -2 * self.vision["radius"] + 10,
         )
 
-    def draw(self, surface, vision_circle=False):
+    def draw(self, surface):
         if not self.alive:
             return
 
@@ -336,6 +336,6 @@ class Plant(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = self.position
 
-    def draw(self):
+    def draw(self, surface):
         # Blit the food image to the env_window at its position
-        self.env_window.blit(self.image, self.rect.topleft)
+        surface.blit(self.image, self.rect.topleft)

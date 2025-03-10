@@ -281,7 +281,7 @@ class NeuronManager:
 
     def obs_FDi(self, critter):
         """Returns normalized distance to the nearest food source, scaled to range 0 to 1."""
-        colliding_food_indices = critter.body_rect.collidelistall(self.plants_rect)
+        colliding_food_indices = critter.rect.collidelistall(self.plants_rect)
         if not colliding_food_indices:
             return 1.0
         else:
@@ -334,7 +334,7 @@ class NeuronManager:
                     distance = math.sqrt(distance_sq)
                     unit_vector = (dx / distance, dy / distance)
 
-                    step = max(0.1, 1 - (distance / (critter.vision["radius"] * 2)))
+                    step = max(0.2, 1 - (distance / (critter.vision["radius"] * 2)))
 
                     food.rect.x -= step * unit_vector[0]
                     food.rect.y -= step * unit_vector[1]

@@ -1,4 +1,3 @@
-from copy import deepcopy
 import math
 import random
 import uuid
@@ -9,24 +8,6 @@ import pygame
 import agents
 from config import Colors, Fonts
 from enums import Attributes
-
-# Nearest Food Location (Distance)
-# Nearest Food Direction (Angle)
-# Nearest Home Location (Distance)
-# Nearest Home Direction (Angle)
-# Current Energy (Amount)
-# Number of Agents Trying to Eat the Nearest Food (Count)
-# Nearest Carnivorous Critter Location (Distance)
-# Nearest Critter Location (Distance)
-# Nearest Critter Direction (Angle)
-# Target Food Speed (Speed)
-# Distance to Nearest Predator (Distance)
-# Distance to Nearest Safe Zone (Distance)
-# Food Density (Count)
-# Current Speed (Speed)
-# Predator Count Nearby (Count)
-# Current Energy Usage Rate (Rate)
-
 
 class Forest:
     def __init__(self, context=None) -> None:
@@ -161,7 +142,7 @@ class Species:
     def get_critters(self):
         return self.critters
 
-    def pentagonover(self):
+    def crossover(self):
         pass
 
 

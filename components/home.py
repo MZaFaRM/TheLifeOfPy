@@ -161,8 +161,8 @@ class EnvComponent:
             (self.env_image.get_width(), self.env_image.get_height())
         )
         self.surface.blit(self.env_image, (0, 0))
-        self.plants = []
-        self.critters = []
+        self.plants = pygame.sprite.Group()
+        self.critters = pygame.sprite.Group()
 
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -182,11 +182,11 @@ class EnvComponent:
         self.surface.fill(Colors.bg_color)
         self.surface.blit(self.env_image, (0, 0))
 
-        self.plants.draw(self.surface)
-
         for critter in self.critters:
             critter.step()
             critter.draw(self.surface)
+
+        self.plants.draw(self.surface)
 
 
 class SidebarComponent:
