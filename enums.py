@@ -6,6 +6,9 @@ class NeuronType(Enum):
     HIDDEN = "hidden"
     ACTUATOR = "actuator"
     BIAS = "bias"
+    
+    # Other
+    CONN = "connection"
 
 
 class SurfDesc(Enum):

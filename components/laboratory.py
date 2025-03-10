@@ -1,6 +1,7 @@
 import enum
 import os
 import re
+import time
 import uuid
 
 import numpy as np
@@ -190,7 +191,7 @@ class NeuralLab:
         )
         self.neural_frame["reset"] = self.neural_frame[SurfDesc.SURFACE].copy()
         self.neural_frame["nodes"] = []
-        self.neural_frame["selection"] = None
+        self.neural_frame["selection"] = {"type": None, "value": None}
         self.neural_frame["connections"] = []
         self.neural_frame["graph_desc"] = {
             "circle": {
@@ -263,8 +264,8 @@ class NeuralLab:
             if event.key == pygame.K_DELETE:
                 return self.__handle_neural_frame_deletion(event)
             elif re.match(r"[-+\.0-9]", event.unicode):
-                if isinstance(self.neural_frame["selection"], list):
-                    current_value = self.neural_frame["selection"][2]
+                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
+                    current_value = self.neural_frame["selection"]["value"][2]
 
                     # Determine current sign (default to "+")
                     if current_value in ["0", "-0", "+0"]:  
@@ -275,12 +276,12 @@ class NeuralLab:
                     if event.unicode in ["-", "+"]:
                         # Apply sign if it's not just "0"
                         if current_value != "0":
-                            self.neural_frame["selection"][2] = event.unicode + current_value.lstrip("+-")
+                            self.neural_frame["selection"]["value"][2] = event.unicode + current_value.lstrip("+-")
 
                     elif event.unicode == ".":
                         # Ensure only one decimal point exists
                         if "." not in current_value:
-                            self.neural_frame["selection"][2] += "."
+                            self.neural_frame["selection"]["value"][2] += "."
 
                     elif event.unicode.isdigit():
                         # Handle leading zero cases
@@ -289,22 +290,22 @@ class NeuralLab:
                                 return  # Prevent leading multiple zeros (e.g., "+00")
                             else:
                                 # Replace "0" with the digit while keeping sign if needed
-                                self.neural_frame["selection"][2] = sign + event.unicode
+                                self.neural_frame["selection"]["value"][2] = sign + event.unicode
                         else:
-                            self.neural_frame["selection"][2] += event.unicode
+                            self.neural_frame["selection"]["value"][2] += event.unicode
                         
             elif event.key == pygame.K_RETURN:
-                if isinstance(self.neural_frame["selection"], list):
-                    self.neural_frame["selection"] = None
+                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
+                    self.neural_frame["selection"] = {"type": None, "value": None}
                     
             elif event.key == pygame.K_ESCAPE:
-                self.neural_frame["selection"] = None
+                self.neural_frame["selection"] = {"type": None, "value": None}
                 
             elif event.key == pygame.K_BACKSPACE:
-                if isinstance(self.neural_frame["selection"], list):
-                    self.neural_frame["selection"][2] = self.neural_frame["selection"][2][:-1] or "0"
-                    if self.neural_frame["selection"][2] == "-":
-                        self.neural_frame["selection"][2] = "0"
+                if self.neural_frame["selection"]["type"] == NeuronType.CONN:
+                    self.neural_frame["selection"]["value"][2] = self.neural_frame["selection"]["value"][2][:-1] or "0"
+                    if self.neural_frame["selection"]["value"][2] == "-":
+                        self.neural_frame["selection"]["value"][2] = "0"
                     
         
 
@@ -320,13 +321,13 @@ class NeuralLab:
 
     def __handle_neural_frame_deletion(self, event):
         if selection := self.neural_frame["selection"]:
-            if isinstance(selection, list):
+            if selection["type"] == NeuronType.CONN:
                 for connection in self.neural_frame["connections"]:
-                    if connection[0]["id"] == selection[0]["id"] and connection[1]["id"] == selection[1]["id"]:
+                    if connection[0]["id"] == selection["value"][0]["id"] and connection[1]["id"] == selection["value"][1]["id"]:
                         self.neural_frame["connections"].remove(connection)
             else:        
                 for node in self.neural_frame["nodes"]:
-                    if node["id"] == selection["id"]:
+                    if node["id"] == selection["value"]["id"]:
                         self.neural_frame["nodes"].remove(node)
                         for connection in self.neural_frame["connections"].copy():
                             if (
@@ -334,35 +335,35 @@ class NeuralLab:
                                 or connection[1]["id"] == node["id"]
                             ):
                                 self.neural_frame["connections"].remove(connection)
-            self.neural_frame["selection"] = None
+            self.neural_frame["selection"] = {"type": None, "value": None}
 
     def __handle_neural_frame_click(self, event):
         selected_any = False
-        if isinstance(self.neural_frame["selection"], list):
-            self.neural_frame["selection"] = None
+        if self.neural_frame["selection"]["type"] == NeuronType.CONN:
+            self.neural_frame["selection"] = {"type": None, "value": None}
             return
         
         for node in self.neural_frame["nodes"]:
             if node[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 selected_any = True
-                if self.neural_frame["selection"]:
-                    if self.__valid_connection(self.neural_frame["selection"], node):
+                if self.neural_frame["selection"]["value"]:
+                    if self.__valid_connection(self.neural_frame["selection"]["value"], node):
                         # Add the connection, with default weight of 1
                         self.neural_frame["connections"].append(
-                            [self.neural_frame["selection"], node, "1"]
+                            [self.neural_frame["selection"]["value"], node, "1"]
                         )
                     else:
-                        print(f"Invalid Connection: {self.neural_frame['selection']["name"]} -> {node["name"]}")
-                    self.neural_frame["selection"] = None
+                        print(f"Invalid Connection: {self.neural_frame["selection"]["value"]["name"]} -> {node["name"]}")
+                    self.neural_frame["selection"] = {"type": None, "value": None}
                     
                 else:
                     node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.CLICKED_SURFACE]
-                    self.neural_frame["selection"] = node
+                    self.neural_frame["selection"].update({"type" : node["type"], "value" : node})
             else:
                 node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.SURFACE]
 
         if not selected_any:
-            self.neural_frame["selection"] = None
+            self.neural_frame["selection"] = {"type": None, "value": None}
             
             pos = (
                 event.pos[0] - self.surface_x_offset,
@@ -376,7 +377,7 @@ class NeuralLab:
                     connection[1][SurfDesc.RECT].center,
                     width=5,
                 ):
-                    self.neural_frame["selection"] = connection
+                    self.neural_frame["selection"].update({"type" : NeuronType.CONN, "value" : connection})
                     break
 
     def __valid_connection(self, node_1, node_2):
@@ -448,60 +449,50 @@ class NeuralLab:
 
     def __handle_neural_node_creation(self, event):
         # Check if the selected neuron is within the neural frame
-        if self.selected_neuron and self.neural_frame[
-            SurfDesc.ABSOLUTE_RECT
-        ].collidepoint(event.pos):
-            # Get the properties of the shape to draw
-            shape = self.neural_frame["graph_desc"]["circle"]
-            radius = shape["radius"]
-            color = shape[Attributes.COLOR][self.selected_neuron["type"]]
-            pos = (
-                event.pos[0] - self.surface_x_offset,
-                event.pos[1] - self.surface_y_offset,
-            )
+        if not self.selected_neuron or not self.neural_frame[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
+            return
 
-            # Create a new surface and draw the circle
-            surface = pygame.Surface(
-                ((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA
-            )
-            pygame.draw.circle(surface, color, (radius, radius), radius)
+        # Get the properties of the shape to draw
+        shape = self.neural_frame["graph_desc"]["circle"]
+        radius = shape["radius"]
+        color = shape[Attributes.COLOR][self.selected_neuron["type"]]
+        pos = (
+            event.pos[0] - self.surface_x_offset,
+            event.pos[1] - self.surface_y_offset,
+        )
 
-            # Create a selected surface with a white border and text
-            selected_surface = pygame.Surface(
-                ((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA
-            )
-            pygame.draw.circle(
-                selected_surface, (255, 255, 255), (radius, radius), radius
-            )
-            pygame.draw.circle(selected_surface, color, (radius, radius), radius - 5)
+        # Create surfaces
+        surface = pygame.Surface(((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA)
+        pygame.draw.circle(surface, color, (radius, radius), radius)
 
-            if self.selected_neuron["type"] not in [NeuronType.HIDDEN, NeuronType.BIAS]:
-                text = self.body_font.render(
-                    self.selected_neuron["name"], True, Colors.bg_color
-                )
-                surface.blit(text, text.get_rect(center=(radius, radius)))
-                selected_surface.blit(text, text.get_rect(center=(radius, radius)))
+        selected_surface = pygame.Surface(((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA)
+        pygame.draw.circle(selected_surface, (255, 255, 255), (radius, radius), radius)
+        pygame.draw.circle(selected_surface, color, (radius, radius), radius - 5)
 
-            # Define the new neuron properties and add it to the frame
-            new_neuron = {
-                "id": uuid.uuid4(),
-                "name": self.selected_neuron["name"],
-                "type": self.selected_neuron["type"],
-                SurfDesc.SURFACE: surface,
-                SurfDesc.CURRENT_SURFACE: surface,
-                SurfDesc.CLICKED_SURFACE: selected_surface,
-                SurfDesc.RECT: surface.get_rect(center=(pos[0], pos[1])),
-                SurfDesc.ABSOLUTE_RECT: surface.get_rect(
-                    topleft=(
-                        pos[0] + self.surface_x_offset - radius,
-                        pos[1] + self.surface_y_offset - radius,
-                    )
-                ),
-            }
-            self.neural_frame["nodes"].extend([new_neuron])
+        # Define the new neuron properties
+        new_neuron = {
+            "id": uuid.uuid4(),
+            "name": self.selected_neuron["name"],
+            "type": self.selected_neuron["type"],
+            SurfDesc.SURFACE: surface,
+            SurfDesc.CURRENT_SURFACE: surface,
+            SurfDesc.CLICKED_SURFACE: selected_surface,
+            SurfDesc.RECT: surface.get_rect(center=pos),
+            SurfDesc.ABSOLUTE_RECT: surface.get_rect(
+                topleft=(pos[0] + self.surface_x_offset - radius, pos[1] + self.surface_y_offset - radius),
+            ),
+        }
 
-            # Reset selected neuron after adding
-            self.selected_neuron = {}
+        # Render text if it's not a hidden neuron
+        if self.selected_neuron["type"] in [NeuronType.SENSOR, NeuronType.ACTUATOR]:
+            text = self.body_font.render(self.selected_neuron["name"], True, Colors.bg_color)
+            surface.blit(text, text.get_rect(center=(radius, radius)))
+            selected_surface.blit(text, text.get_rect(center=(radius, radius)))
+
+        # Add the new neuron to the frame and reset selection
+        self.neural_frame["nodes"].append(new_neuron)
+        self.selected_neuron = {}
+
 
     def __handle_unleash_organism_on_mouse_down(self, event):
         if self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
@@ -609,20 +600,12 @@ class NeuralLab:
         for item in self.sensors + self.actuators:
             self.surface.blit(item[SurfDesc.CURRENT_SURFACE], item[SurfDesc.RECT])
 
-        # Blit specific elements
-        for element, desc in [
-            (self.hidden_neuron, SurfDesc.CURRENT_SURFACE),
-            (self.bias_neuron, SurfDesc.CURRENT_SURFACE),
-            (self.sensor_desc, SurfDesc.SURFACE),
-            (self.actuator_desc, SurfDesc.SURFACE),
-            (self.unleash_organism_button, SurfDesc.CURRENT_SURFACE),
-        ]:
-            self.surface.blit(element[desc], element[SurfDesc.RECT])
-
-        self.surface.blit(
-            self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
-        )
-        
+        self.surface.blit(self.hidden_neuron[SurfDesc.CURRENT_SURFACE], self.hidden_neuron[SurfDesc.RECT])
+        self.surface.blit(self.bias_neuron[SurfDesc.CURRENT_SURFACE], self.bias_neuron[SurfDesc.RECT])
+        self.surface.blit(self.sensor_desc[SurfDesc.SURFACE], self.sensor_desc[SurfDesc.RECT])
+        self.surface.blit(self.actuator_desc[SurfDesc.SURFACE], self.actuator_desc[SurfDesc.RECT])
+        self.surface.blit(self.unleash_organism_button[SurfDesc.CURRENT_SURFACE], self.unleash_organism_button[SurfDesc.RECT])
+        self.surface.blit(self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT])
         
         for connection in self.neural_frame["connections"]:
             pygame.draw.line(
@@ -630,13 +613,12 @@ class NeuralLab:
                 self.neural_frame["graph_desc"]["line"][Attributes.COLOR],
                 connection[0][SurfDesc.RECT].center,
                 connection[1][SurfDesc.RECT].center,
-                self.neural_frame["graph_desc"]["line"]["thickness"],
+                max(abs(int(connection[2])), 1) * 2 # Weight * 2
             )
             
         # Selection is connection node
-        # TODO: Make this cleaner
-        if isinstance(self.neural_frame["selection"], list):
-            connection = self.neural_frame["selection"]
+        if self.neural_frame["selection"]["type"] == NeuronType.CONN:
+            connection = self.neural_frame["selection"]["value"]
             # Get the centers of the two connection points
             p1 = connection[0][SurfDesc.RECT].center
             p2 = connection[1][SurfDesc.RECT].center
@@ -651,7 +633,7 @@ class NeuralLab:
                 Colors.primary,
                 p1,
                 p2,
-                self.neural_frame["graph_desc"]["line"]["thickness"],
+                max(abs(int(connection[2])), 1) * 2 # Weight * 2
             )
 
             # Draw the pentagon
@@ -668,6 +650,14 @@ class NeuralLab:
             
         for node in self.neural_frame["nodes"]:
             self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
+
+        if self.neural_frame["selection"]["type"] == NeuronType.BIAS:
+            text = self.neural_frame["selection"]["value"]["name"]
+            if time.time() % 3 == 0:
+                text += "_"
+                
+            text_surface = self.body_font.render(text, True, Colors.bg_color)
+            self.surface.blit(text_surface, text_surface.get_rect(center=(self.neural_frame["selection"]["value"][SurfDesc.RECT].center)))
 
     def _setup_surface(self):
         surface = pygame.Surface(
@@ -693,79 +683,88 @@ class NeuralLab:
 
         return surface
 
-    def _configure_neurons(self, neuron_type: NeuronType, neurons: list):
-        if neurons is None:
-            neurons = []
+    def _configure_neurons(self, neuron_type: NeuronType, neurons: list = None):
+        neurons = neurons or []
 
-        desc_attr = f"{neuron_type.value}_desc"
-        setattr(
-            self,
-            desc_attr,
-            {
+        # Set up description attributes
+        if neuron_type == NeuronType.SENSOR:
+            self.sensor_desc = {
                 SurfDesc.SURFACE: pygame.Surface((450, 50)),
-                "position": {
-                    "topleft": (
-                        (62, 690) if neuron_type == NeuronType.SENSOR else (666, 690)
-                    )
-                },
+                "position": {"topleft": (62, 690)},
                 SurfDesc.RECT: None,
                 SurfDesc.ABSOLUTE_RECT: None,
-                "default_text": helper.split_text(
-                    f"Select a {neuron_type.value} to view more information..."
-                ),
-            },
-        )
+                "default_text": helper.split_text("Select a sensor to view more information..."),
+            }
+            desc = self.sensor_desc
+        else:  # NeuronType.ACTUATOR
+            self.actuator_desc = {
+                SurfDesc.SURFACE: pygame.Surface((450, 50)),
+                "position": {"topleft": (666, 690)},
+                SurfDesc.RECT: None,
+                SurfDesc.ABSOLUTE_RECT: None,
+                "default_text": helper.split_text("Select an actuator to view more information..."),
+            }
+            desc = self.actuator_desc
 
-        desc = getattr(self, desc_attr)
         desc[SurfDesc.RECT] = desc[SurfDesc.SURFACE].get_rect(**desc["position"])
         self.__update_neuron_text(neuron_type)
 
-        num_neurons = len(neurons)
-        y_start, x_start = (790, 87) if neuron_type == NeuronType.SENSOR else (790, 691)
-        y_offset, x_offset, x_max = (
-            15,
-            67,
-            600 if neuron_type == NeuronType.SENSOR else 1200,
-        )
+        # Set neuron layout parameters
+        if neuron_type == NeuronType.SENSOR:
+            x_start, x_max = 20, 600
+            self.sensors = []
+            neuron_list = self.sensors
+        else:  # NeuronType.ACTUATOR
+            x_start, x_max = 624, 1200
+            self.actuators = []
+            neuron_list = self.actuators
 
-        neuron_list_attr = f"{neuron_type.value}s"
-        setattr(self, neuron_list_attr, [])
+        # Neuron positioning variables
+        x, y = x_start, 790
+        x_offset, y_offset = 67, 67
 
-        for i in range(num_neurons):
-            neuron_surface = pygame.Surface((55, 55))
-            neuron_surface.fill(color=Colors.primary)
-            pygame.gfxdraw.aacircle(neuron_surface, 25, 25, 25, Colors.bg_color)
+        # Create neuron representations
+        for neuron in neurons:
+            neuron_surfaces = self._create_neuron_surfaces(neuron["name"])
 
-            text = self.body_font.render(neurons[i]["name"], True, Colors.bg_color)
-            neuron_surface.blit(text, text.get_rect(center=(25, 25)))
+            x += x_offset
+            if x > x_max:
+                y += y_offset
+                x = x_start + x_offset
 
-            clicked_neuron_surface = pygame.Surface((55, 55))
-            clicked_neuron_surface.fill(color=Colors.primary)
-            pygame.draw.circle(clicked_neuron_surface, Colors.bg_color, (25, 25), 25)
-
-            text = self.body_font.render(neurons[i]["name"], True, Colors.primary)
-            clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
-
-            x = x_start + (x_offset * i)
-            y = y_start if x < x_max else y_start + y_offset
-
-            getattr(self, neuron_list_attr).append(
+            neuron_list.append(
                 {
-                    "id": neurons[i]["id"],
-                    "name": neurons[i]["name"],
-                    "desc": helper.split_text(neurons[i]["desc"]),
-                    SurfDesc.CURRENT_SURFACE: neuron_surface,
-                    SurfDesc.SURFACE: neuron_surface,
-                    SurfDesc.CLICKED_SURFACE: clicked_neuron_surface,
-                    SurfDesc.RECT: neuron_surface.get_rect(center=(x, y)),
-                    SurfDesc.ABSOLUTE_RECT: neuron_surface.get_rect(
-                        topleft=(
-                            x - 25 + self.surface_x_offset,
-                            y - 25 + self.surface_y_offset,
-                        ),
+                    "id": neuron["id"],
+                    "name": neuron["name"],
+                    "desc": helper.split_text(neuron["desc"]),
+                    SurfDesc.CURRENT_SURFACE: neuron_surfaces["normal"],
+                    SurfDesc.SURFACE: neuron_surfaces["normal"],
+                    SurfDesc.CLICKED_SURFACE: neuron_surfaces["clicked"],
+                    SurfDesc.RECT: neuron_surfaces["normal"].get_rect(center=(x, y)),
+                    SurfDesc.ABSOLUTE_RECT: neuron_surfaces["normal"].get_rect(
+                        topleft=(x - 25 + self.surface_x_offset, y - 25 + self.surface_y_offset),
                     ),
                 }
             )
+
+    def _create_neuron_surfaces(self, text):
+        """Creates normal and clicked neuron surfaces."""
+        normal = pygame.Surface((55, 55))
+        normal.fill(Colors.primary)
+        pygame.gfxdraw.aacircle(normal, 25, 25, 25, Colors.bg_color)
+
+        text_render = self.body_font.render(text, True, Colors.bg_color)
+        normal.blit(text_render, text_render.get_rect(center=(25, 25)))
+
+        clicked = pygame.Surface((55, 55))
+        clicked.fill(Colors.primary)
+        pygame.draw.circle(clicked, Colors.bg_color, (25, 25), 25)
+
+        text_render = self.body_font.render(text, True, Colors.primary)
+        clicked.blit(text_render, text_render.get_rect(center=(25, 25)))
+
+        return {"normal": normal, "clicked": clicked}
+
 
     def _configure_hidden_neuron(self):
         x, y = 1700, 310
@@ -819,7 +818,7 @@ class NeuralLab:
         clicked_neuron_surface.blit(text, text.get_rect(center=(25, 25)))
 
         self.bias_neuron = {
-            "name": "B",
+            "name": "1",
             "desc": helper.split_text(
                 "Bias shifts the neuron's output to help it activate."
             ),
