@@ -11,6 +11,12 @@ class NeuronType(Enum):
     CONN = "connection"
 
 
+class MatingState(Enum):
+    NOT_READY = 0
+    READY = 1
+    MATING = 2
+
+
 class SurfDesc(Enum):
     SURFACE = "surface"
     CLICKED_SURFACE = "clicked_surface"

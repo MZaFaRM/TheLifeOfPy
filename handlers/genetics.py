@@ -3,8 +3,10 @@ import random
 import uuid
 import noise
 import numpy as np
+import pygame
 
-from enums import Attributes, NeuronType
+from config import ENV_OFFSET_X, ENV_OFFSET_Y
+from enums import Attributes, NeuronType, MatingState
 import helper
 
 
@@ -248,11 +250,11 @@ class NeuronManager:
         "CAm": {"desc": "Density of any-species critters in proximity: -1 (None) => 1 (More than 10)"},
         "CEn": {"desc": "Current energy level of the critter: -1 (empty) => 1 (full)"},
         "CAg": {"desc": "Current age of the critter: -1 (newborn) => 1 (old)"},
-        "CFi": {"desc": "Current fitness of the critter: -1 (low) => 1 (high)"},
+        "CFi": {"desc": "Current fitness of the critter, compared to average: -1 (low) => 1 (high)"},
         "RSt": {"desc": "Reproduction state of the critter: -1 (not ready) => 0 (ready) => 1 (mating)"},
-        "CSp": {"desc": "Current speed of the critter: -1 (stopped) => 1 (full speed)"},
+        "CMs": {"desc": "Current movement state of the critter: -1 (idle) => 1 (moving)"},
         "DSt": {"desc": "Defense state of the critter: -1 (not activated) => 1 (activated)"},
-        "MsD": {"desc": "Detects if mouse pointer is inside the environment: 0 (no) => 1 (yes)"},
+        "MsD": {"desc": "Proximity to mouse pointer, if in visibility: -1 (on it) => 1 (farthest)"},
     }
 
     actuators = {
@@ -362,6 +364,45 @@ class NeuronManager:
     def obs_CAg(self, critter):
         """Returns normalized age of the critter."""
         return (critter.age / critter.max_lifespan) * 2 - 1
+
+    def obs_CFi(self, critter):
+        """Current fitness of the critter, compared to average."""
+        fitness_sum = sum(c.fitness for c in self.critters)
+        average_fitness = fitness_sum / len(self.critters)
+        if average_fitness == 0:
+            return 1.0
+        else:
+            return (critter.fitness / average_fitness) * 2 - 1
+
+    def obs_RSt(self, critter):
+        """Reproduction state of the critter."""
+        if critter.mating_state == MatingState.NOT_READY:
+            return -1.0
+        elif critter.mating_state == MatingState.READY:
+            return 0.0
+        elif critter.mating_state == MatingState.MATING:
+            return 1.0
+
+    def obs_CSp(self, critter):
+        """Current movement state of the critter."""
+        if critter.previous_position == critter.rect.center:
+            return -1.0
+        else:
+            return 1.0
+
+    def obs_DSt(self, critter):
+        """Defense state of the critter."""
+        return critter.defense_active
+
+    def obs_MsD(self, critter):
+        """Proximity to mouse pointer, if in visibility."""
+        x, y = pygame.mouse.get_pos()
+        mouse_pos = (x - ENV_OFFSET_X, y - ENV_OFFSET_Y)
+        if not critter.rect.collidepoint(mouse_pos):
+            return
+
+        distance = helper.distance_between_points(critter.rect.center, mouse_pos)
+        return (distance / (critter.vision["radius"] * 2)) * 2 - 1
 
     # --- ACTUATOR FUNCTIONS ---
 

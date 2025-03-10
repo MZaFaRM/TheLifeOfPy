@@ -8,14 +8,8 @@ import pygame
 from pygame.sprite import Sprite
 
 import helper
-from enums import Attributes, Base, Shapes, SurfDesc
+from enums import Attributes, Base, Shapes, SurfDesc, MatingState
 from handlers.genetics import Genome
-
-
-class MatingState(Enum):
-    NOT_READY = 0
-    READY = 1
-    MATING = 2
 
 
 class Critter(Sprite):
@@ -73,6 +67,7 @@ class Critter(Sprite):
         self.energy = initial_energy if initial_energy else self.max_energy
 
         self.mating_state = MatingState.NOT_READY
+        self.defense_active = False
 
         self.env_surface = surface
         self.noise = noise
@@ -92,6 +87,7 @@ class Critter(Sprite):
         # Get rect for positioning
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
+        self.previous_position = self.rect.center
         self.clickable_body = self.rect.inflate(
             -2 * self.vision["radius"] - 10,
             -2 * self.vision["radius"] - 10,
@@ -174,6 +170,7 @@ class Critter(Sprite):
                 return
 
     def update_rect(self):
+        self.previous_position = self.rect.center
         self.rect.centerx %= self.env_surface.get_width()
         self.rect.centery %= self.env_surface.get_height()
 

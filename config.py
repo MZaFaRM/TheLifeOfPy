@@ -4,6 +4,9 @@ assets = os.path.join(os.path.dirname(__file__), "assets")
 image_assets = os.path.join(assets, "images")
 font_assets = os.path.join(assets, "fonts")
 
+ENV_OFFSET_X = 50
+ENV_OFFSET_Y = 100
+
 
 class Colors:
     bg_color = (26, 26, 26)

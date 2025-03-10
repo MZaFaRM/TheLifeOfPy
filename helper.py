@@ -129,8 +129,9 @@ def scale_image_by_factor(image, factor):
     return image
 
 
-def hex_to_rgb(hex_color):
+def hex_to_rgb(hex_color: str):
     hex_color = hex_color.lstrip("#")
+    hex_color = hex_color.ljust(6, "0")
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
