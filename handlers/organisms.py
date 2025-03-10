@@ -70,13 +70,8 @@ class Species:
         self.neuron_manager = context["neuron_manager"]
         self.critter_population = 0
         self.surface = context["env_surface"]
-        self.alive_count = 0
-        self.dead_count = 0
         self.critters = []
-
-    def register_critter(self, critter):
-        self.critter_population += 1
-        return 1
+        self.dead_critters = []
 
     def create_species(self, n, context):
         context["genome"]["neuron_manager"] = self.neuron_manager
@@ -95,49 +90,17 @@ class Species:
             critter.evaluate()
 
     def step(self, events):
-        # self.update_neighbors()
-        for critter in self.critters:
-            critter.step(events)
+        for critter in self.critters.copy():
+            critter.step()
+            if not critter.alive:
+                self.critters.remove(critter)
+                self.dead_critters.append(critter)
 
-    def update_neighbors(self):
-        ids, positions, vision_radii = [], [], []
-        for critter in self.critters:
-            if critter.alive:
-                ids.append(critter.id)
-                positions.append(critter.pos)
-                vision_radii.append(critter.vision_radius)
-
-        ids = np.array(ids)
-        positions = np.array(positions)
-        vision_radii = np.array(vision_radii)
-
-        x_positions = positions[:, 0]
-        y_positions = positions[:, 1]
-
-        # Compute pairwise x and y differences
-        dx = np.abs(x_positions[:, np.newaxis] - x_positions[np.newaxis, :])
-        dy = np.abs(y_positions[:, np.newaxis] - y_positions[np.newaxis, :])
-
-        # Check bounding box condition
-        within_bbox = (dx <= vision_radii[:, np.newaxis]) & (
-            dy <= vision_radii[:, np.newaxis]
-        )
-
-        # Compute squared distances only for candidates within bounding box
-        deltas = positions[:, np.newaxis, :] - positions[np.newaxis, :, :]
-        distances_sq = np.sum(deltas**2, axis=2)
-
-        vision_radii_sq = vision_radii[:, np.newaxis] ** 2
-
-        # Apply final filtering
-        within_vision = (
-            within_bbox & (distances_sq <= vision_radii_sq) & (distances_sq > 0)
-        )
-
-        self.neighbors = {ids[i]: ids[within_vision[i]] for i in range(len(ids))}
-
-    def get_critters(self):
-        return self.critters
+    def get_critters(self, alive=True):
+        if alive:
+            return self.critters
+        else:
+            return self.dead_critters
 
     def crossover(self):
         pass

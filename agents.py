@@ -35,7 +35,6 @@ class Critter(Sprite):
         self.mating_timeout = random.randint(150, 300)
         self.genome = Genome(context.get("genome"))
         self.max_energy = context.get(Attributes.MAX_ENERGY, 1000)
-        self.expected_lifespan = 1000
         self.speed = context.get(Attributes.SPEED, 1)
         self.fitness = 0
         self.seed = random.randint(0, 1000000)
@@ -68,6 +67,7 @@ class Critter(Sprite):
         self.alive = True
         self.time = 0
         self.age = 0
+        self.max_lifespan = context.get(Attributes.MAX_LIFESPAN, 1000)
         self.acceleration_factor = 0.1
         self.td = random.randint(0, 1000)  # for pnoise generation
         self.energy = initial_energy if initial_energy else self.max_energy
@@ -143,10 +143,10 @@ class Critter(Sprite):
         if not self.done:
             self.energy -= 1
 
-            if (self.age / self.expected_lifespan) > 0.25:
-                self.mating_state = MatingState.READY
+            # if (self.age / self.expected_lifespan) > 0.25:
+            #     self.mating_state = MatingState.READY
 
-            if self.energy <= 0:
+            if self.energy <= 0 or self.age >= self.max_lifespan:
                 self.die()
                 return
 

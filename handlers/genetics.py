@@ -329,6 +329,40 @@ class NeuronManager:
             context_key="food_density",
         )
 
+    def obs_AAm(self, critter):
+        """Returns normalized density of same-species critters in the critter's vision range."""
+        return self._get_normalized_density(
+            critter=critter,
+            objects=self.critters,
+            context_key="same_critter_density",
+            filter_fn=lambda other: other.species == critter.species,
+        )
+
+    def obs_OAm(self, critter):
+        """Returns normalized density of other-species critters in the critter's vision range."""
+        return self._get_normalized_density(
+            critter=critter,
+            objects=self.critters,
+            context_key="other_critter_density",
+            filter_fn=lambda other: other.species != critter.species,
+        )
+
+    def obs_CAm(self, critter):
+        """Returns normalized density of any-species critters in the critter's vision range."""
+        return self._get_normalized_density(
+            critter=critter,
+            objects=self.critters,
+            context_key="any_critter_density",
+        )
+
+    def obs_CEn(self, critter):
+        """Returns normalized energy level of the critter."""
+        return (critter.energy / critter.max_energy) * 2 - 1
+
+    def obs_CAg(self, critter):
+        """Returns normalized age of the critter."""
+        return (critter.age / critter.max_lifespan) * 2 - 1
+
     # --- ACTUATOR FUNCTIONS ---
 
     def act_Mv(self, critter):

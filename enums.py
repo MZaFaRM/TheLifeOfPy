@@ -6,7 +6,7 @@ class NeuronType(Enum):
     HIDDEN = "hidden"
     ACTUATOR = "actuator"
     BIAS = "bias"
-    
+
     # Other
     CONN = "connection"
 
@@ -29,6 +29,7 @@ class Attributes(Enum):
     COLOR = "_color"
     SPEED = "_speed"
     MAX_ENERGY = "_max_energy"
+    MAX_LIFESPAN = "_max_lifespan"
 
 
 class Base(Enum):

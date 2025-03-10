@@ -183,7 +183,6 @@ class EnvComponent:
         self.surface.blit(self.env_image, (0, 0))
 
         for critter in self.critters:
-            critter.step()
             critter.draw(self.surface)
 
         for plant in self.plants:
@@ -396,14 +395,8 @@ class SidebarComponent:
             self.update_default_sidebar(context)
 
     def update_default_sidebar(self, context):
-        critters = context.get("critters")
-        alive = 0
-        dead = 0
-        for critter in critters:
-            if critter.alive:
-                alive += 1
-            else:
-                dead += 1
+        alive = len(context.get("critters"))
+        dead = len(context.get("dead_critters"))
 
         alive_counter = self.sidebar_screens[self.DEFAULT]["alive_counter"]
         dead_counter = self.sidebar_screens[self.DEFAULT]["dead_counter"]

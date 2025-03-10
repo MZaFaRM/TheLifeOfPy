@@ -963,6 +963,7 @@ class AttributesLab:
             Attributes.SIZE: int(get_data(self.SIZE)),
             Attributes.COLOR: helper.hex_to_rgb(get_data(self.COLOR)),
             Attributes.SPEED: int(get_data(self.SPEED)),
+            Attributes.MAX_LIFESPAN: int(get_data(self.MAX_LIFESPAN)),
             Attributes.MAX_ENERGY: int(get_data(self.MAX_ENERGY)),
         }
 
@@ -980,6 +981,7 @@ class AttributesLab:
         self.COLOR = "Color: "
         self.SPEED = "Speed: "
         self.MAX_ENERGY = "Max Energy: "
+        self.MAX_LIFESPAN = "Max Lifespan: "
         
         return {
             "font": pygame.font.Font(Fonts.PixelifySansMedium, 21),
@@ -1031,6 +1033,10 @@ class AttributesLab:
                 self.SPEED: {
                     "type": "user_input_int",
                     "data": "1",
+                },
+                self.MAX_LIFESPAN: {
+                    "type": "user_input_int",
+                    "data": "100000",
                 },
                 self.MAX_ENERGY: {
                     "type": "user_input_int",

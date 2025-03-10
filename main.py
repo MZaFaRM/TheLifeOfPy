@@ -69,6 +69,8 @@ class Nature:
         if self.paused:
             return reward, self.done, self.truncated
 
+        self.species.step(events)
+
         self.neuron_manager.update(
             self.species.get_critters(),
             self.forest.get_plants(),
@@ -76,7 +78,6 @@ class Nature:
 
         # self.graph_manager.update_population(self.time_steps, critter_data)
         self.clock.tick(1000)
-        # self.done = all(critter.done for critter in critters)
         self.truncated = False  # or len(self.critters) == 0
 
         if self.time_steps % 75 == 0:
@@ -88,6 +89,7 @@ class Nature:
         self.ui_handler.update_screen(
             context={
                 "critters": self.species.get_critters(),
+                "dead_critters": self.species.get_critters(alive=False),
                 "plants": self.forest.get_plants(),
             }
         )
