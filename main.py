@@ -14,13 +14,15 @@ class Nature:
         pygame.font.init()
 
         self.clock = pygame.time.Clock()
+        self.ui_handler = UIHandler()
 
+        self.reset()
+
+    def reset(self):
         self.time_steps = 0
         self.done = False
         self.truncated = False
         self.paused = False
-
-        self.ui_handler = UIHandler()
 
         self.ui_handler.initialize_screen(screen="home")
         env_surface = self.ui_handler.get_component(name="EnvComponent").surface
@@ -59,6 +61,9 @@ class Nature:
                     self.critters = self.species.create_species(
                         n=data.pop(Attributes.BASE_POPULATION), context=data
                     )
+                elif EventType.END_SIMULATION in packet.context:
+                    self.reset()
+
             elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
                 self.ui_handler.initialize_screen(screen="laboratory")
 

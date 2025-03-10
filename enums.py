@@ -55,6 +55,7 @@ class EventType(Enum):
     NAVIGATION = "navigation"
     OTHER = "other"
     GENESIS = "genesis"
+    END_SIMULATION = "end_simulation"
 
 
 class Shapes(Enum):

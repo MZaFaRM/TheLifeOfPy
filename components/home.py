@@ -365,7 +365,7 @@ class SidebarComponent:
                 return MessagePacket(
                     EventType.NAVIGATION,
                     "home",
-                    context={"end_simulation": True},
+                    context={EventType.END_SIMULATION: True},
                 )
         elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
