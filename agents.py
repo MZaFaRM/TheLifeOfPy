@@ -96,16 +96,15 @@ class Critter(Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = position or helper.get_random_position(surface)
         self.previous_position = self.rect.center
-        self.clickable_body = self.rect.inflate(
-            -2 * self.vision["radius"] - 10,
-            -2 * self.vision["radius"] - 10,
+        self.interaction_rect = self.rect.inflate(
+            (-2 * self.vision["radius"]) + 10,
+            (-2 * self.vision["radius"]) + 10,
         )
         self.body_rect = self.rect.inflate(
             -2 * self.vision["radius"] + 10,
             -2 * self.vision["radius"] + 10,
         )
         self.body_rect.center = self.center
-        self.defense_rect = self.body_rect.inflate(20, 20)
 
     def draw(self, surface):
         if not self.alive:
@@ -122,23 +121,24 @@ class Critter(Sprite):
         self.body_rect = pygame.Rect(0, 0, self.size, self.size)
         self.body_rect.center = self.center
 
+        # temporary rect used to draw defense mechanism
+        defense_rect = self.body_rect.inflate(20, 20)
+
         # Defense mechanism
         if self.defense_mechanism == "Swordling":
-            square_1 = helper.get_square_points(self.defense_rect)
-            square_2 = helper.get_square_points(self.defense_rect, 45)
+            square_1 = helper.get_square_points(defense_rect)
+            square_2 = helper.get_square_points(defense_rect, 45)
             pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_1)
             pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_2)
         elif self.defense_mechanism == "Shieldling":
             pygame.draw.rect(
                 self.defense_image,
                 (255, 255, 255),
-                self.defense_rect.inflate(-10, -10),
+                defense_rect.inflate(-10, -10),
                 3,
             )
         elif self.defense_mechanism == "Camoufling":
             color = (color[0], color[1], color[2], int(0.2 * 255))
-
-        self.defense_rect.inflate_ip(20, 20)
 
         # Critter
         if self.domain == Shapes.CIRCLE:
@@ -161,7 +161,6 @@ class Critter(Sprite):
             pygame.draw.polygon(
                 self.defense_image, color, helper.get_pentagon_points(self.body_rect)
             )
-
         surface.blit(self.image, self.rect)
 
     def step(self):
@@ -179,8 +178,8 @@ class Critter(Sprite):
                 return
 
             obs = self.genome.observe(self)
-            output = self.genome.forward(obs)
-            self.genome.step(output, self)
+            outputs = self.genome.forward(obs)
+            self.genome.step(outputs, self)
 
             self.update_rect()
 
@@ -207,7 +206,7 @@ class Critter(Sprite):
         self.rect.centery %= self.env_surface.get_height()
 
         self.body_rect.center = self.rect.center
-        self.clickable_body.center = self.rect.center
+        self.interaction_rect.center = self.rect.center
 
     def set_mate(self, mate):
         self.mating["state"] = Base.mating

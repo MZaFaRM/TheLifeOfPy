@@ -181,7 +181,7 @@ class EnvComponent:
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = (event.pos[0] - 50, event.pos[1] - 100)
             for critter in self.critters:
-                if critter.clickable_body.collidepoint(pos):
+                if critter.interaction_rect.collidepoint(pos):
                     return MessagePacket(
                         EventType.NAVIGATION,
                         "profile",

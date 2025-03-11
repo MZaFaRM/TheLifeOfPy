@@ -120,17 +120,21 @@ class Genome:
             node for node in self.node_genes if node.type == NeuronType.ACTUATOR
         ]
         if output_nodes:
-            return max(output_nodes, key=lambda node: activations[node._id])
+            max_activation = max(activations[node._id] for node in output_nodes)
+            return [
+                node for node in output_nodes if activations[node._id] == max_activation
+            ]
 
-    def step(self, output_node, critter):
-        if output_node:
-            if output_node.name in self.neuron_manager.actuators:
-                actuator_method = getattr(
-                    self.neuron_manager, f"act_{output_node.name}"
-                )
-                actuator_method(critter)
-            else:
-                raise ValueError(f"Unknown actuator: {output_node.name}")
+    def step(self, output_nodes, critter):
+        if output_nodes:
+            for output_node in output_nodes:
+                if output_node.name in self.neuron_manager.actuators:
+                    actuator_method = getattr(
+                        self.neuron_manager, f"act_{output_node.name}"
+                    )
+                    actuator_method(critter)
+                else:
+                    raise ValueError(f"Unknown actuator: {output_node.name}")
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node._id, out_node._id)
@@ -268,8 +272,6 @@ class NeuronManager:
         "ADe" : {"desc": "Activates defense mechanism when triggered"},
         "DDe" : {"desc": "Deactivates defense mechanism when triggered"},
         "Mte" : {"desc": "Mate if a critter of same species is found & ready to mate"},
-        
-        
     }
     # fmt: on
 
@@ -523,8 +525,8 @@ class NeuronManager:
         """Activates defense mechanism when triggered, deactivates otherwise."""
         setattr(critter, "defense_active", True)
         if critter.defense_mechanism == "Swordling":
-            collision_indices = critter.defense_rect.collidelistall(
-                [other.rect for other in self.critters]
+            collision_indices = critter.interaction_rect.collidelistall(
+                [other.interaction_rect for other in self.critters]
             )
             if collision_indices:
                 for i in collision_indices:
@@ -537,7 +539,7 @@ class NeuronManager:
                     ]:
                         continue
                     else:
-                        other.die()
+                        other.energy = 0
 
     def act_DDe(self, critter):
         """Deactivates defense mechanism when triggered."""

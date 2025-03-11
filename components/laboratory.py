@@ -1375,9 +1375,10 @@ class AttributesLab:
         rect.center = (surface.get_width() // 2, surface.get_height() // 2)
 
         if defense == "Swordling":
-            pygame.draw.circle(
-                surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75
-            )
+            square_1 = helper.get_square_points(rect.inflate(75, 75))
+            square_2 = helper.get_square_points(rect.inflate(75, 75), 45)
+            pygame.draw.polygon(surface, (125, 28, 74, 180), square_1)
+            pygame.draw.polygon(surface, (125, 28, 74, 180), square_2)
         elif defense == "Shieldling":
             border_rect = pygame.Rect(0, 0, 75, 75)
             border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
