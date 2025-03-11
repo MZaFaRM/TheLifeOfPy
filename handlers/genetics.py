@@ -317,7 +317,7 @@ class NeuronManager:
         "CAg": {"desc": "Current age of the critter: -1 (newborn) => 1 (old)"},
         "CFi": {"desc": "Current fitness of the critter, compared to average: -1 (low) => 1 (high)"},
         "RSt": {"desc": "Reproduction state of the critter: -1 (not ready) => 0 (ready) => 1 (mating)"},
-        "MSa" : {"desc": "Returns whether the send mating signal is accepted or not; -1 (No) => 1 (Yes)"},
+        # "MSa" : {"desc": "Returns whether the send mating signal is accepted or not; -1 (No) => 1 (Yes)"},
         "DSt": {"desc": "Defense state of the critter: -1 (not activated) => 1 (activated)"},
     }
 
@@ -331,9 +331,14 @@ class NeuronManager:
         "MvM": {"desc": "Move towards the mouse pointer, if found"},
         "ADe" : {"desc": "Activates defense mechanism when triggered"},
         "DDe" : {"desc": "Deactivates defense mechanism when triggered"},
-        "SMS" : {"desc": "Send a mating signal to same-species nearby critter, if found."},
-        "SMO" : {"desc": "Send a mating signal to any-species nearby critter, if found."},
-        "Mte" : {"desc": "Mate; if mate found"},
+        "AvS" : {"desc": "Move away from the nearest same-species critter, if found."},
+        "AvO" : {"desc": "Move away from the nearest other-species critter, if found."},
+        "AvA" : {"desc": "Move away from the nearest any-species critter, if found."},
+        "AvF" : {"desc": "Move away from the nearest food source, if found."},
+        "AvM" : {"desc": "Move away from the mouse pointer, if found."},
+        # "SMS" : {"desc": "Send a mating signal to same-species nearby critter, if found."},
+        # "SMO" : {"desc": "Send a mating signal to any-species nearby critter, if found."},
+        # "Mte" : {"desc": "Mate; if mate found"},
     }
     # fmt: on
 
@@ -611,6 +616,71 @@ class NeuronManager:
         """Deactivates defense mechanism when triggered."""
         setattr(critter, "defense_active", False)
 
+    def act_AvS(self, critter):
+        """Move away from the nearest same-species critter, if found."""
+        if (
+            critter_data := self.context.get("closest_same_critter", {}).get(critter.id)
+        ) is not None:
+            if critter_data["time"] != critter.time:
+                return
+
+            other = critter_data["critter"]
+            if other.rect.center != critter.rect.center:
+                new_x, new_y = self._get_avoidance_step(critter, other)
+                critter.rect.x, critter.rect.y = new_x, new_y
+
+    def act_AvO(self, critter):
+        """Move away from the nearest other-species critter, if found."""
+        if (
+            critter_data := self.context.get("closest_other_critter", {}).get(
+                critter.id
+            )
+        ) is not None:
+            if critter_data["time"] != critter.time:
+                return
+
+            other = critter_data["critter"]
+            if other.rect.center != critter.rect.center:
+                new_x, new_y = self._get_avoidance_step(critter, other)
+                critter.rect.x, critter.rect.y = new_x, new_y
+
+    def act_AvA(self, critter):
+        """Move away from the nearest any-species critter, if found."""
+        if (
+            critter_data := self.context.get("closest_any_critter", {}).get(critter.id)
+        ) is not None:
+            if critter_data["time"] != critter.time:
+                return
+
+            other = critter_data["critter"]
+            if other.rect.center != critter.rect.center:
+                new_x, new_y = self._get_avoidance_step(critter, other)
+                critter.rect.x, critter.rect.y = new_x, new_y
+
+    def act_AvF(self, critter):
+        """Move away from the nearest food source, if found."""
+        if (
+            food_data := self.context.get("closest_food", {}).get(critter.id)
+        ) is not None:
+            if food_data["time"] != critter.time:
+                return
+
+            food = food_data["food"]
+            if food.rect.center != critter.rect.center:
+                new_x, new_y = self._get_avoidance_step(critter, food)
+                critter.rect.x, critter.rect.y = new_x, new_y
+
+    def act_AvM(self, critter):
+        """Move away from the mouse pointer, if found."""
+        if (mouse_data := self.context.get("mouse", {})) is not None:
+            if mouse_data["time"] != critter.time:
+                return
+
+            mouse_rect = mouse_data["mouse_rect"]
+            if mouse_rect != critter.rect.center:
+                new_x, new_y = self._get_avoidance_step(critter, mouse_rect)
+                critter.rect.x, critter.rect.y = new_x, new_y
+
     def act_SMS(self, critter):
         """Send a mating signal to a nearby critter, of the same species"""
         if (
@@ -749,5 +819,26 @@ class NeuronManager:
             if pull
             else mover.rect.y + step * unit_vector[1]
         )
+
+        return new_x, new_y
+
+    def _get_avoidance_step(self, mover, target, step_size=1):
+        target_rect = target if isinstance(target, pygame.Rect) else target.rect
+        dx = mover.rect.centerx - target_rect.centerx
+        dy = mover.rect.centery - target_rect.centery
+
+        distance_sq = dx * dx + dy * dy
+
+        if distance_sq < 1:  # If very close, move in a random direction
+            angle = random.uniform(0, 2 * math.pi)
+            return mover.rect.x + step_size * math.cos(
+                angle
+            ), mover.rect.y + step_size * math.sin(angle)
+
+        distance = math.sqrt(distance_sq)
+        unit_vector = (dx / distance, dy / distance)  # Flip direction to move away
+
+        new_x = mover.rect.x + step_size * unit_vector[0]
+        new_y = mover.rect.y + step_size * unit_vector[1]
 
         return new_x, new_y
