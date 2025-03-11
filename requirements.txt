@@ -1,0 +1,2 @@
+pygame==2.6.1
+pygame-chart==1.0.0
