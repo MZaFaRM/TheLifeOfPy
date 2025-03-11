@@ -15,6 +15,7 @@ class MatingState(Enum):
     NOT_READY = 0
     READY = 1
     MATING = 2
+    WAITING = 3
 
 
 class SurfDesc(Enum):
@@ -32,23 +33,11 @@ class Attributes(Enum):
     DOMAIN = "_domain"
     VISION_RADIUS = "_vision_radius"
     SIZE = "_size"
+    AGE_OF_MATURITY = "_age_of_maturity"
     COLOR = "_color"
     SPEED = "_speed"
     MAX_ENERGY = "_max_energy"
     MAX_LIFESPAN = "_max_lifespan"
-
-
-class Base(Enum):
-    food = "food"
-
-    # Vision States
-    found = "found"
-    looking = "looking"
-
-    # Mating States
-    not_ready = "not_ready"
-    ready = "ready"
-    mating = "mating"
 
 
 class EventType(Enum):

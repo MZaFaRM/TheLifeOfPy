@@ -1063,6 +1063,7 @@ class AttributesLab:
             Attributes.DOMAIN: get_choice(self.DOMAIN),
             Attributes.VISION_RADIUS: int(get_data(self.VISION_RADIUS)),
             Attributes.SIZE: int(get_data(self.SIZE)),
+            Attributes.AGE_OF_MATURITY: int(get_data(self.AGE_OF_MATURITY)),
             Attributes.COLOR: helper.hex_to_rgb(get_data(self.COLOR)),
             Attributes.SPEED: int(get_data(self.SPEED)),
             Attributes.MAX_LIFESPAN: int(get_data(self.MAX_LIFESPAN)),
@@ -1077,6 +1078,7 @@ class AttributesLab:
         self.INITIAL_POPULATION = "Initial Population: "
         self.SPECIES = "Species: "
         self.DEFENSE_MECHANISM = "Defense Mechanism: "
+        self.AGE_OF_MATURITY = "Age of Maturity: "
         self.DOMAIN = "Domain: "
         self.VISION_RADIUS = "Vision Radius: "
         self.SIZE = "Size: "
@@ -1123,6 +1125,10 @@ class AttributesLab:
                 self.VISION_RADIUS: {
                     "type": "user_input_int",
                     "data": "40",
+                },
+                self.AGE_OF_MATURITY: {
+                    "type": "user_input_int",
+                    "data": "200",
                 },
                 self.SIZE: {
                     "type": "user_input_int",

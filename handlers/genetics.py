@@ -135,6 +135,7 @@ class Genome:
                     actuator_method(critter)
                 else:
                     raise ValueError(f"Unknown actuator: {output_node.name}")
+        self.fitness = critter.fitness
 
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node._id, out_node._id)
@@ -188,27 +189,86 @@ class Genome:
                 connection.weight,
             )
 
-    def crossover(self, parent1, parent2):
-        child = Genome()
-        child.species = self.species
-        child.node_genes = parent1.node_genes.copy()
-        child.connection_genes = parent1.connection_genes.copy()
+    def crossover(self, other_parent):
+        """Performs crossover between this genome and another parent's genome, returning genome data."""
 
-        # crossover connection genes
-        for connection1 in parent1.connection_genes:
-            matching = False
-            for connection2 in parent2.connection_genes:
-                if connection1.innovation == connection2.innovation:
-                    matching = True
-                    if np.random.rand() < 0.5:
-                        child.connection_genes.append(connection2)
-                    else:
-                        child.connection_genes.append(connection1)
-                    break
-            if not matching:
-                child.connection_genes.append(connection1)
+        other_parent_genome = other_parent.genome
+        # Determine fitter parent
+        if self.fitness > other_parent_genome.fitness:
+            fitter, weaker = self, other_parent_genome
+        elif self.fitness < other_parent_genome.fitness:
+            fitter, weaker = other_parent_genome, self
+        else:
+            if np.random.rand() < 0.5:
+                fitter, weaker = self, other_parent_genome
+            else:
+                fitter, weaker = other_parent_genome, self
 
-        return child
+        # Create new genome structure
+        child_genome_data = {
+            NeuronType.SENSOR: [],
+            NeuronType.ACTUATOR: [],
+            NeuronType.HIDDEN: [],
+            NeuronType.BIAS: [],
+            "connections": [],
+            "neuron_manager": self.neuron_manager,
+        }
+
+        # Inherit node genes (union of both parents' nodes)
+        all_nodes = {node._id: node for node in fitter.node_genes}
+        for node in weaker.node_genes:
+            if node._id not in all_nodes:
+                all_nodes[node._id] = node
+
+        # Add node genes to the child genome
+        for node in all_nodes.values():
+            child_genome_data[node.type].append((node._id, node.name, node.type))
+
+        # Inherit connection genes
+        connection_map = {}
+
+        # Collect all connection innovations from both parents
+        for conn in fitter.connection_genes:
+            connection_map[conn.innovation] = (conn, None)
+        for conn in weaker.connection_genes:
+            if conn.innovation in connection_map:
+                connection_map[conn.innovation] = (
+                    connection_map[conn.innovation][0],
+                    conn,
+                )
+            else:
+                connection_map[conn.innovation] = (None, conn)
+
+        # Select connections for the child
+        for innovation, (fit_conn, weak_conn) in connection_map.items():
+            if fit_conn and weak_conn:
+                inherited_conn = (
+                    fit_conn if np.random.rand() < 0.5 else weak_conn
+                )  # Pick randomly
+            else:
+                inherited_conn = fit_conn or weak_conn  # Take from fitter parent
+
+            # Add to child genome
+            if (
+                inherited_conn.enabled or np.random.rand() < 0.75
+            ):  # 75% chance to inherit disabled genes
+                child_genome_data["connections"].append(
+                    (
+                        (
+                            inherited_conn.in_node._id,
+                            inherited_conn.in_node.name,
+                            inherited_conn.in_node.type,
+                            inherited_conn.weight,
+                        ),
+                        (
+                            inherited_conn.out_node._id,
+                            inherited_conn.out_node.name,
+                            inherited_conn.out_node.type,
+                        ),
+                    )
+                )
+
+        return child_genome_data
 
 
 class InnovationHistory:
@@ -257,7 +317,7 @@ class NeuronManager:
         "CAg": {"desc": "Current age of the critter: -1 (newborn) => 1 (old)"},
         "CFi": {"desc": "Current fitness of the critter, compared to average: -1 (low) => 1 (high)"},
         "RSt": {"desc": "Reproduction state of the critter: -1 (not ready) => 0 (ready) => 1 (mating)"},
-        "CMs": {"desc": "Current movement state of the critter: -1 (idle) => 1 (moving)"},
+        "MSa" : {"desc": "Returns whether the send mating signal is accepted or not; -1 (No) => 1 (Yes)"},
         "DSt": {"desc": "Defense state of the critter: -1 (not activated) => 1 (activated)"},
     }
 
@@ -271,7 +331,9 @@ class NeuronManager:
         "MvM": {"desc": "Move towards the mouse pointer, if found"},
         "ADe" : {"desc": "Activates defense mechanism when triggered"},
         "DDe" : {"desc": "Deactivates defense mechanism when triggered"},
-        "Mte" : {"desc": "Mate if a critter of same species is found & ready to mate"},
+        "SMS" : {"desc": "Send a mating signal to same-species nearby critter, if found."},
+        "SMO" : {"desc": "Send a mating signal to any-species nearby critter, if found."},
+        "Mte" : {"desc": "Mate; if mate found"},
     }
     # fmt: on
 
@@ -412,12 +474,15 @@ class NeuronManager:
         elif critter.mating_state == MatingState.MATING:
             return 1.0
 
-    def obs_CSp(self, critter):
-        """Current movement state of the critter."""
-        if critter.previous_position == critter.rect.center:
+    def obs_MSa(self, critter):
+        """Returns whether the send mating signal is accepted or not."""
+        other = critter.outgoing_mate_request or critter.mate
+        if other is None:
             return -1.0
-        else:
+        elif other.mate.id == critter.id:
             return 1.0
+        else:
+            return -1.0
 
     def obs_DSt(self, critter):
         """Defense state of the critter."""
@@ -540,10 +605,50 @@ class NeuronManager:
                         continue
                     else:
                         other.energy = 0
+                        critter.fitness += 1
 
     def act_DDe(self, critter):
         """Deactivates defense mechanism when triggered."""
         setattr(critter, "defense_active", False)
+
+    def act_SMS(self, critter):
+        """Send a mating signal to a nearby critter, of the same species"""
+        if (
+            critter_data := self.context.get("closest_same_critter", {}).get(critter.id)
+        ) is not None:
+            if critter_data["time"] != critter.time:
+                return
+
+            other = critter_data["critter"]
+            if (
+                other.mating_state == MatingState.READY
+                and critter.mating_state == MatingState.READY
+            ):
+                other.incoming_mate_request = critter
+
+    def act_SMO(self, critter):
+        """Send a mating signal to a nearby critter, of any species"""
+        if (
+            critter_data := self.context.get("closest_any_critter", {}).get(critter.id)
+            is not None
+        ):
+            if critter_data["time"] != critter.time:
+                return
+
+            other = critter_data["critter"]
+            if (
+                other.mating_state == MatingState.READY
+                and critter.mating_state == MatingState.READY
+            ):
+                other.incoming_mate_request = critter
+
+    def act_Mte(self, critter):
+        """Mate; if mate found"""
+        if critter.mating_state == MatingState.MATING:
+            critter.crossover()
+            critter.mate.remove_mate()
+            critter.remove_mate()
+            critter.fitness += 1
 
     # --- HELPER FUNCTIONS ---
     def _get_normalized_nearest_distance(

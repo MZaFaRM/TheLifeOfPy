@@ -99,6 +99,16 @@ class Species:
                 self.critters.remove(critter)
                 self.dead_critters.append(critter)
 
+            if critter.FETUS:
+                critter.FETUS["position"] = critter.rect.center
+                self.critters.append(
+                    agents.Critter(
+                        surface=self.surface,
+                        context=critter.FETUS,
+                    )
+                )
+                critter.FETUS = None
+
     def get_critters(self, alive=True):
         if alive:
             return self.critters
