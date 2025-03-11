@@ -6,7 +6,11 @@ from enums import Attributes, EventType, MessagePacket
 from handlers import genetics
 import handlers.organisms as organisms
 from handlers.ui import UIHandler
+import platform
 
+if platform.system() == "Windows":
+    import ctypes
+    ctypes.windll.user32.SetProcessDPIAware()
 
 class Nature:
     def __init__(self):
