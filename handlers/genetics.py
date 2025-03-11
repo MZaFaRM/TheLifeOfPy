@@ -428,8 +428,6 @@ class NeuronManager:
         target_direction = noise.snoise2(
             ((critter.seed + critter.age) / 1000) % 1000, 0
         )
-        if not critter.alive:
-            print("Dead Wanderer")
 
         target_angle = (target_direction + 1) * math.pi
 
@@ -617,7 +615,6 @@ class NeuronManager:
         }
 
         # Normalize to [-1, 1]
-        print(len(filtered_objects))
         return (min(len(filtered_objects) / 10, 1) * 2) - 1
 
     def _get_movement_step(self, mover, target, step_size=1, pull=False):

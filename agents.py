@@ -21,22 +21,22 @@ class Critter(Sprite):
         # Retrieve context-based properties
         position = context.get("position", None)
         parents = context.get("parents", None)
-        initial_energy = context.get("initial_energy", None)
+        initial_energy = context.get("initial_energy")
 
         # Genetic & species attributes
         self.genome = Genome(context.get("genome"))
-        self.species = context.get("species", None)
-        self.domain = context.get(Attributes.DOMAIN, "circle")
+        self.species = context.get(Attributes.SPECIES)
+        self.domain = context.get(Attributes.DOMAIN)
 
         # Physical properties
-        self.color = context.get(Attributes.COLOR, (124, 245, 255))
-        self.size = context.get(Attributes.SIZE, 5)
-        self.speed = context.get(Attributes.SPEED, 1)
-        self.max_energy = context.get(Attributes.MAX_ENERGY, 1000)
+        self.color = context.get(Attributes.COLOR)
+        self.size = context.get(Attributes.SIZE)
+        self.speed = context.get(Attributes.SPEED)
+        self.max_energy = context.get(Attributes.MAX_ENERGY)
 
         # Defense mechanism
         self.defense_active = False
-        self.defense_mechanism = context.get(Attributes.DEFENSE_MECHANISM, None)
+        self.defense_mechanism = context.get(Attributes.DEFENSE_MECHANISM)
 
         # Vision-related properties
         self.vision = {
@@ -64,7 +64,7 @@ class Critter(Sprite):
         self.alive = True
         self.age = 0
         self.time = 0
-        self.max_lifespan = context.get(Attributes.MAX_LIFESPAN, 1000)
+        self.max_lifespan = context.get(Attributes.MAX_LIFESPAN)
         self.energy = initial_energy if initial_energy else self.max_energy
         self.fitness = 0
 

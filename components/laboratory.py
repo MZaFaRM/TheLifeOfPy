@@ -263,7 +263,7 @@ class NeuralLab:
             return self._handle_mouse_up(event)
         elif event.type == pygame.KEYDOWN:
             return self._handle_keydown(event)
-        
+
     def _handle_keydown(self, event):
         """Handles key press events related to neuron selection and editing."""
         selection = self.neural_frame["selection"]
@@ -296,11 +296,11 @@ class NeuralLab:
         elif event.unicode == "+":
             if data != "0":
                 data = data.lstrip("+-")
-        
+
         elif event.unicode == ".":
             if "." not in data:
                 data += "."
-        
+
         elif event.unicode.isdigit():
             if data in {"0", "-0", "+0"}:
                 data = data[0] + event.unicode if data[0] in "+-" else event.unicode
@@ -330,9 +330,12 @@ class NeuralLab:
             selection = self.neural_frame["selection"]
             if selection["type"] == NeuronType.CONN:
                 for connection in self.neural_frame["connections"]:
-                    if connection[0]["id"] == selection["value"][0]["id"] and connection[1]["id"] == selection["value"][1]["id"]:
+                    if (
+                        connection[0]["id"] == selection["value"][0]["id"]
+                        and connection[1]["id"] == selection["value"][1]["id"]
+                    ):
                         self.neural_frame["connections"].remove(connection)
-            else:        
+            else:
                 for node in self.neural_frame["nodes"]:
                     if node["id"] == selection["value"]["id"]:
                         self.neural_frame["nodes"].remove(node)
@@ -349,38 +352,45 @@ class NeuralLab:
         if self.neural_frame["selection"]["type"] == NeuronType.CONN:
             self.neural_frame["selection"] = {"type": None, "value": None}
             return
-        
+
         for node in self.neural_frame["nodes"]:
             if node[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 selected_any = True
                 if self.neural_frame["selection"]["value"]:
                     try:
-                        self.__check_connection_validity(self.neural_frame["selection"]["value"], node)
+                        self.__check_connection_validity(
+                            self.neural_frame["selection"]["value"], node
+                        )
                         # Add the connection, with default weight of 1
                         self.neural_frame["connections"].append(
                             [self.neural_frame["selection"]["value"], node, "1"]
                         )
                     except InvalidConnection as e:
                         self.neural_frame["errors"] = {
-                            "connection" : [self.neural_frame["selection"]["value"], node],
-                            "message": str(e)
+                            "connection": [
+                                self.neural_frame["selection"]["value"],
+                                node,
+                            ],
+                            "message": str(e),
                         }
                     self.neural_frame["selection"] = {"type": None, "value": None}
-                    
+
                 else:
                     node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.CLICKED_SURFACE]
-                    self.neural_frame["selection"].update({"type" : node["type"], "value" : node})
+                    self.neural_frame["selection"].update(
+                        {"type": node["type"], "value": node}
+                    )
             else:
                 node[SurfDesc.CURRENT_SURFACE] = node[SurfDesc.SURFACE]
 
         if not selected_any:
             self.neural_frame["selection"] = {"type": None, "value": None}
-            
+
             pos = (
                 event.pos[0] - self.surface_x_offset,
                 event.pos[1] - self.surface_y_offset,
             )
-            
+
             for connection in self.neural_frame["connections"]:
                 if helper.is_point_on_line(
                     pos,
@@ -388,17 +398,23 @@ class NeuralLab:
                     connection[1][SurfDesc.RECT].center,
                     width=5,
                 ):
-                    self.neural_frame["selection"].update({"type" : NeuronType.CONN, "value" : connection})
+                    self.neural_frame["selection"].update(
+                        {"type": NeuronType.CONN, "value": connection}
+                    )
                     break
 
     def __check_connection_validity(self, node_1, node_2):
         # Ensure both nodes exist
         if not node_1.get("id", None) or not node_2.get("id", None):
-            raise InvalidConnection("Invalid connection: One or more nodes do not exist")
+            raise InvalidConnection(
+                "Invalid connection: One or more nodes do not exist"
+            )
 
         # Prevent self-connections
         if node_1.get("id") == node_2.get("id"):
-            raise InvalidConnection("Invalid connection: Cannot connect a node to itself")
+            raise InvalidConnection(
+                "Invalid connection: Cannot connect a node to itself"
+            )
 
         # Ensure nodes are not already connected
         for connection in self.neural_frame["connections"]:
@@ -409,23 +425,33 @@ class NeuralLab:
                 connection[0]["id"] == node_2["id"]
                 and connection[1]["id"] == node_1["id"]
             ):
-                raise InvalidConnection("Invalid connection: Nodes are already connected")
+                raise InvalidConnection(
+                    "Invalid connection: Nodes are already connected"
+                )
 
         # Enforce directional rules
         if node_1["type"] == NeuronType.SENSOR and node_2["type"] == NeuronType.SENSOR:
-            raise InvalidConnection("Invalid connection: Sensors cannot connect to other sensors")
+            raise InvalidConnection(
+                "Invalid connection: Sensors cannot connect to other sensors"
+            )
 
         if (
             node_1["type"] == NeuronType.ACTUATOR
             and node_2["type"] == NeuronType.ACTUATOR
         ):
-            raise InvalidConnection("Invalid connection: Actuators cannot connect to other actuators")
+            raise InvalidConnection(
+                "Invalid connection: Actuators cannot connect to other actuators"
+            )
 
         if node_2["type"] == NeuronType.SENSOR:
-            raise InvalidConnection("Invalid connection: Sensors cannot receive connections")
+            raise InvalidConnection(
+                "Invalid connection: Sensors cannot receive connections"
+            )
 
         if node_1["type"] == NeuronType.ACTUATOR:
-            raise InvalidConnection("Invalid connection: Actuators cannot send connections")
+            raise InvalidConnection(
+                "Invalid connection: Actuators cannot send connections"
+            )
 
         # Prevent cycles if required (optional, depends on your structure)
         if self.__has_cycle(node_1, node_2):
@@ -460,7 +486,9 @@ class NeuralLab:
 
     def __handle_neural_node_creation(self, event):
         # Check if the selected neuron is within the neural frame
-        if not self.selected_neuron or not self.neural_frame[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
+        if not self.selected_neuron or not self.neural_frame[
+            SurfDesc.ABSOLUTE_RECT
+        ].collidepoint(event.pos):
             return
 
         # Get the properties of the shape to draw
@@ -476,7 +504,9 @@ class NeuralLab:
         surface = pygame.Surface(((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA)
         pygame.draw.circle(surface, color, (radius, radius), radius)
 
-        selected_surface = pygame.Surface(((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA)
+        selected_surface = pygame.Surface(
+            ((radius * 2) + 1, (radius * 2) + 1), pygame.SRCALPHA
+        )
         pygame.draw.circle(selected_surface, (255, 255, 255), (radius, radius), radius)
         pygame.draw.circle(selected_surface, color, (radius, radius), radius - 5)
 
@@ -490,19 +520,23 @@ class NeuralLab:
             SurfDesc.CLICKED_SURFACE: selected_surface,
             SurfDesc.RECT: surface.get_rect(center=pos),
             SurfDesc.ABSOLUTE_RECT: surface.get_rect(
-                topleft=(pos[0] + self.surface_x_offset - radius, pos[1] + self.surface_y_offset - radius),
+                topleft=(
+                    pos[0] + self.surface_x_offset - radius,
+                    pos[1] + self.surface_y_offset - radius,
+                ),
             ),
         }
 
         # Write name of the neuron on the surface
-        text = self.body_font.render(self.selected_neuron["name"], True, Colors.bg_color)
+        text = self.body_font.render(
+            self.selected_neuron["name"], True, Colors.bg_color
+        )
         surface.blit(text, text.get_rect(center=(radius, radius)))
         selected_surface.blit(text, text.get_rect(center=(radius, radius)))
 
         # Add the new neuron to the frame and reset selection
         self.neural_frame["nodes"].append(new_neuron)
         self.selected_neuron = {}
-
 
     def __handle_unleash_organism_on_mouse_down(self, event):
         if self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
@@ -604,7 +638,7 @@ class NeuralLab:
             else:
                 # Update desc text when no neuron is selected
                 self.__update_neuron_text(neuron_type)
-                
+
     def __get_connection_thickness(self, weight):
         """Returns the thickness of the connection line based on weight."""
         return (max(abs(int(float(weight))), 1) + 3) * 2
@@ -614,74 +648,96 @@ class NeuralLab:
         for item in self.sensors + self.actuators:
             self.surface.blit(item[SurfDesc.CURRENT_SURFACE], item[SurfDesc.RECT])
 
-        self.surface.blit(self.hidden_neuron[SurfDesc.CURRENT_SURFACE], self.hidden_neuron[SurfDesc.RECT])
-        self.surface.blit(self.bias_neuron[SurfDesc.CURRENT_SURFACE], self.bias_neuron[SurfDesc.RECT])
-        self.surface.blit(self.sensor_desc[SurfDesc.SURFACE], self.sensor_desc[SurfDesc.RECT])
-        self.surface.blit(self.actuator_desc[SurfDesc.SURFACE], self.actuator_desc[SurfDesc.RECT])
-        self.surface.blit(self.unleash_organism_button[SurfDesc.CURRENT_SURFACE], self.unleash_organism_button[SurfDesc.RECT])
-        self.surface.blit(self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT])
-        
-        get_connection_thickness = lambda x: (max(abs(int(float(x))), 1) + 3) * 2 # (Weight + 3) * 2
+        self.surface.blit(
+            self.hidden_neuron[SurfDesc.CURRENT_SURFACE],
+            self.hidden_neuron[SurfDesc.RECT],
+        )
+        self.surface.blit(
+            self.bias_neuron[SurfDesc.CURRENT_SURFACE], self.bias_neuron[SurfDesc.RECT]
+        )
+        self.surface.blit(
+            self.sensor_desc[SurfDesc.SURFACE], self.sensor_desc[SurfDesc.RECT]
+        )
+        self.surface.blit(
+            self.actuator_desc[SurfDesc.SURFACE], self.actuator_desc[SurfDesc.RECT]
+        )
+        self.surface.blit(
+            self.unleash_organism_button[SurfDesc.CURRENT_SURFACE],
+            self.unleash_organism_button[SurfDesc.RECT],
+        )
+        self.surface.blit(
+            self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT]
+        )
+
+        get_connection_thickness = (
+            lambda x: (max(abs(int(float(x))), 1) + 3) * 2
+        )  # (Weight + 3) * 2
         for connection in self.neural_frame["connections"]:
             pygame.draw.line(
                 self.surface,
                 self.neural_frame["graph_desc"]["line"][Attributes.COLOR],
                 connection[0][SurfDesc.RECT].center,
                 connection[1][SurfDesc.RECT].center,
-                self.__get_connection_thickness(connection[2])
+                self.__get_connection_thickness(connection[2]),
             )
-            
+
         # Selection is connection node
         if self.neural_frame["selection"]["type"] == NeuronType.CONN:
-            self.draw_connection_line(self.neural_frame["selection"]["value"])                
-            
+            self.draw_connection_line(self.neural_frame["selection"]["value"])
+
         for node in self.neural_frame["nodes"]:
             self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
-        
+
         if self.neural_frame["errors"]:
             error_surface, error_rect = self.__error_message_surface()
             self.surface.blit(error_surface, error_rect)
-            
+
     def __error_message_surface(self):
         text_surface = self.help_screen[SurfDesc.SURFACE].copy()
         if self.neural_frame["errors"]:
             error = self.neural_frame["errors"]
             connection = error["connection"]
             message = helper.split_text(error["message"], 36)
-            text_surface_connection = self.body_font.render(f"{connection[0]['name']} -> {connection[1]['name']}", True, Colors.primary)
-            text_surface.blit(text_surface_connection, text_surface_connection.get_rect(topleft=(30, 150)))
-            
+            text_surface_connection = self.body_font.render(
+                f"{connection[0]['name']} -> {connection[1]['name']}",
+                True,
+                Colors.primary,
+            )
+            text_surface.blit(
+                text_surface_connection,
+                text_surface_connection.get_rect(topleft=(30, 150)),
+            )
+
             for i, line in enumerate(message):
                 text_surface_message = self.body_font.render(line, True, Colors.primary)
-                text_surface.blit(text_surface_message, text_surface_message.get_rect(topleft=(30, 180 + (i * 20))))
+                text_surface.blit(
+                    text_surface_message,
+                    text_surface_message.get_rect(topleft=(30, 180 + (i * 20))),
+                )
         return text_surface, self.help_screen[SurfDesc.RECT]
-        
 
     def draw_connection_line(self, connection):
         # Get the centers of the two connection points
         p1 = connection[0][SurfDesc.RECT].center
         p2 = connection[1][SurfDesc.RECT].center
 
-            # Compute the midpoint
+        # Compute the midpoint
         mid_x = (p1[0] + p2[0]) // 2
         mid_y = (p1[1] + p2[1]) // 2
 
-            # Draw the line
+        # Draw the line
         pygame.draw.line(
-                self.surface,
-                Colors.primary,
-                p1,
-                p2,
-                self.__get_connection_thickness(connection[2])
-            )
+            self.surface,
+            Colors.primary,
+            p1,
+            p2,
+            self.__get_connection_thickness(connection[2]),
+        )
 
-            # Draw the pentagon
+        # Draw the pentagon
         pygame.draw.circle(
-                self.surface, 
-                color=Colors.primary,
-                center=(mid_x, mid_y),
-                radius=25
-            )
+            self.surface, color=Colors.primary, center=(mid_x, mid_y), radius=25
+        )
 
         text = self.body_font.render(connection[2], Colors.bg_color, Colors.bg_color)
         self.surface.blit(text, text.get_rect(center=(mid_x - 0, mid_y)))
@@ -714,8 +770,10 @@ class NeuralLab:
         self.help_screen[SurfDesc.RECT] = self.help_screen[SurfDesc.SURFACE].get_rect(
             topleft=(1304, 519)
         )
-        surface.blit(self.help_screen[SurfDesc.SURFACE], self.help_screen[SurfDesc.RECT])
-        
+        surface.blit(
+            self.help_screen[SurfDesc.SURFACE], self.help_screen[SurfDesc.RECT]
+        )
+
         return surface
 
     def _configure_neurons(self, neuron_type: NeuronType, neurons: list = None):
@@ -728,7 +786,9 @@ class NeuralLab:
                 "position": {"topleft": (62, 690)},
                 SurfDesc.RECT: None,
                 SurfDesc.ABSOLUTE_RECT: None,
-                "default_text": helper.split_text("Select a sensor to view more information..."),
+                "default_text": helper.split_text(
+                    "Select a sensor to view more information..."
+                ),
             }
             desc = self.sensor_desc
         else:  # NeuronType.ACTUATOR
@@ -737,7 +797,9 @@ class NeuralLab:
                 "position": {"topleft": (666, 690)},
                 SurfDesc.RECT: None,
                 SurfDesc.ABSOLUTE_RECT: None,
-                "default_text": helper.split_text("Select an actuator to view more information..."),
+                "default_text": helper.split_text(
+                    "Select an actuator to view more information..."
+                ),
             }
             desc = self.actuator_desc
 
@@ -777,7 +839,10 @@ class NeuralLab:
                     SurfDesc.CLICKED_SURFACE: neuron_surfaces["clicked"],
                     SurfDesc.RECT: neuron_surfaces["normal"].get_rect(center=(x, y)),
                     SurfDesc.ABSOLUTE_RECT: neuron_surfaces["normal"].get_rect(
-                        topleft=(x - 25 + self.surface_x_offset, y - 25 + self.surface_y_offset),
+                        topleft=(
+                            x - 25 + self.surface_x_offset,
+                            y - 25 + self.surface_y_offset,
+                        ),
                     ),
                 }
             )
@@ -799,7 +864,6 @@ class NeuralLab:
         clicked.blit(text_render, text_render.get_rect(center=(25, 25)))
 
         return {"normal": normal, "clicked": clicked}
-
 
     def _configure_hidden_neuron(self):
         x, y = 1700, 310
@@ -888,7 +952,7 @@ class NeuralLab:
             text_y += 25
 
 
-class AttributesLab:        
+class AttributesLab:
     def __init__(self, main_surface, context=None):
         self.time = 0
         self.main_surface = main_surface
@@ -958,21 +1022,21 @@ class AttributesLab:
                 data = self.__update_user_input(
                     option, value, value[SurfDesc.SURFACE], input_type=Attributes.COLOR
                 )
-                self.pic_circle[Attributes.COLOR] = helper.hex_to_rgb(data.replace("-", "0"))
+                self.pic_circle[Attributes.COLOR] = helper.hex_to_rgb(
+                    data.replace("-", "0")
+                )
                 self.pic_circle["update"] = True
-                
-                
+
         if self.pic_circle["update"]:
             self.__draw_critter()
             self.pic_circle["update"] = False
-            
 
     def event_handler(self, event):
         if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
             # Handle the button click events
             if self.__handle_neural_network_button(event):
                 return self.__navigate_to_neural_lab()
-                
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # Handle interaction with traits options
                 self.__handle_traits_options(event)
@@ -991,7 +1055,7 @@ class AttributesLab:
             if choice["selected"]
         )
         get_data = lambda option: trait_options[option]["data"]
-            
+
         return {
             Attributes.BASE_POPULATION: int(get_data(self.INITIAL_POPULATION)),
             Attributes.SPECIES: get_data(self.SPECIES),
@@ -1020,7 +1084,7 @@ class AttributesLab:
         self.SPEED = "Speed: "
         self.MAX_ENERGY = "Max Energy: "
         self.MAX_LIFESPAN = "Max Lifespan: "
-        
+
         return {
             "font": pygame.font.Font(Fonts.PixelifySansMedium, 21),
             "text_color": pygame.Color(0, 0, 0),
@@ -1036,14 +1100,14 @@ class AttributesLab:
                 },
                 self.SPECIES: {
                     "type": "user_input_str",
-                    "data": "Common Square",
+                    "data": helper.generate_species_name(),
                 },
                 self.DEFENSE_MECHANISM: {
                     "choices": [
-                        {"value": "None", "selected" : True},
-                        {"value": "Swordling", "selected" : False},
-                        {"value": "Shieldling", "selected" : False},
-                        {"value": "Camoufling", "selected" : False},
+                        {"value": "None", "selected": True},
+                        {"value": "Swordling", "selected": False},
+                        {"value": "Shieldling", "selected": False},
+                        {"value": "Camoufling", "selected": False},
                     ],
                     "type": "single_choice_list",
                 },
@@ -1113,24 +1177,35 @@ class AttributesLab:
 
     def __create_option_rhs(self, option, value, option_surface, x, y):
         if value["type"] == "user_input_int":
-            self.__create_user_input(option, value, option_surface, x, y, input_type="int")
+            self.__create_user_input(
+                option, value, option_surface, x, y, input_type="int"
+            )
         elif value["type"] == "user_input_str":
-            self.__create_user_input(option, value, option_surface, x, y, input_type="str")
+            self.__create_user_input(
+                option, value, option_surface, x, y, input_type="str"
+            )
         elif value["type"] == "user_input_color":
-            self.__create_user_input(option, value, option_surface, x, y, input_type=Attributes.COLOR)
+            self.__create_user_input(
+                option, value, option_surface, x, y, input_type=Attributes.COLOR
+            )
         elif value["type"] == "single_choice_list":
             self.__create_single_choice_list(option, value, option_surface, x, y)
 
-    def __create_user_input(self, option, value, option_surface, x, y, input_type="str"):
+    def __create_user_input(
+        self, option, value, option_surface, x, y, input_type="str"
+    ):
         # Get the data to display based on the input type
         data = value["data"]
         if input_type == "int":
             data = "{:,}".format(int(value["data"]))  # Format integer with commas
         elif input_type == Attributes.COLOR:
             data = "#" + data  # Format color as hex
-            
+
         # Add a blinking cursor if the input is selected
-        if self.traits_schema["selected_option"] == option and (self.time // 20) % 2 == 0:
+        if (
+            self.traits_schema["selected_option"] == option
+            and (self.time // 20) % 2 == 0
+        ):
             data += "_"
 
         # Render the text with the appropriate colors
@@ -1171,7 +1246,7 @@ class AttributesLab:
                 data = choice["value"]
                 if hasattr(choice["value"], "value"):
                     data = choice["value"].value
-                    
+
                 text = self.traits_schema["font"].render(
                     data,
                     True,
@@ -1256,7 +1331,7 @@ class AttributesLab:
             "shape": Shapes.SQUARE,
             "organism_angle": 0,
             "border_angle": 0,
-            "update" : True,
+            "update": True,
             Attributes.COLOR: (125, 255, 255),
             "border_image": pygame.image.load(
                 os.path.join(
@@ -1273,9 +1348,9 @@ class AttributesLab:
                     (3 / 4) * self.surface.get_width(),
                     (1 / 2) * self.surface.get_height(),
                 )
-            }
+            },
         }
-        
+
         self.pic_circle[SurfDesc.RECT] = self.pic_circle["bg_image"].get_rect(
             **self.pic_circle["position"]
         )
@@ -1283,27 +1358,33 @@ class AttributesLab:
         self.pic_circle["organism_rect"] = self.pic_circle[SurfDesc.SURFACE].get_rect(
             **self.pic_circle["position"]
         )
-        
-        self.pic_circle[SurfDesc.CURRENT_SURFACE] = self.pic_circle[SurfDesc.SURFACE].copy()
-        
+
+        self.pic_circle[SurfDesc.CURRENT_SURFACE] = self.pic_circle[
+            SurfDesc.SURFACE
+        ].copy()
+
     def __draw_critter(self):
         shape = self.pic_circle["shape"]
         color = self.pic_circle[Attributes.COLOR]
         defense = self.pic_circle["defense"]
-        
-        self.pic_circle[SurfDesc.CURRENT_SURFACE] = surface = self.pic_circle[SurfDesc.SURFACE].copy()
+
+        self.pic_circle[SurfDesc.CURRENT_SURFACE] = surface = self.pic_circle[
+            SurfDesc.SURFACE
+        ].copy()
         rect = pygame.Rect(0, 0, 50, 50)
         rect.center = (surface.get_width() // 2, surface.get_height() // 2)
-        
+
         if defense == "Swordling":
-            pygame.draw.circle(surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75)
+            pygame.draw.circle(
+                surface, (217, 217, 217, int(0.5 * 255)), rect.center, 75
+            )
         elif defense == "Shieldling":
             border_rect = pygame.Rect(0, 0, 75, 75)
             border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
             pygame.draw.rect(surface, (255, 255, 255), border_rect, 5)
         elif defense == "Camoufling":
             color = (color[0], color[1], color[2], int(0.5 * 255))
-        
+
         if shape == Shapes.CIRCLE:
             pygame.draw.circle(surface, color, rect.center, rect.width // 2)
         elif shape == Shapes.SQUARE:
@@ -1312,8 +1393,6 @@ class AttributesLab:
             pygame.draw.polygon(surface, color, helper.get_triangle_points(rect))
         elif shape == Shapes.PENTAGON:
             pygame.draw.polygon(surface, color, helper.get_pentagon_points(rect))
-            
-            
 
     def __handle_neural_network_button(self, event):
         """Handle neural network button clicks."""
@@ -1341,11 +1420,13 @@ class AttributesLab:
 
     def __handle_traits_options(self, event):
         """Handle interactions with traits options."""
-        self.traits_schema.update({
-            "selected_option": None,
-            "selected_option_type": None,
-        })
-                
+        self.traits_schema.update(
+            {
+                "selected_option": None,
+                "selected_option_type": None,
+            }
+        )
+
         for option, value in self.traits_schema["options"].items():
             if value["type"] == "single_choice_list":
                 if self.__handle_single_choice_list(event, option, value):
@@ -1374,19 +1455,23 @@ class AttributesLab:
             elif option == self.DEFENSE_MECHANISM:
                 self.pic_circle["defense"] = selected_choice
                 self.pic_circle["update"] = True
-                
+
             for choice in value["choices"]:
                 choice["selected"] = choice["value"] == selected_choice
 
     def __handle_user_input(self, event, value, option):
         """Handle user input (text, color, integer)."""
-        if (value[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos) 
-            and event.type == pygame.MOUSEBUTTONDOWN):
-                self.traits_schema.update({
+        if (
+            value[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos)
+            and event.type == pygame.MOUSEBUTTONDOWN
+        ):
+            self.traits_schema.update(
+                {
                     "selected_option": option,
                     "selected_option_type": value["type"],
-                })
-                return True
+                }
+            )
+            return True
         return False
 
     def __handle_keydown_event(self, event, selected_option, selected_option_type):
@@ -1409,9 +1494,9 @@ class AttributesLab:
                 "options"
             ][selected_option]["data"][:-1]
         elif selected_option_type == "user_input_int":
-            self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
-                "options"
-            ][selected_option]["data"][:-1] or "0"
+            self.traits_schema["options"][selected_option]["data"] = (
+                self.traits_schema["options"][selected_option]["data"][:-1] or "0"
+            )
         elif selected_option_type == "user_input_color":
             self.traits_schema["options"][selected_option]["data"] = self.traits_schema[
                 "options"
@@ -1448,24 +1533,28 @@ class AttributesLab:
         next_option = list(self.traits_schema["options"].keys())[
             (selected_option_index + 1) % len(self.traits_schema["options"])
         ]
-        self.traits_schema.update({
-            "selected_option": next_option,
-            "selected_option_type": self.traits_schema["options"][next_option]["type"],
-        })
+        self.traits_schema.update(
+            {
+                "selected_option": next_option,
+                "selected_option_type": self.traits_schema["options"][next_option][
+                    "type"
+                ],
+            }
+        )
 
     def __handle_arrow_navigation(self, event, selected_option, selected_option_type):
         """Navigate through choices using left and right arrow keys."""
         if selected_option_type == "single_choice_list":
             # Find the index of the currently selected choice
-            selected_index = (
-                self.traits_schema["options"][selected_option]["choices"].index(
-                    next(
-                        choice
-                        for choice in self.traits_schema["options"][selected_option][
-                            "choices"
-                        ]
-                        if choice["selected"]
-                    )
+            selected_index = self.traits_schema["options"][selected_option][
+                "choices"
+            ].index(
+                next(
+                    choice
+                    for choice in self.traits_schema["options"][selected_option][
+                        "choices"
+                    ]
+                    if choice["selected"]
                 )
             )
 
@@ -1477,21 +1566,24 @@ class AttributesLab:
                 new_index = (selected_index + 1) % len(
                     self.traits_schema["options"][selected_option]["choices"]
                 )
-                
-            self.traits_schema["options"][selected_option]["choices"][selected_index]["selected"] = False
-            self.traits_schema["options"][selected_option]["choices"][new_index]["selected"] = True
+
+            self.traits_schema["options"][selected_option]["choices"][selected_index][
+                "selected"
+            ] = False
+            self.traits_schema["options"][selected_option]["choices"][new_index][
+                "selected"
+            ] = True
 
             if selected_option == self.DOMAIN:
                 self.pic_circle["update"] = True
-                self.pic_circle["shape"] = (
-                    self.traits_schema["options"][selected_option]["choices"][new_index]["value"]
-                )
+                self.pic_circle["shape"] = self.traits_schema["options"][
+                    selected_option
+                ]["choices"][new_index]["value"]
             elif selected_option == self.DEFENSE_MECHANISM:
                 self.pic_circle["update"] = True
-                self.pic_circle["defense"] = (
-                    self.traits_schema["options"][selected_option]["choices"][new_index]["value"]
-                )
-                
+                self.pic_circle["defense"] = self.traits_schema["options"][
+                    selected_option
+                ]["choices"][new_index]["value"]
 
     def __rotate_pic_circle_border(self):
         self.pic_circle["border_angle"] += 1
@@ -1520,7 +1612,10 @@ class AttributesLab:
         elif input_type == Attributes.COLOR:
             data = "#" + data.ljust(6, "-").upper()
 
-        if self.traits_schema["selected_option"] == option and (self.time // 20) % 2 == 0:
+        if (
+            self.traits_schema["selected_option"] == option
+            and (self.time // 20) % 2 == 0
+        ):
             data += "_"
 
         text = self.traits_schema["font"].render(

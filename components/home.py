@@ -6,7 +6,7 @@ from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket, SurfDesc
 from handlers.organisms import Counter
 import webbrowser
-
+import pygame_chart as pyc
 
 
 class HomeComponent:
@@ -231,6 +231,8 @@ class SidebarComponent:
 
     def setup_graph_sidebar(self):
         self.surface.blit(self.sidebar_screens[self.SHOW_GRAPHS]["bg_image"], (0, 0))
+        
+        # Back button setup
         back_button = pygame.image.load(
             os.path.join(image_assets, "graphs", "back_button.svg")
         )
@@ -239,6 +241,12 @@ class SidebarComponent:
         )
         back_button_rect = back_button.get_rect(center=(50, 50))
 
+        # Create Population Graph Figure
+        population_figure = pyc.Figure(self.surface, 15, 120, 380, 200, bg_color=Colors.white)
+        fitness_figure = pyc.Figure(self.surface, 15, 375, 380, 200, bg_color=Colors.white)
+        plant_abundance_figure = pyc.Figure(self.surface, 15, 630, 380, 200, bg_color=Colors.white)
+        
+        
         self.sidebar_screens[self.SHOW_GRAPHS].update(
             {
                 "back_button": {
@@ -246,7 +254,10 @@ class SidebarComponent:
                     SurfDesc.SURFACE: back_button,
                     SurfDesc.CLICKED_SURFACE: back_button_clicked,
                     SurfDesc.RECT: back_button_rect,
-                }
+                },
+                "population_graph": population_figure,
+                "fitness_graph": fitness_figure,
+                "plant_abundance_graph": plant_abundance_figure
             }
         )
 
@@ -447,9 +458,77 @@ class SidebarComponent:
 
         for button in self.buttons.values():
             self.surface.blit(button[SurfDesc.CURRENT_SURFACE], button[SurfDesc.RECT])
-
+            
     def update_graph_sidebar(self, context):
         back_button = self.sidebar_screens[self.SHOW_GRAPHS]["back_button"]
         self.surface.blit(
             back_button[SurfDesc.CURRENT_SURFACE], back_button[SurfDesc.RECT]
         )
+
+        self.update_population_graph(context)
+        self.update_fitness_graph(context)
+        self.update_plant_abundance_graph(context)
+        
+    def update_population_graph(self, context):
+        figure = self.sidebar_screens[self.SHOW_GRAPHS].get("population_graph")
+        population_history = context.get("population_history", [])
+        species_colors = context.get("species_colors", {})
+
+        time_steps, critter_counts = zip(*population_history)
+        time_steps = list(time_steps)
+
+        # Extract total population
+        total_population = [c["total"] for c in critter_counts]
+        if sum(total_population) == 0:
+            return  # No data, don't attempt to draw
+        
+        species_keys = {species for c in critter_counts for species in c if species != "total"}
+
+        figure.chart_names = []
+        figure.charts = []
+
+        # Plot total population
+        figure.line("Total Population", time_steps, total_population, color=Colors.bg_color)
+
+        # Plot each species separately
+        for species in species_keys:
+            species_population = [c.get(species, 0) for c in critter_counts]
+            species_color = species_colors.get(species, (255, 255, 255))  # Default white if not found
+            figure.line(f"Species {species}", time_steps, species_population, color=species_color)
+
+        figure.draw()
+
+    
+    def update_fitness_graph(self, context):
+        figure = self.sidebar_screens[self.SHOW_GRAPHS].get("fitness_graph")
+        fitness_history = context.get("fitness_history", [])
+        time_steps, fitness_values = zip(*fitness_history)
+        
+        time_steps = list(time_steps)
+        total_fitness = [f["total"] for f in fitness_values]
+        if sum(total_fitness) == 0:
+            return
+        
+        species_keys = {species for f in fitness_values for species in f if species != "total"}
+        
+        figure.chart_names = []
+        figure.charts = []
+        
+        figure.line("Total Fitness", time_steps, total_fitness, color=Colors.bg_color)
+        
+        for species in species_keys:
+            species_fitness = [f.get(species, 0) for f in fitness_values]
+            species_color = context.get("species_colors", {}).get(species, (255, 255, 255))
+            figure.line(f"Species {species}", time_steps, species_fitness, color=species_color)
+            
+        figure.draw()
+    
+    def update_plant_abundance_graph(self, context):
+        figure = self.sidebar_screens[self.SHOW_GRAPHS].get("plant_abundance_graph")
+        time_steps, population_values = map(list, zip(*context.get("plant_history")))        
+        
+        figure.chart_names = []
+        figure.charts = []
+        
+        figure.line("Plant Abundance", time_steps, population_values, color=Colors.bg_color)
+        figure.draw()

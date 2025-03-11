@@ -61,6 +61,9 @@ class Forest:
     def get_plants(self):
         return self.plants
 
+    def get_plant_count(self):
+        return len(self.plants)
+
     def remove_plant(self, plant):
         self.plants.remove(plant)
 
@@ -101,6 +104,26 @@ class Species:
             return self.critters
         else:
             return self.dead_critters
+
+    def get_critter_count(self):
+        count = {"total": 0}
+        fitness = {"total": 0}
+        species_colors = {}  # Maps species → color
+
+        for i in self.critters:
+            # Species name and color
+            species_name = i.species  # Get species name
+            species_colors[species_name] = i.color  # Store species color
+
+            # Population count
+            count["total"] += 1
+            count[species_name] = count.get(species_name, 0) + 1
+
+            # fitness count
+            fitness["total"] += i.fitness
+            fitness[species_name] = fitness.get(species_name, 0) + i.fitness
+
+        return count, fitness, species_colors
 
     def crossover(self):
         pass

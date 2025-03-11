@@ -12,6 +12,7 @@ class Colors:
     bg_color = (26, 26, 26)
     primary = (74, 227, 181)
     error = (255, 0, 0)
+    white = (255, 255, 255)
 
 
 class Fonts:

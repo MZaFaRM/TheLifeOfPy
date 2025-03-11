@@ -43,7 +43,61 @@ def get_random_position(env_window):
         random.randint(0, env_window.get_width()),
         random.randint(0, env_window.get_height()),
     )
-    
+
+
+import random
+
+
+def generate_species_name():
+    first_parts = [
+        "Shadow",
+        "Iron",
+        "Blue",
+        "Red",
+        "Swift",
+        "Golden",
+        "Storm",
+        "Frost",
+        "Wild",
+        "Silent",
+        "Night",
+        "Silver",
+        "Bright",
+        "Crimson",
+        "Dawn",
+        "Dark",
+        "Fire",
+        "Glade",
+        "River",
+        "Stone",
+    ]
+
+    second_parts = [
+        "fang",
+        "claw",
+        "tail",
+        "wing",
+        "horn",
+        "pelt",
+        "eye",
+        "bloom",
+        "root",
+        "scale",
+        "howl",
+        "stride",
+        "song",
+        "flame",
+        "heart",
+        "gaze",
+        "leaf",
+        "whisper",
+        "thorn",
+        "mark",
+    ]
+
+    return f"{random.choice(first_parts)} {random.choice(second_parts)}"
+
+
 def get_square_points(rect, rotation_degrees=90):
     """Generates a square directly with a given rotation, inside the given rect."""
     cx, cy = rect.center  # Center of the rectangle
