@@ -1,2 +1,4 @@
+numpy==2.2.3
 pygame==2.6.1
 pygame-chart==1.0.0
+noise==1.2.2

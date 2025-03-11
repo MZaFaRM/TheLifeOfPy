@@ -1,6 +1,5 @@
 import numpy as np
 import pygame
-from gym.spaces import MultiDiscrete
 
 import agents
 from enums import Attributes, EventType, MessagePacket
