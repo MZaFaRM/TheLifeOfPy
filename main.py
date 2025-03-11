@@ -61,7 +61,7 @@ class Nature:
                     self.critters = self.species.create_species(
                         n=data.pop(Attributes.BASE_POPULATION), context=data
                     )
-                elif EventType.END_SIMULATION in packet.context:
+                elif EventType.RESTART_SIMULATION in packet.context:
                     self.reset()
 
             elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):

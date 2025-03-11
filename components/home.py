@@ -278,12 +278,12 @@ class SidebarComponent:
                 ),
                 "position": (sidebar_center, 725),
             },
-            "end_simulation": {
-                "name": "end_simulation",
+            "restart_simulation": {
+                "name": "restart_simulation",
                 SurfDesc.CURRENT_SURFACE: None,
-                SurfDesc.SURFACE: os.path.join("home", "end_simulation_button.svg"),
+                SurfDesc.SURFACE: os.path.join("home", "restart_simulation_button.svg"),
                 SurfDesc.CLICKED_SURFACE: os.path.join(
-                    "home", "end_simulation_button_clicked.svg"
+                    "home", "restart_simulation_button_clicked.svg"
                 ),
                 "position": (sidebar_center, 785),
             },
@@ -354,7 +354,7 @@ class SidebarComponent:
                 self.sidebar_screens["update"] = True
 
     def handle_default_sidebar_event(self, event, rel_x, rel_y):
-        for name in ["create_organism", "end_simulation", "show_graphs", "docs", "github"]:
+        for name in ["create_organism", "restart_simulation", "show_graphs", "docs", "github"]:
             # Reset button to default
             self.buttons[name][SurfDesc.CURRENT_SURFACE] = self.buttons[name][
                 SurfDesc.SURFACE
@@ -370,15 +370,15 @@ class SidebarComponent:
                     EventType.NAVIGATION,
                     "laboratory",
                 )
-        elif self.buttons["end_simulation"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+        elif self.buttons["restart_simulation"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
-                button = self.buttons["end_simulation"]
+                button = self.buttons["restart_simulation"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
                 return MessagePacket(
                     EventType.NAVIGATION,
                     "home",
-                    context={EventType.END_SIMULATION: True},
+                    context={EventType.RESTART_SIMULATION: True},
                 )
         elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:

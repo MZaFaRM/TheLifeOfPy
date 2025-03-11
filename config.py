@@ -11,6 +11,7 @@ ENV_OFFSET_Y = 100
 class Colors:
     bg_color = (26, 26, 26)
     primary = (74, 227, 181)
+    error = (255, 0, 0)
 
 
 class Fonts:
@@ -21,3 +22,6 @@ class Fonts:
     PixelifySansMedium = os.path.join(font_assets, "PixelifySans", "PixelifySans-Medium.otf")
     PixelifySansSemiBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-SemiBold.otf")
     PixelifySansExtraBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-ExtraBold.otf")
+    
+class InvalidConnection(Exception):
+    pass

@@ -8,7 +8,7 @@ import numpy as np
 import pygame
 import pygame.gfxdraw
 
-from config import Colors, Fonts, image_assets
+from config import Colors, Fonts, InvalidConnection, image_assets
 from enums import Attributes, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
 from handlers.genetics import NeuronManager
 import helper
@@ -193,6 +193,7 @@ class NeuralLab:
         self.neural_frame["nodes"] = []
         self.neural_frame["selection"] = {"type": None, "value": None}
         self.neural_frame["connections"] = []
+        self.neural_frame["errors"] = {}
         self.neural_frame["graph_desc"] = {
             "circle": {
                 "radius": 25,
@@ -353,13 +354,17 @@ class NeuralLab:
             if node[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
                 selected_any = True
                 if self.neural_frame["selection"]["value"]:
-                    if self.__valid_connection(self.neural_frame["selection"]["value"], node):
+                    try:
+                        self.__check_connection_validity(self.neural_frame["selection"]["value"], node)
                         # Add the connection, with default weight of 1
                         self.neural_frame["connections"].append(
                             [self.neural_frame["selection"]["value"], node, "1"]
                         )
-                    else:
-                        print(f"Invalid Connection: {self.neural_frame["selection"]["value"]["name"]} -> {node["name"]}")
+                    except InvalidConnection as e:
+                        self.neural_frame["errors"] = {
+                            "connection" : [self.neural_frame["selection"]["value"], node],
+                            "message": str(e)
+                        }
                     self.neural_frame["selection"] = {"type": None, "value": None}
                     
                 else:
@@ -386,14 +391,14 @@ class NeuralLab:
                     self.neural_frame["selection"].update({"type" : NeuronType.CONN, "value" : connection})
                     break
 
-    def __valid_connection(self, node_1, node_2):
+    def __check_connection_validity(self, node_1, node_2):
         # Ensure both nodes exist
         if not node_1.get("id", None) or not node_2.get("id", None):
-            return False
+            raise InvalidConnection("Invalid connection: One or more nodes do not exist")
 
         # Prevent self-connections
         if node_1.get("id") == node_2.get("id"):
-            return False
+            raise InvalidConnection("Invalid connection: Cannot connect a node to itself")
 
         # Ensure nodes are not already connected
         for connection in self.neural_frame["connections"]:
@@ -404,27 +409,27 @@ class NeuralLab:
                 connection[0]["id"] == node_2["id"]
                 and connection[1]["id"] == node_1["id"]
             ):
-                return False
+                raise InvalidConnection("Invalid connection: Nodes are already connected")
 
         # Enforce directional rules
         if node_1["type"] == NeuronType.SENSOR and node_2["type"] == NeuronType.SENSOR:
-            return False  # Sensors should not connect to other sensors
+            raise InvalidConnection("Invalid connection: Sensors cannot connect to other sensors")
 
         if (
             node_1["type"] == NeuronType.ACTUATOR
             and node_2["type"] == NeuronType.ACTUATOR
         ):
-            return False  # Actuators should not connect to other actuators
+            raise InvalidConnection("Invalid connection: Actuators cannot connect to other actuators")
 
         if node_2["type"] == NeuronType.SENSOR:
-            return False  # No connections should go *into* a sensor
+            raise InvalidConnection("Invalid connection: Sensors cannot receive connections")
 
         if node_1["type"] == NeuronType.ACTUATOR:
-            return False  # No connections should come *out of* an actuator
+            raise InvalidConnection("Invalid connection: Actuators cannot send connections")
 
         # Prevent cycles if required (optional, depends on your structure)
         if self.__has_cycle(node_1, node_2):
-            return False
+            raise InvalidConnection("Invalid connection: Connection creates a cycle")
 
         return True
 
@@ -599,6 +604,10 @@ class NeuralLab:
             else:
                 # Update desc text when no neuron is selected
                 self.__update_neuron_text(neuron_type)
+                
+    def __get_connection_thickness(self, weight):
+        """Returns the thickness of the connection line based on weight."""
+        return (max(abs(int(float(weight))), 1) + 3) * 2
 
     def update(self, context=None):
         # Blit all sensors and actuators
@@ -612,13 +621,14 @@ class NeuralLab:
         self.surface.blit(self.unleash_organism_button[SurfDesc.CURRENT_SURFACE], self.unleash_organism_button[SurfDesc.RECT])
         self.surface.blit(self.neural_frame[SurfDesc.SURFACE], self.neural_frame[SurfDesc.RECT])
         
+        get_connection_thickness = lambda x: (max(abs(int(float(x))), 1) + 3) * 2 # (Weight + 3) * 2
         for connection in self.neural_frame["connections"]:
             pygame.draw.line(
                 self.surface,
                 self.neural_frame["graph_desc"]["line"][Attributes.COLOR],
                 connection[0][SurfDesc.RECT].center,
                 connection[1][SurfDesc.RECT].center,
-                max(abs(int(float(connection[2]))), 1) * 2 # Weight * 2
+                self.__get_connection_thickness(connection[2])
             )
             
         # Selection is connection node
@@ -627,6 +637,25 @@ class NeuralLab:
             
         for node in self.neural_frame["nodes"]:
             self.surface.blit(node[SurfDesc.CURRENT_SURFACE], node[SurfDesc.RECT])
+        
+        if self.neural_frame["errors"]:
+            error_surface, error_rect = self.__error_message_surface()
+            self.surface.blit(error_surface, error_rect)
+            
+    def __error_message_surface(self):
+        text_surface = self.help_screen[SurfDesc.SURFACE].copy()
+        if self.neural_frame["errors"]:
+            error = self.neural_frame["errors"]
+            connection = error["connection"]
+            message = helper.split_text(error["message"], 36)
+            text_surface_connection = self.body_font.render(f"{connection[0]['name']} -> {connection[1]['name']}", True, Colors.primary)
+            text_surface.blit(text_surface_connection, text_surface_connection.get_rect(topleft=(30, 150)))
+            
+            for i, line in enumerate(message):
+                text_surface_message = self.body_font.render(line, True, Colors.primary)
+                text_surface.blit(text_surface_message, text_surface_message.get_rect(topleft=(30, 180 + (i * 20))))
+        return text_surface, self.help_screen[SurfDesc.RECT]
+        
 
     def draw_connection_line(self, connection):
         # Get the centers of the two connection points
@@ -643,7 +672,7 @@ class NeuralLab:
                 Colors.primary,
                 p1,
                 p2,
-                max(abs(int(float(connection[2]))), 1) * 2 # Weight * 2
+                self.__get_connection_thickness(connection[2])
             )
 
             # Draw the pentagon
@@ -670,7 +699,6 @@ class NeuralLab:
             ("actuator_title.svg", (666, 640)),
             ("hidden_neuron_title.svg", (1304, 206)),
             ("bias_neuron_title.svg", (1304, 363)),
-            ("help_screen.svg", (1304, 519)),
         ]
 
         for title, pos in titles:
@@ -679,6 +707,15 @@ class NeuralLab:
             )
             surface.blit(title_image, title_image.get_rect(topleft=pos))
 
+        self.help_screen = {}
+        self.help_screen[SurfDesc.SURFACE] = pygame.image.load(
+            os.path.join(image_assets, "laboratory", "neural_lab", "help_screen.svg")
+        )
+        self.help_screen[SurfDesc.RECT] = self.help_screen[SurfDesc.SURFACE].get_rect(
+            topleft=(1304, 519)
+        )
+        surface.blit(self.help_screen[SurfDesc.SURFACE], self.help_screen[SurfDesc.RECT])
+        
         return surface
 
     def _configure_neurons(self, neuron_type: NeuronType, neurons: list = None):
