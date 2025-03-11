@@ -5,6 +5,8 @@ import pygame
 from config import Colors, Fonts, image_assets
 from enums import EventType, MessagePacket, SurfDesc
 from handlers.organisms import Counter
+import webbrowser
+
 
 
 class HomeComponent:
@@ -216,7 +218,7 @@ class SidebarComponent:
             self.DEFAULT: {
                 "function": self.setup_default_sidebar,
                 "bg_image": pygame.image.load(
-                    os.path.join(image_assets, "home", "sidebar.svg")
+                    os.path.join(image_assets, "home", "sidebar.png")
                 ),
             },
             self.SHOW_GRAPHS: {
@@ -265,6 +267,7 @@ class SidebarComponent:
         sidebar_window_width = self.surface.get_width()
         sidebar_window_height = self.surface.get_height()
 
+        sidebar_center = sidebar_window_width // 2
         self.buttons = {
             "create_organism": {
                 "name": "create_organism",
@@ -273,10 +276,7 @@ class SidebarComponent:
                 SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "create_organism_button_clicked.svg"
                 ),
-                "position": (
-                    sidebar_window_width // 2,
-                    sidebar_window_height - 225,
-                ),
+                "position": (sidebar_center, 725),
             },
             "end_simulation": {
                 "name": "end_simulation",
@@ -285,10 +285,7 @@ class SidebarComponent:
                 SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "end_simulation_button_clicked.svg"
                 ),
-                "position": (
-                    sidebar_window_width // 2,
-                    sidebar_window_height - 150,
-                ),
+                "position": (sidebar_center, 785),
             },
             "show_graphs": {
                 "name": "show_graphs",
@@ -297,10 +294,25 @@ class SidebarComponent:
                 SurfDesc.CLICKED_SURFACE: os.path.join(
                     "home", "show_graphs_button_clicked.svg"
                 ),
-                "position": (
-                    sidebar_window_width // 2,
-                    sidebar_window_height - 75,
+                "position": (sidebar_center, 845),
+            },
+            "docs": {
+                "name": "docs",
+                SurfDesc.CURRENT_SURFACE: None,
+                SurfDesc.SURFACE: os.path.join("home", "docs_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
+                    "home", "docs_button_clicked.svg"
                 ),
+                "position": (122, 905),
+            },
+            "github": {
+                "name": "github",
+                SurfDesc.CURRENT_SURFACE: None,
+                SurfDesc.SURFACE: os.path.join("home", "github_button.svg"),
+                SurfDesc.CLICKED_SURFACE: os.path.join(
+                    "home", "github_button_clicked.svg"
+                ),
+                "position": (287, 905),
             },
         }
 
@@ -342,7 +354,8 @@ class SidebarComponent:
                 self.sidebar_screens["update"] = True
 
     def handle_default_sidebar_event(self, event, rel_x, rel_y):
-        for name in ["create_organism", "end_simulation", "show_graphs"]:
+        for name in ["create_organism", "end_simulation", "show_graphs", "docs", "github"]:
+            # Reset button to default
             self.buttons[name][SurfDesc.CURRENT_SURFACE] = self.buttons[name][
                 SurfDesc.SURFACE
             ]
@@ -374,6 +387,20 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.SHOW_GRAPHS
                 self.sidebar_screens["update"] = True
+        
+        elif self.buttons["docs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                button = self.buttons["docs"]
+                button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                webbrowser.open("https://github.com/MZaFaRM/DARWIN/blob/main/readme.md")
+        elif self.buttons["github"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                button = self.buttons["github"]
+                button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                webbrowser.open("https://github.com/MZaFaRM/DARWIN")
+        
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))
