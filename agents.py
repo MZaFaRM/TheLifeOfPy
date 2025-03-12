@@ -138,26 +138,18 @@ class Critter(Sprite):
             color = (color[0], color[1], color[2], int(0.2 * 255))
 
         # Critter
-        if self.domain == Shapes.CIRCLE:
-            pygame.draw.circle(self.image, color, self.center, self.size // 2)
-            pygame.draw.circle(self.defense_image, color, self.center, self.size // 2)
-        elif self.domain == Shapes.SQUARE:
-            pygame.draw.rect(self.image, color, self.body_rect)
-            pygame.draw.rect(self.defense_image, color, self.body_rect)
-        elif self.domain == Shapes.TRIANGLE:
-            pygame.draw.polygon(
-                self.image, color, helper.get_triangle_points(self.body_rect)
-            )
-            pygame.draw.polygon(
-                self.defense_image, color, helper.get_triangle_points(self.body_rect)
-            )
-        elif self.domain == Shapes.PENTAGON:
-            pygame.draw.polygon(
-                self.image, color, helper.get_pentagon_points(self.body_rect)
-            )
-            pygame.draw.polygon(
-                self.defense_image, color, helper.get_pentagon_points(self.body_rect)
-            )
+        for image_surface in [self.image, self.defense_image]:
+            if self.domain == Shapes.CIRCLE:
+                pygame.draw.circle(image_surface, color, self.center, self.size // 2)
+            elif self.domain == Shapes.SQUARE:
+                pygame.draw.rect(image_surface, color, self.body_rect)
+            elif self.domain == Shapes.TRIANGLE:
+                points = helper.get_triangle_points(self.body_rect)
+                pygame.draw.polygon(image_surface, color, points)
+            elif self.domain == Shapes.PENTAGON:
+                points = helper.get_pentagon_points(self.body_rect)
+                pygame.draw.polygon(image_surface, color, points)
+
         surface.blit(self.image, self.rect)
 
     def step(self):
