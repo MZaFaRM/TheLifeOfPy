@@ -410,10 +410,12 @@ class NeuronManager:
         mouse_rect = pygame.Rect(0, 0, 1, 1)
         mouse_rect.center = mouse_pos
 
-        self.context["mouse"] = {
-            "time": critter.time,
-            "mouse_rect": mouse_rect,
-        }
+        self._update_context(
+            id=critter.id,
+            key="mouse",
+            time=critter.time,
+            data=mouse_rect,
+        )
 
         distance = helper.distance_between_points(critter.rect.center, mouse_rect)
         data = (distance / (critter.vision["radius"] * 2)) * 2 - 1
@@ -511,13 +513,9 @@ class NeuronManager:
 
     def act_Eat(self, critter):
         """Eats the nearest food source if in range."""
-        if (
-            food_data := self.context.get("closest_food", {}).get(critter.id)
-        ) is not None:
-            if food_data["time"] != critter.time:
-                return
-
-            food = food_data["food"]
+        if food := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_food"
+        ):
             if critter.body_rect.colliderect(food.rect):
                 self.plants.remove(food)
                 critter.energy += 500
@@ -528,65 +526,45 @@ class NeuronManager:
 
     def act_MvS(self, critter):
         """Moves towards the nearest same-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_same_critter", {}).get(critter.id)
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_same_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_MvO(self, critter):
         """Moves towards the nearest other-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_other_critter", {}).get(
-                critter.id
-            )
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_other_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_MvA(self, critter):
         """Moves towards the nearest any-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_any_critter", {}).get(critter.id)
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_any_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_MvF(self, critter):
         """Moves towards the nearest food source, if found."""
-        if (
-            food_data := self.context.get("closest_food", {}).get(critter.id)
-        ) is not None:
-            if food_data["time"] != critter.time:
-                return
-
-            food = food_data["food"]
+        if food := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_food"
+        ):
             if food.rect.center != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, food)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_MvM(self, critter):
         """Moves towards the mouse pointer, if found."""
-        if (mouse_data := self.context.get("mouse", {})) is not None:
-            if mouse_data["time"] != critter.time:
-                return
-
-            mouse_rect = mouse_data["mouse_rect"]
+        if mouse_rect := self._lookup_context(
+            id=critter.id, time=critter.time, key="mouse"
+        ):
             if mouse_rect != critter.rect.center:
                 new_x, new_y = self._get_movement_step(critter, mouse_rect)
                 critter.rect.x, critter.rect.y = new_x, new_y
@@ -618,78 +596,54 @@ class NeuronManager:
 
     def act_AvS(self, critter):
         """Move away from the nearest same-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_same_critter", {}).get(critter.id)
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_same_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_avoidance_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_AvO(self, critter):
         """Move away from the nearest other-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_other_critter", {}).get(
-                critter.id
-            )
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_other_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_avoidance_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_AvA(self, critter):
         """Move away from the nearest any-species critter, if found."""
-        if (
-            critter_data := self.context.get("closest_any_critter", {}).get(critter.id)
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_any_critter"
+        ):
             if other.rect.center != critter.rect.center:
                 new_x, new_y = self._get_avoidance_step(critter, other)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_AvF(self, critter):
         """Move away from the nearest food source, if found."""
-        if (
-            food_data := self.context.get("closest_food", {}).get(critter.id)
-        ) is not None:
-            if food_data["time"] != critter.time:
-                return
-
-            food = food_data["food"]
+        if food := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_food"
+        ):
             if food.rect.center != critter.rect.center:
                 new_x, new_y = self._get_avoidance_step(critter, food)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_AvM(self, critter):
         """Move away from the mouse pointer, if found."""
-        if (mouse_data := self.context.get("mouse", {})) is not None:
-            if mouse_data["time"] != critter.time:
-                return
-
-            mouse_rect = mouse_data["mouse_rect"]
+        if mouse_rect := self._lookup_context(
+            id=critter.id, time=critter.time, key="mouse"
+        ):
             if mouse_rect != critter.rect.center:
                 new_x, new_y = self._get_avoidance_step(critter, mouse_rect)
                 critter.rect.x, critter.rect.y = new_x, new_y
 
     def act_SMS(self, critter):
         """Send a mating signal to a nearby critter, of the same species"""
-        if (
-            critter_data := self.context.get("closest_same_critter", {}).get(critter.id)
-        ) is not None:
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_same_critter"
+        ):
             if (
                 other.mating_state == MatingState.READY
                 and critter.mating_state == MatingState.READY
@@ -698,14 +652,9 @@ class NeuronManager:
 
     def act_SMO(self, critter):
         """Send a mating signal to a nearby critter, of any species"""
-        if (
-            critter_data := self.context.get("closest_any_critter", {}).get(critter.id)
-            is not None
+        if other := self._lookup_context(
+            id=critter.id, time=critter.time, key="closest_any_critter"
         ):
-            if critter_data["time"] != critter.time:
-                return
-
-            other = critter_data["critter"]
             if (
                 other.mating_state == MatingState.READY
                 and critter.mating_state == MatingState.READY
@@ -751,12 +700,12 @@ class NeuronManager:
             ),
         )
 
-        self.context[context_key] = {
-            critter.id: {
-                "time": critter.time,
-                context_key.split("_")[-1]: closest_obj,
-            }
-        }
+        self._update_context(
+            id=critter.id,
+            key=context_key,
+            time=critter.time,
+            data=closest_obj,
+        )
 
         min_distance = helper.distance_between_points(
             critter.rect.center, closest_obj.rect.center
@@ -784,12 +733,12 @@ class NeuronManager:
         if not filtered_objects:
             return -1.0
 
-        self.context[context_key] = {
-            critter.id: {
-                "time": critter.time,
-                context_key.split("_")[-1]: len(filtered_objects),
-            }
-        }
+        self._update_context(
+            id=critter.id,
+            key=context_key,
+            time=critter.time,
+            data=len(filtered_objects),
+        )
 
         # Normalize to [-1, 1]
         return (min(len(filtered_objects) / 10, 1) * 2) - 1
@@ -842,3 +791,17 @@ class NeuronManager:
         new_y = mover.rect.y + step_size * unit_vector[1]
 
         return new_x, new_y
+
+    def _update_context(self, id, key, time, data):
+        """Helper function to update self.context without overwriting existing data."""
+        if id not in self.context:
+            self.context[id] = {}
+        self.context[id].update({key: {"time": time, "data": data}})
+
+    def _lookup_context(self, id, time, key):
+        """lookup and return data from context"""
+        instance = self.context.get(id, {}).get(key)
+        if instance is not None:
+            if instance["time"] == time:
+                return instance["data"]
+        return None
