@@ -1,32 +1,5 @@
-# General Sensors and Actions (Given by default to every critter)
+# **PetriPixel**  
 
--   Eating
--   Change direction
--   Move in direction
+Inspired by the works of [@PrimerBlobs](https://www.youtube.com/@PrimerBlobs), [@davidrandallmiller](https://www.youtube.com/@davidrandallmiller), and [@Green-Code](https://www.youtube.com/@Green-Code), especially their videos on [Natural Selection](https://youtu.be/0ZGbIKd0XrM), [Evolution](https://youtu.be/N3tRFayqVtk), and [Neural Networks](https://youtu.be/cAkMcPfY_Ns), I’ve wanted to build something like this for a long time. My BTech final project felt like the perfect excuse to finally do it.  
 
-# Sensors
-
--   Nearest food location
--   Nearest food direction
--   Nearest home location
--   Nearest home direction
--   Current Energy
--   Number of agents trying to eat the nearest food
--   Nearest Carnivorous critters
--   Nearest Critter
--   Target food speed
-
-# Actions
-
--   Increase speed (uses more energy)
--   Increase Size (uses more energy, defends from smaller carnivores, passive)
--   Lower energy consumption
--   Eat other critters
--   Reproduction
-
-# Logs
-
-PNOISE
-RUN & TUMBLE
-
-# FF0078
+So, here’s **PetriPixel**—a digital petri dish where you can create organisms by customizing their **phenotypic and genotypic traits** (like neural networks, size, color, and defense mechanisms) and release them into an environment to see how they interact. This is just the first iteration, and there’s a lot more I want to refine and expand.  
