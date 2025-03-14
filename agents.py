@@ -30,7 +30,7 @@ class Critter(Sprite):
         # Physical properties
         self.color = context.get(Attributes.COLOR)
         self.size = context.get(Attributes.SIZE)
-        self.speed = context.get(Attributes.SPEED)
+        # self.speed = context.get(Attributes.SPEED)
         self.max_energy = context.get(Attributes.MAX_ENERGY)
 
         # Defense mechanism

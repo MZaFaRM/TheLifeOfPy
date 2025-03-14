@@ -7,7 +7,7 @@ class UIHandler:
     def __init__(self):
         self.surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.surface.fill((26, 26, 26))
-        pygame.display.set_caption("DARWIN")
+        pygame.display.set_caption("PetriPixel")
 
         self.screen_states = {
             "current_screen": "home",
@@ -68,7 +68,6 @@ class UIHandler:
 
     def get_component(self, name):
         current_screen = self.screen_states["current_screen"]
-        # TODO: Clean this
         for component in self.screen_states["rendered_components"][current_screen][
             "handler"
         ].components:

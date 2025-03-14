@@ -1065,7 +1065,7 @@ class AttributesLab:
             Attributes.SIZE: int(get_data(self.SIZE)),
             Attributes.AGE_OF_MATURITY: int(get_data(self.AGE_OF_MATURITY)),
             Attributes.COLOR: helper.hex_to_rgb(get_data(self.COLOR)),
-            Attributes.SPEED: int(get_data(self.SPEED)),
+            # Attributes.SPEED: int(get_data(self.SPEED)),
             Attributes.MAX_LIFESPAN: int(get_data(self.MAX_LIFESPAN)),
             Attributes.MAX_ENERGY: int(get_data(self.MAX_ENERGY)),
         }
@@ -1099,6 +1099,7 @@ class AttributesLab:
                 self.INITIAL_POPULATION: {
                     "type": "user_input_int",
                     "data": "10",
+                    "max" : 1000,
                 },
                 self.SPECIES: {
                     "type": "user_input_str",
@@ -1125,6 +1126,7 @@ class AttributesLab:
                 self.VISION_RADIUS: {
                     "type": "user_input_int",
                     "data": "40",
+                    "max" : 100,
                 },
                 self.AGE_OF_MATURITY: {
                     "type": "user_input_int",
@@ -1133,15 +1135,16 @@ class AttributesLab:
                 self.SIZE: {
                     "type": "user_input_int",
                     "data": "10",
+                    "max" : 100,
                 },
                 self.COLOR: {
                     "type": "user_input_color",
                     "data": helper.get_random_color()[1:],
                 },
-                self.SPEED: {
-                    "type": "user_input_int",
-                    "data": "1",
-                },
+                # self.SPEED: {
+                #     "type": "user_input_int",
+                #     "data": "1",
+                # },
                 self.MAX_LIFESPAN: {
                     "type": "user_input_int",
                     "data": "100000",
@@ -1240,7 +1243,7 @@ class AttributesLab:
                 x + 200 + self.surface_x_offset,
                 y + self.surface_y_offset,
             )
-        )
+        ).inflate(1500, 0)
 
     def __create_single_choice_list(self, option, value, option_surface, x, y):
         choice_x = 200
@@ -1528,6 +1531,12 @@ class AttributesLab:
 
     def __handle_int_input(self, event, selected_option):
         """Handle input for integers."""
+        if self.traits_schema["options"][selected_option].get("max"):
+            # Ensure the input does not exceed the maximum value
+            max_value = self.traits_schema["options"][selected_option]["max"]
+            if int(self.traits_schema["options"][selected_option]["data"] + event.unicode) > max_value:
+                return
+
         self.traits_schema["options"][selected_option]["data"] += (
             event.unicode if event.unicode.isdigit() else ""
         )
