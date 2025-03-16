@@ -75,12 +75,15 @@ python main.py
 
 ### References
 
--   **"Simulating Natural Selection"** – _Primer Blobs_ ([YouTube](https://youtu.be/0ZGbIKd0XrM))  
-     Gave me inspiration for the project itself.
--   **"I programmed some creatures. They Evolved."** – _David Randall Miller_ ([YouTube](https://youtu.be/N3tRFayqVtk))  
-     Gave me ideas on how to implement the neural network aspects.
--   **"Neural Networks"** – _3Blue1Brown_ ([YouTube](https://youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi&si=n2Z-eqO5R8f-HR5O))
-    Taught me a good chunk about building Neural Networks.
+>   **"Simulating Natural Selection"** – _Primer Blobs_ ([YouTube](https://youtu.be/0ZGbIKd0XrM))  
+
+Gave me inspiration for the project itself.
+>   **"I programmed some creatures. They Evolved."** – _David Randall Miller_ ([YouTube](https://youtu.be/N3tRFayqVtk))  
+
+Gave me ideas on how to implement the neural network aspects.
+>   **"Neural Networks"** – _3Blue1Brown_ ([YouTube](https://youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi&si=n2Z-eqO5R8f-HR5O))
+    
+Taught me a good chunk about building Neural Networks.
 
 ## License
 
