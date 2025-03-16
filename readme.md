@@ -1,4 +1,4 @@
-# **PetriPixel**
+# PetriPixel
 
 ![Home Screen](./assets/images/docs/home-beautified.png)
 
@@ -6,16 +6,81 @@ Inspired by the works of [@PrimerBlobs](https://www.youtube.com/@PrimerBlobs), [
 
 So, here’s **PetriPixel**—a digital petri dish where you can create organisms by customizing their **phenotypic and genotypic traits** (like neural networks, size, color, and defense mechanisms) and release them into an environment to see how they interact. This is just the first iteration, and there’s a lot more I want to refine and expand.
 
-# Key Features
+---
+
+## Key Features
 
 ![Laboratory](./assets/images/docs/lab-beautified.png)
 
-- **Create Various Creatures**  
-  - Define their physical traits—size, shape, and defensive features.  
-  - Set their behavioral traits—how they respond to food, threats, and each other.  
+-   **Create Various Creatures**
 
-- **Observe Their Interactions**  
-  - See how they navigate their environment, whether they compete, cooperate, or simply coexist.  
+    -   Define their physical traits—size, shape, and defensive features.
+    -   Set their behavioral traits—how they respond to food, threats, and each other.
 
-- **Watch Them Evolve**  
-  - Over generations, successful traits persist while others disappear, shaping the next wave of creatures.
+-   **Observe Their Interactions**
+
+    -   See how they navigate their environment, whether they compete, cooperate, or simply coexist.
+
+-   **Watch Them Evolve**
+    -   Over generations, successful traits persist while others disappear, shaping the next wave of creatures.
+
+---
+
+## Installation & Setup
+
+### 📥 **Get the Latest Release (Recommended)**
+
+For the easiest setup, download the latest standalone runner from the **[Releases](https://github.com/MZaFaRM/PetriPixel/releases/)** section. No additional installation is required—just run the executable!
+
+### 🛠 **Run from Source**
+
+If you want to run the project from source, follow these steps:
+
+#### **1. Install Prerequisites**
+
+-   **Python** (>= 3.x) – [Download here](https://www.python.org/downloads/)
+
+> **Windows Users:** If you encounter errors during installation, install [Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and ensure you select **"Desktop development with C++"** during installation.
+
+#### **2. Clone the Repository**
+
+```bash
+git clone https://github.com/MZaFaRM/PetriPixel.git
+cd PetriPixel
+```
+
+#### **3. Create & Activate a Virtual Environment (Optional but Recommended)**
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On macOS/Linux
+venv\Scripts\activate      # On Windows
+```
+
+#### **4. Install Dependencies**
+
+Before proceeding, ensure `pip`, `setuptools`, and `wheel` are up to date:
+
+```bash
+pip install --upgrade pip setuptools wheel
+```
+
+Now, install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+#### **5. Run the Project**
+
+```bash
+python main.py
+```
+
+---
+
+## License
+
+This project is licensed under the **MIT License**. See the full license text [here](https://opensource.org/licenses/MIT).
+
+---
