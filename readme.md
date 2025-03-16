@@ -10,8 +10,12 @@ So, here’s **PetriPixel**—a digital petri dish where you can create organism
 
 ![Laboratory](./assets/images/docs/lab-beautified.png)
 
--   Create Various Creatures
-    -   Design their physical traits
-    -   Design their behavioral traits
--   Observe how they interact with each other
--   Watch theme evolve
+- **Create Various Creatures**  
+  - Define their physical traits—size, shape, and defensive features.  
+  - Set their behavioral traits—how they respond to food, threats, and each other.  
+
+- **Observe Their Interactions**  
+  - See how they navigate their environment, whether they compete, cooperate, or simply coexist.  
+
+- **Watch Them Evolve**  
+  - Over generations, successful traits persist while others disappear, shaping the next wave of creatures.
