@@ -4,7 +4,7 @@
 
 Inspired by the works of [@PrimerBlobs](https://www.youtube.com/@PrimerBlobs), [@davidrandallmiller](https://www.youtube.com/@davidrandallmiller), and [@3Blue1Brown](https://www.youtube.com/@3Blue1Brown), I’ve wanted to build something like this for a long time My BTech final project felt like the perfect excuse to finally do it.
 
-So, here’s **PetriPixel**—a digital petri dish where you can create organisms by customizing their **phenotypic and genotypic traits** (like neural networks, size, color, and defense mechanisms) and release them into an environment to see how they interact. This is just the first iteration, and there’s a lot more I want to refine and expand.
+So, here’s **PetriPixel**—my attempt at creating a digital petri dish where you can create organisms by customizing their **phenotypic and genotypic traits** (like neural networks, size, color, and defense mechanisms) and release them into an environment to see how they interact.
 
 ## Key Features
 
