@@ -12,11 +12,11 @@ class NeuronType(Enum):
 
 
 class MatingState(Enum):
+    MINOR = -1
     NOT_READY = 0
     READY = 1
     MATING = 2
     WAITING = 3
-
 
 class SurfDesc(Enum):
     SURFACE = "surface"

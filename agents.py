@@ -156,7 +156,6 @@ class Critter(Sprite):
         if not self.done:
             self.time += 1
             self.age += 1
-            self.current_mating_timeout -= 1
             self.energy -= 1
 
             if self.energy <= 0 or self.age >= self.max_lifespan:
@@ -171,26 +170,38 @@ class Critter(Sprite):
             self.update_rect()
 
     def update_mating_state(self):
-        if self.age >= self.age_of_maturity:
-            if self.mating_state == MatingState.READY:
-                if self.incoming_mate_request:
+        self.current_mating_timeout -= 1
+
+        if self.mating_state == MatingState.MINOR:
+            if self.age >= self.age_of_maturity:
+                self.mating_state = MatingState.READY
+
+        elif self.mating_state == MatingState.READY:
+            if self.incoming_mate_request:
+                if self.incoming_mate_request.mate == None:
                     self.set_mate(self.incoming_mate_request)
-                    self.incoming_mate_request = None
                     self.mate.set_mate(self)
-                elif (
-                    self.outgoing_mate_request
-                    and self.outgoing_mate_request.mate
-                    and self.outgoing_mate_request.mate.id == self.id
-                ):
-                    self.set_mate(self.outgoing_mate_request)
-                    self.outgoing_mate_request = None
-                    self.mate.set_mate(self)
-                    return
-            elif self.mating_state == MatingState.MATING:
-                return
-            elif self.mating_state == MatingState.NOT_READY:
-                if self.current_mating_timeout <= 0:
-                    self.mating_state = MatingState.READY
+            self.incoming_mate_request = None
+
+        elif self.mating_state == MatingState.NOT_READY:
+            if self.current_mating_timeout <= 0:
+                self.mating_state = MatingState.READY
+
+        elif self.mating_state == MatingState.WAITING:
+            if self.outgoing_mate_request:
+                if self.outgoing_mate_request.mate:
+                    if self.outgoing_mate_request.mate.id == self.id:     
+                        self.set_mate(self.outgoing_mate_request)
+                        self.mate.set_mate(self)
+                        self.outgoing_mate_request = None
+                    elif self.outgoing_mate_request.mate.id != self.id:
+                        self.outgoing_mate_request = None
+                        self.mating_state = MatingState.READY
+            else:
+                self.mating_state = MatingState.READY
+
+        elif self.mating_state == MatingState.MATING:
+            pass
 
     def update_rect(self):
         self.rect.centerx %= self.env_surface.get_width()
@@ -204,7 +215,7 @@ class Critter(Sprite):
         self.mate = mate
 
     def remove_mate(self):
-        self.mating_state = MatingState.READY
+        self.mating_state = MatingState.NOT_READY
         self.mate = None
         self.current_mating_timeout = self.mating_timeout
 

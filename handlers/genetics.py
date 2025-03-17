@@ -7,6 +7,7 @@ import pygame
 
 from config import ENV_OFFSET_X, ENV_OFFSET_Y
 from enums import Attributes, NeuronType, MatingState
+from collections import defaultdict
 import helper
 
 
@@ -74,56 +75,75 @@ class Genome:
         activations = {}
 
         # Step 1: Initialize sensor nodes with input values
-        sensor_nodes = [
-            node for node in self.node_genes if node.type == NeuronType.SENSOR
-        ]
+        sensor_nodes = [node for node in self.node_genes if node.type == NeuronType.SENSOR]
         if len(inputs) != len(sensor_nodes):
-            raise ValueError(
-                f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}."
-            )
+            raise ValueError(f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}.")
 
         for node, value in zip(sensor_nodes, inputs):
             activations[node._id] = value
 
-        # Step 2: Initialize hidden, output, and bias nodes
+        # Step 2: Initialize other nodes to zero
         for node in self.node_genes:
             if node.type != NeuronType.SENSOR:
                 activations[node._id] = 0
 
-        # Step 3: Initialize bias nodes with constant value (typically 1)
+        # Step 3: Initialize bias nodes
         for node in self.node_genes:
             if node.type == NeuronType.BIAS:
-                activations[node._id] = 1  # Bias nodes have a fixed activation of 1
+                activations[node._id] = 1  # Bias nodes always have activation 1
 
-        # Step 4: Process connections in a feed-forward manner
-        for connection in sorted(
-            self.connection_genes, key=lambda c: c.in_node.name
-        ):  # Sort for consistency
+        # Step 4: Identify tree roots (nodes that are not targeted by any connection)
+        child_nodes = {conn.out_node._id for conn in self.connection_genes if conn.enabled}
+        root_nodes = {node._id for node in self.node_genes if node._id not in child_nodes}
+
+        # Step 5: Group connections by their respective trees
+        tree_connections = defaultdict(list)
+        for connection in self.connection_genes:
             if connection.enabled:
-                # If either in_node or out_node is bias, process it like other neurons
-                activations[connection.out_node._id] += (
-                    activations[connection.in_node._id] * connection.weight
-                )
+                tree_connections[connection.out_node._id].append(connection)
 
-        # Step 5: Activation function (sigmoid) for hidden and output nodes
+        # Step 6: Process each tree independently
+        def propagate_tree(root_id):
+            queue = [root_id]
+            visited = set()
+
+            while queue:
+                node_id = queue.pop(0)
+                visited.add(node_id)
+
+                for connection in tree_connections[node_id]:
+                    if connection.in_node._id in visited:
+                        activations[connection.out_node._id] += (
+                            activations[connection.in_node._id] * connection.weight
+                        )
+                        queue.append(connection.out_node._id)
+
+        for root_id in root_nodes:
+            propagate_tree(root_id)
+
+        # Step 7: Apply activation function to non-sensor nodes
         def activation_function(x):
-            return x
+            return x  # Replace with a non-linear activation if needed
 
         for node in self.node_genes:
-            if (
-                node.type != NeuronType.SENSOR
-            ):  # Apply activation only to non-input nodes
+            if node.type != NeuronType.SENSOR:
                 activations[node._id] = activation_function(activations[node._id])
 
-        # Step 6: Return output node activations
-        output_nodes = [
-            node for node in self.node_genes if node.type == NeuronType.ACTUATOR
-        ]
-        if output_nodes:
-            max_activation = max(activations[node._id] for node in output_nodes)
-            return [
-                node for node in output_nodes if activations[node._id] == max_activation
-            ]
+        # Step 8: Find the best action per tree
+        output_nodes = [node for node in self.node_genes if node.type == NeuronType.ACTUATOR]
+        tree_best_actions = defaultdict(list)
+
+        for node in output_nodes:
+            tree_id = next((root for root in root_nodes if node._id in tree_connections), node._id)
+            tree_best_actions[tree_id].append((node, activations[node._id]))
+
+        # Step 9: Return the best actuator(s) from each tree
+        result = []
+        for tree_id, actions in tree_best_actions.items():
+            max_activation = max(actions, key=lambda x: x[1])[1]
+            result.extend(node for node, activation in actions if activation == max_activation)
+
+        return result
 
     def step(self, output_nodes, critter):
         if output_nodes:
@@ -317,7 +337,7 @@ class NeuronManager:
         "CAg": {"desc": "Current age of the critter: -1 (newborn) => 1 (old)"},
         "CFi": {"desc": "Current fitness of the critter, compared to average: -1 (low) => 1 (high)"},
         "RSt": {"desc": "Reproduction state of the critter: -1 (not ready) => 0 (ready) => 1 (mating)"},
-        # "MSa" : {"desc": "Returns whether the send mating signal is accepted or not; -1 (No) => 1 (Yes)"},
+        "MSa" : {"desc": "Returns whether the send mating signal is accepted or not; -1 (No) => 1 (Yes)"},
         "DSt": {"desc": "Defense state of the critter: -1 (not activated) => 1 (activated)"},
     }
 
@@ -336,9 +356,8 @@ class NeuronManager:
         "AvA" : {"desc": "Move away from the nearest any-species critter, if found."},
         "AvF" : {"desc": "Move away from the nearest food source, if found."},
         "AvM" : {"desc": "Move away from the mouse pointer, if found."},
-        # "SMS" : {"desc": "Send a mating signal to same-species nearby critter, if found."},
-        # "SMO" : {"desc": "Send a mating signal to any-species nearby critter, if found."},
-        # "Mte" : {"desc": "Mate; if mate found"},
+        "SMS" : {"desc": "Send a mating signal to same-species nearby critter, if found."},
+        "Mte" : {"desc": "Mate; if mate found"},
     }
     # fmt: on
 
@@ -643,17 +662,6 @@ class NeuronManager:
         """Send a mating signal to a nearby critter, of the same species"""
         if other := self._lookup_context(
             id=critter.id, time=critter.time, key="closest_same_critter"
-        ):
-            if (
-                other.mating_state == MatingState.READY
-                and critter.mating_state == MatingState.READY
-            ):
-                other.incoming_mate_request = critter
-
-    def act_SMO(self, critter):
-        """Send a mating signal to a nearby critter, of any species"""
-        if other := self._lookup_context(
-            id=critter.id, time=critter.time, key="closest_any_critter"
         ):
             if (
                 other.mating_state == MatingState.READY
