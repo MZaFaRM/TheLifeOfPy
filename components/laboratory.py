@@ -9,7 +9,7 @@ import pygame
 import pygame.gfxdraw
 
 from config import Colors, Fonts, InvalidConnection, image_assets
-from enums import Attributes, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
+from enums import Attributes, Defence, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
 from handlers.genetics import NeuronManager
 import helper
 
@@ -1065,7 +1065,7 @@ class AttributesLab:
             Attributes.SIZE: int(get_data(self.SIZE)),
             Attributes.AGE_OF_MATURITY: int(get_data(self.AGE_OF_MATURITY)),
             Attributes.COLOR: helper.hex_to_rgb(get_data(self.COLOR)),
-            # Attributes.SPEED: int(get_data(self.SPEED)),
+            Attributes.MAX_SPEED: int(get_data(self.MAX_SPEED)),
             Attributes.MAX_LIFESPAN: int(get_data(self.MAX_LIFESPAN)),
             Attributes.MAX_ENERGY: int(get_data(self.MAX_ENERGY)),
         }
@@ -1083,7 +1083,7 @@ class AttributesLab:
         self.VISION_RADIUS = "Vision Radius: "
         self.SIZE = "Size: "
         self.COLOR = "Color: "
-        self.SPEED = "Speed: "
+        self.MAX_SPEED = "Max Speed: "
         self.MAX_ENERGY = "Max Energy: "
         self.MAX_LIFESPAN = "Max Lifespan: "
 
@@ -1107,10 +1107,10 @@ class AttributesLab:
                 },
                 self.DEFENSE_MECHANISM: {
                     "choices": [
-                        {"value": "None", "selected": True},
-                        {"value": "Swordling", "selected": False},
-                        {"value": "Shieldling", "selected": False},
-                        {"value": "Camoufling", "selected": False},
+                        {"value": Defence.NONE, "selected": True},
+                        {"value": Defence.SWORDLING, "selected": False},
+                        {"value": Defence.SHIELDLING, "selected": False},
+                        {"value": Defence.CAMOUFLING, "selected": False},
                     ],
                     "type": "single_choice_list",
                 },
@@ -1141,10 +1141,10 @@ class AttributesLab:
                     "type": "user_input_color",
                     "data": helper.get_random_color()[1:],
                 },
-                # self.SPEED: {
-                #     "type": "user_input_int",
-                #     "data": "1",
-                # },
+                self.MAX_SPEED: {
+                    "type": "user_input_int",
+                    "data": "1",
+                },
                 self.MAX_LIFESPAN: {
                     "type": "user_input_int",
                     "data": "100000",
@@ -1232,12 +1232,8 @@ class AttributesLab:
                 self.traits_schema["highlight_width"],
             )
         )
-        text_surface.blit(text, (5, 0))
 
-        # Blit the text surface onto the option surface
-        option_surface.blit(text_surface, (200, 0))
-
-        # Update the absolute pentagon for the input field
+        # Update the absolute for the input field
         value[SurfDesc.ABSOLUTE_RECT] = text_surface.get_rect(
             topleft=(
                 x + 200 + self.surface_x_offset,
@@ -1277,7 +1273,7 @@ class AttributesLab:
                 choice[state] = choice_surface
 
             choice[SurfDesc.RECT] = choice[SurfDesc.SURFACE].get_rect(
-                topleft=(x + choice_x, y)
+                topleft=(x + 50 + choice_x, y)
             )
             choice[SurfDesc.ABSOLUTE_RECT] = choice[SurfDesc.SURFACE].get_rect(
                 topleft=(
@@ -1383,16 +1379,16 @@ class AttributesLab:
         rect = pygame.Rect(0, 0, 50, 50)
         rect.center = (surface.get_width() // 2, surface.get_height() // 2)
 
-        if defense == "Swordling":
+        if defense == Defence.SWORDLING:
             square_1 = helper.get_square_points(rect.inflate(75, 75))
             square_2 = helper.get_square_points(rect.inflate(75, 75), 45)
             pygame.draw.polygon(surface, (125, 28, 74, 180), square_1)
             pygame.draw.polygon(surface, (125, 28, 74, 180), square_2)
-        elif defense == "Shieldling":
+        elif defense == Defence.SHIELDLING:
             border_rect = pygame.Rect(0, 0, 75, 75)
             border_rect.center = (surface.get_width() // 2, surface.get_height() // 2)
             pygame.draw.rect(surface, (255, 255, 255), border_rect, 5)
-        elif defense == "Camoufling":
+        elif defense == Defence.CAMOUFLING:
             color = (color[0], color[1], color[2], int(0.5 * 255))
 
         if shape == Shapes.CIRCLE:
@@ -1657,5 +1653,5 @@ class AttributesLab:
         text_bg.blit(text, (5, 0))
         text_surface.fill(self.traits_schema["bg_color"])
         text_surface.blit(text_bg, (0, 0))
-        option_surface.blit(text_surface, (200, 0))
+        option_surface.blit(text_surface, (250, 0))
         return data.strip("_")

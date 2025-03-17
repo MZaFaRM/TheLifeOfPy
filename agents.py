@@ -5,7 +5,7 @@ import pygame
 from pygame.sprite import Sprite
 
 import helper
-from enums import Attributes, Shapes, MatingState
+from enums import Attributes, Defence, Shapes, MatingState
 from handlers.genetics import Genome
 
 
@@ -30,7 +30,7 @@ class Critter(Sprite):
         # Physical properties
         self.color = context.get(Attributes.COLOR)
         self.size = context.get(Attributes.SIZE)
-        # self.speed = context.get(Attributes.SPEED)
+        self.max_speed = context.get(Attributes.MAX_SPEED)
         self.max_energy = context.get(Attributes.MAX_ENERGY)
 
         # Defense mechanism
@@ -73,6 +73,7 @@ class Critter(Sprite):
         self.td = random.randint(0, 1000)  # for pnoise generation
         self.angle = 0  # degrees
         self.rotation = 0  # degrees
+        self.max_speed = context.get(Attributes.MAX_SPEED)
 
         # Environment setup
         self.env_surface = surface
@@ -102,6 +103,7 @@ class Critter(Sprite):
             -2 * self.vision["radius"] + 10,
         )
         self.body_rect.center = self.center
+        self.previous_position = self.rect.center
 
     def draw(self, surface):
         if not self.alive:
@@ -122,19 +124,19 @@ class Critter(Sprite):
         defense_rect = self.body_rect.inflate(20, 20)
 
         # Defense mechanism
-        if self.defense_mechanism == "Swordling":
+        if self.defense_mechanism == Defence.SWORDLING:
             square_1 = helper.get_square_points(defense_rect)
             square_2 = helper.get_square_points(defense_rect, 45)
             pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_1)
             pygame.draw.polygon(self.defense_image, (125, 28, 74, 180), square_2)
-        elif self.defense_mechanism == "Shieldling":
+        elif self.defense_mechanism == Defence.SHIELDLING:
             pygame.draw.rect(
                 self.defense_image,
                 (255, 255, 255),
                 defense_rect.inflate(-10, -10),
                 3,
             )
-        elif self.defense_mechanism == "Camoufling":
+        elif self.defense_mechanism == Defence.CAMOUFLING:
             color = (color[0], color[1], color[2], int(0.2 * 255))
 
         # Critter
@@ -204,11 +206,20 @@ class Critter(Sprite):
             pass
 
     def update_rect(self):
-        self.rect.centerx %= self.env_surface.get_width()
-        self.rect.centery %= self.env_surface.get_height()
+        # Enforce max movement offset
+        dx = max(-self.max_speed, min(self.max_speed, self.rect.centerx - self.previous_position[0]))
+        dy = max(-self.max_speed, min(self.max_speed, self.rect.centery - self.previous_position[1]))
 
+        # Apply the constrained movement
+        self.rect.centerx = (self.previous_position[0] + dx) % self.env_surface.get_width()
+        self.rect.centery = (self.previous_position[1] + dy) % self.env_surface.get_height()
+
+        # Update other rectangles
         self.body_rect.center = self.rect.center
         self.interaction_rect.center = self.rect.center
+
+        # Store updated position
+        self.previous_position = self.rect.center
 
     def set_mate(self, mate):
         self.mating_state = MatingState.MATING

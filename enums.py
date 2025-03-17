@@ -10,6 +10,12 @@ class NeuronType(Enum):
     # Other
     CONN = "connection"
 
+class Defence(Enum):
+    NONE = "None"
+    SHIELDLING = "Shieldling"
+    SWORDLING = "Swordling"
+    CAMOUFLING = "Camoufling"
+
 
 class MatingState(Enum):
     MINOR = -1
@@ -35,7 +41,7 @@ class Attributes(Enum):
     SIZE = "_size"
     AGE_OF_MATURITY = "_age_of_maturity"
     COLOR = "_color"
-    SPEED = "_speed"
+    MAX_SPEED = "_max_speed"
     MAX_ENERGY = "_max_energy"
     MAX_LIFESPAN = "_max_lifespan"
 

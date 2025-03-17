@@ -6,7 +6,7 @@ import numpy as np
 import pygame
 
 from config import ENV_OFFSET_X, ENV_OFFSET_Y
-from enums import Attributes, NeuronType, MatingState
+from enums import Attributes, Defence, NeuronType, MatingState
 from collections import defaultdict
 import helper
 
@@ -601,8 +601,8 @@ class NeuronManager:
                     if other.id == critter.id:
                         continue
                     elif other.defense_active and other.defense_mechanism in [
-                        "Shieldling",
-                        "Camouflaging",
+                        Defence.SHIELDLING,
+                        Defence.CAMOUFLING,
                     ]:
                         continue
                     else:
@@ -720,10 +720,7 @@ class NeuronManager:
         )
 
         # Normalize to [-1, 1]
-        data = (min(min_distance / (critter.rect.width // 2), 1) * 2) - 1
-        if data < 0:
-            pass
-        return data
+        return (min(min_distance / (critter.rect.width // 2), 1) * 2) - 1
 
     def _get_normalized_density(self, critter, objects, context_key, filter_fn=None):
         """Returns normalized density of objects in 'objects' within critter's vision range."""
