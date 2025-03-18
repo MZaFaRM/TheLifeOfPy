@@ -1,10 +1,8 @@
 import colorsys
 import math
 import random
-import noise
 import numpy as np
 import pygame
-from functools import lru_cache
 
 
 def split_text(text, char_limit=42):

@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pygame
 
@@ -108,7 +109,7 @@ class HomeComponent:
         if event.type == pygame.MOUSEBUTTONUP:
             if self.close_window_button_rect.collidepoint(event.pos):
                 pygame.quit()
-                exit()
+                sys.exit()
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button, button_data in self.time_control_buttons.items():

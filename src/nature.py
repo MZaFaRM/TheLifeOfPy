@@ -1,14 +1,20 @@
+import os
+import sys
 import pygame
 
 from src.enums import Attributes, EventType, MessagePacket
 from src.handlers import genetics
 import src.handlers.organisms as organisms
 from src.handlers.ui import UIHandler
+from src.config import image_assets
 
 class Nature:
     def __init__(self):
+        icon = pygame.image.load(os.path.join(image_assets, "icons", "256x256.png"))
+        icon = pygame.transform.scale(icon, (32, 32))
+        pygame.display.set_icon(icon)
+        
         pygame.font.init()
-
         self.clock = pygame.time.Clock()
         self.ui_handler = UIHandler()
         self.reset()
@@ -103,7 +109,7 @@ class Nature:
                 self.render()
         except KeyboardInterrupt:
             pygame.quit()
-            quit()
+            sys.exit(0)
         except Exception as e:
             raise
 

@@ -1,3 +1,4 @@
+import sys
 import pygame
 from src.components.home import HomeComponent
 from src.components.laboratory import LaboratoryComponent
@@ -51,7 +52,7 @@ class UIHandler:
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
-                quit()
+                sys.exit(0)
 
             for name, info in self.screen_states["rendered_components"].items():
                 yield info["handler"].event_handler(event) or []
