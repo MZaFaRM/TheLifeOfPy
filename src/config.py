@@ -1,6 +1,6 @@
 import os
 
-assets = os.path.join(os.path.dirname(__file__), "assets")
+assets = os.path.join(os.path.dirname(__file__), "..", "assets")
 image_assets = os.path.join(assets, "images")
 font_assets = os.path.join(assets, "fonts")
 

@@ -4,9 +4,9 @@ from uuid import uuid4
 import pygame
 from pygame.sprite import Sprite
 
-import helper
-from enums import Attributes, Defence, Shapes, MatingState
-from handlers.genetics import Genome
+import src.helper as helper
+from src.enums import Attributes, Defence, Shapes, MatingState
+from src.handlers.genetics import Genome
 
 
 class Critter(Sprite):

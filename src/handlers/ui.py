@@ -1,6 +1,6 @@
 import pygame
-from components.home import HomeComponent
-from components.laboratory import LaboratoryComponent
+from src.components.home import HomeComponent
+from src.components.laboratory import LaboratoryComponent
 
 
 class UIHandler:

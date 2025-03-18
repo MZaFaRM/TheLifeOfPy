@@ -2,9 +2,9 @@ import os
 
 import pygame
 
-from config import Colors, Fonts, image_assets
-from enums import EventType, MessagePacket, SurfDesc
-from handlers.organisms import Counter
+from src.config import Colors, Fonts, image_assets
+from src.enums import EventType, MessagePacket, SurfDesc
+from src.handlers.organisms import Counter
 import webbrowser
 import pygame_chart as pyc
 

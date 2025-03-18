@@ -8,10 +8,10 @@ import numpy as np
 import pygame
 import pygame.gfxdraw
 
-from config import Colors, Fonts, InvalidConnection, image_assets
-from enums import Attributes, Defence, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
-from handlers.genetics import NeuronManager
-import helper
+from src.config import Colors, Fonts, InvalidConnection, image_assets
+from src.enums import Attributes, Defence, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
+from src.handlers.genetics import NeuronManager
+import src.helper as helper
 
 
 class LaboratoryComponent:

@@ -5,10 +5,10 @@ import noise
 import numpy as np
 import pygame
 
-from config import ENV_OFFSET_X, ENV_OFFSET_Y
-from enums import Attributes, Defence, NeuronType, MatingState
+from src.config import ENV_OFFSET_X, ENV_OFFSET_Y
+from src.enums import Attributes, Defence, NeuronType, MatingState
 from collections import defaultdict
-import helper
+import src.helper as helper
 
 
 class ConnectionGene:

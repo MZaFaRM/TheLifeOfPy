@@ -5,9 +5,9 @@ import uuid
 import numpy as np
 import pygame
 
-import agents
-from config import Colors, Fonts
-from enums import Attributes
+import src.agents as agents
+from src.config import Colors, Fonts
+from src.enums import Attributes
 
 
 class Forest:
