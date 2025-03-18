@@ -1,6 +1,13 @@
 import os
+import sys
 
-assets = os.path.join(os.path.dirname(__file__), "..", "assets")
+if getattr(sys, "frozen", False):  # Running from a PyInstaller bundle
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.dirname(__file__)  # Normal script execution
+    base_path = os.path.join(base_path, "..")
+
+assets = os.path.join(base_path, "assets")
 image_assets = os.path.join(assets, "images")
 font_assets = os.path.join(assets, "fonts")
 
@@ -23,6 +30,7 @@ class Fonts:
     PixelifySansMedium = os.path.join(font_assets, "PixelifySans", "PixelifySans-Medium.otf")
     PixelifySansSemiBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-SemiBold.otf")
     PixelifySansExtraBold = os.path.join(font_assets, "PixelifySans", "PixelifySans-ExtraBold.otf")
-    
+
+
 class InvalidConnection(Exception):
     pass
