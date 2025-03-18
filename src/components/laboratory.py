@@ -1271,14 +1271,16 @@ class AttributesLab:
                 choice_surface.fill(color)
                 choice_surface.blit(text, (5, 0))
                 choice[state] = choice_surface
-
+            
+            rect_x = x + 50 + choice_x
+            rect_y = y
             choice[SurfDesc.RECT] = choice[SurfDesc.SURFACE].get_rect(
-                topleft=(x + 50 + choice_x, y)
+                topleft=(rect_x, rect_y)
             )
             choice[SurfDesc.ABSOLUTE_RECT] = choice[SurfDesc.SURFACE].get_rect(
                 topleft=(
-                    x + choice_x + self.surface_x_offset,
-                    y + self.surface_y_offset,
+                    rect_x + self.surface_x_offset,
+                    rect_y + self.surface_y_offset,
                 )
             )
             choice_x += choice[SurfDesc.SURFACE].get_width() + 10
