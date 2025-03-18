@@ -405,13 +405,13 @@ class SidebarComponent:
                 button = self.buttons["docs"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
-                webbrowser.open("https://github.com/MZaFaRM/DARWIN/blob/main/readme.md")
+                webbrowser.open("https://github.com/MZaFaRM/PetriPixel/blob/main/readme.md")
         elif self.buttons["github"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["github"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
-                webbrowser.open("https://github.com/MZaFaRM/DARWIN")
+                webbrowser.open("https://github.com/MZaFaRM/PetriPixel")
         
 
     def load_and_store_button(self, name, image, clicked_image, position):
