@@ -75,9 +75,13 @@ class Genome:
         activations = {}
 
         # Step 1: Initialize sensor nodes with input values
-        sensor_nodes = [node for node in self.node_genes if node.type == NeuronType.SENSOR]
+        sensor_nodes = [
+            node for node in self.node_genes if node.type == NeuronType.SENSOR
+        ]
         if len(inputs) != len(sensor_nodes):
-            raise ValueError(f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}.")
+            raise ValueError(
+                f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}."
+            )
 
         for node, value in zip(sensor_nodes, inputs):
             activations[node._id] = value
@@ -93,8 +97,12 @@ class Genome:
                 activations[node._id] = 1  # Bias nodes always have activation 1
 
         # Step 4: Identify tree roots (nodes that are not targeted by any connection)
-        child_nodes = {conn.out_node._id for conn in self.connection_genes if conn.enabled}
-        root_nodes = {node._id for node in self.node_genes if node._id not in child_nodes}
+        child_nodes = {
+            conn.out_node._id for conn in self.connection_genes if conn.enabled
+        }
+        root_nodes = {
+            node._id for node in self.node_genes if node._id not in child_nodes
+        }
 
         # Step 5: Group connections by their respective trees
         tree_connections = defaultdict(list)
@@ -130,18 +138,24 @@ class Genome:
                 activations[node._id] = activation_function(activations[node._id])
 
         # Step 8: Find the best action per tree
-        output_nodes = [node for node in self.node_genes if node.type == NeuronType.ACTUATOR]
+        output_nodes = [
+            node for node in self.node_genes if node.type == NeuronType.ACTUATOR
+        ]
         tree_best_actions = defaultdict(list)
 
         for node in output_nodes:
-            tree_id = next((root for root in root_nodes if node._id in tree_connections), node._id)
+            tree_id = next(
+                (root for root in root_nodes if node._id in tree_connections), node._id
+            )
             tree_best_actions[tree_id].append((node, activations[node._id]))
 
         # Step 9: Return the best actuator(s) from each tree
         result = []
         for tree_id, actions in tree_best_actions.items():
             max_activation = max(actions, key=lambda x: x[1])[1]
-            result.extend(node for node, activation in actions if activation == max_activation)
+            result.extend(
+                node for node, activation in actions if activation == max_activation
+            )
 
         return result
 
@@ -591,7 +605,7 @@ class NeuronManager:
     def act_ADe(self, critter):
         """Activates defense mechanism when triggered, deactivates otherwise."""
         setattr(critter, "defense_active", True)
-        if critter.defense_mechanism == "Swordling":
+        if critter.defense_mechanism == Defence.SWORDLING:
             collision_indices = critter.interaction_rect.collidelistall(
                 [other.interaction_rect for other in self.critters]
             )
@@ -600,10 +614,13 @@ class NeuronManager:
                     other = self.critters[i]
                     if other.id == critter.id:
                         continue
-                    elif other.defense_active and other.defense_mechanism in [
-                        Defence.SHIELDLING,
-                        Defence.CAMOUFLING,
-                    ]:
+                    elif other.defense_active and (
+                        other.defense_mechanism
+                        in [
+                            Defence.SHIELDLING,
+                            Defence.CAMOUFLING,
+                        ]
+                    ):
                         continue
                     else:
                         other.energy = 0
