@@ -306,20 +306,6 @@ class InnovationHistory:
             return self.innovation
 
 
-class Phenome:
-    def __init__(self, phenome_data):
-        self.radius = phenome_data.get("radius", 5)
-        self.colors = {
-            "alive": phenome_data.get(Attributes.COLOR, (124, 245, 255)),
-            "dead": (0, 0, 0),
-            "reproducing": (255, 255, 255),
-        }
-        self.border = {
-            Attributes.COLOR: phenome_data.get(Attributes.COLOR, (100, 57, 255)),
-            "thickness": 2.5,
-        }
-
-
 class NeuronManager:
     # fmt: off
     sensors = {
