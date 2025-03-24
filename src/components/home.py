@@ -160,7 +160,7 @@ class HomeComponent:
                 )
 
         self.counter_surface.fill((0, 0, 0, 0))
-        text = self.counter_font.render(f"{context["time"]:,} Ts", True, Colors.primary)
+        text = self.counter_font.render(f"{context['time']:,} Ts", True, Colors.primary)
         text_rect = text.get_rect(topleft=(0, 0))
         self.counter_surface.blit(text, text_rect)
         self.surface.blit(self.counter_surface, self.counter_rect)
