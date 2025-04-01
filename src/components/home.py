@@ -405,7 +405,7 @@ class SidebarComponent:
                 button = self.buttons["docs"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
-                webbrowser.open("https://github.com/MZaFaRM/PetriPixel/blob/main/readme.md")
+                webbrowser.open("https://github.com/MZaFaRM/PetriPixel/wiki/1.-Home")
         elif self.buttons["github"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["github"]
