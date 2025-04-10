@@ -171,6 +171,10 @@ class Critter(Sprite):
             outputs = self.genome.forward(obs)
             self.genome.step(outputs, self)
             self.update_rect()
+
+            if self.energy > self.max_energy:
+                self.energy = self.max_energy
+
             return self.handle_events(events)
 
 

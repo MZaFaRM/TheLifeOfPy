@@ -8,7 +8,7 @@ import pygame
 from src import helper
 import src.agents as agents
 from src.config import Colors, Fonts
-from src.enums import Attributes
+from src.enums import Attributes, SurfDesc
 
 
 class Forest:
@@ -151,6 +151,8 @@ class Species:
                     Attributes.ENERGY: f"{critter.energy:,}",
                     Attributes.POSITION: f"{critter.rect.center}",
                     Attributes.FITNESS: f"{critter.fitness:,}",
+                    SurfDesc.SURFACE: critter.image,
+
                 }
         return None
     

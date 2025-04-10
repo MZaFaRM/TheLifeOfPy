@@ -1110,7 +1110,7 @@ class AttributesLab:
                         {"value": Defence.NONE, "selected": True},
                         {"value": Defence.SWORDLING, "selected": False},
                         {"value": Defence.SHIELDLING, "selected": False},
-                        {"value": Defence.CAMOUFLING, "selected": False},
+                        # {"value": Defence.CAMOUFLING, "selected": False},
                     ],
                     "type": "single_choice_list",
                 },

@@ -1,4 +1,5 @@
 import os
+from re import S
 import sys
 
 import pygame
@@ -332,6 +333,25 @@ class SidebarComponent:
             y += 35
 
     def __setup_critter_head(self, critter_data):
+        dp_center = (self.surface.get_width() // 2, 175)
+
+        # Load circle image once
+        self.sidebar_screens[self.PROFILE]["dp_circle"] = self.sidebar_screens[
+            self.PROFILE
+        ].get("dp_circle") or pygame.image.load(
+            os.path.join(image_assets, "profile", "dp_circle.svg")
+        )
+
+        # Center the circle image
+        dp_circle_image = self.sidebar_screens[self.PROFILE]["dp_circle"]
+        circle_rect = dp_circle_image.get_rect(center=dp_center)
+        self.surface.blit(dp_circle_image, circle_rect)
+
+        # Center the creature image
+        creature_image = pygame.transform.scale_by(critter_data[SurfDesc.SURFACE], 4)
+        creature_rect = creature_image.get_rect(center=dp_center)
+        self.surface.blit(creature_image, creature_rect)
+
         species = critter_data.get(Attributes.SPECIES)
         species_name_surface = pygame.font.Font(Fonts.PixelifySansBold, 30).render(
             species, True, Colors.bg_color
@@ -711,7 +731,10 @@ class SidebarComponent:
     def update_profile_sidebar(self, context):
         # TODO: Clean this
         critter_data = context.get("selected_critter")
-        if critter_data.get(Attributes.ID) != self.sidebar_screens[self.PROFILE]["critter_id"]:
+        if (
+            critter_data.get(Attributes.ID)
+            != self.sidebar_screens[self.PROFILE]["critter_id"]
+        ):
             self.setup_profile_sidebar(context)
             return
 
@@ -720,9 +743,7 @@ class SidebarComponent:
             back_button[SurfDesc.CURRENT_SURFACE], back_button[SurfDesc.RECT]
         )
 
-        dynamic_options = self.sidebar_screens[self.PROFILE].get(
-            "dynamic_options"
-        )
+        dynamic_options = self.sidebar_screens[self.PROFILE].get("dynamic_options")
         for key, value in critter_data.items():
             if key not in dynamic_options:
                 continue
