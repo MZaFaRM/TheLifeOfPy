@@ -93,8 +93,9 @@ class Species:
             critter.evaluate()
 
     def step(self, events):
+        response = None
         for critter in self.critters.copy():
-            critter.step()
+            response = critter.step(events) or response
             if not critter.alive:
                 self.critters.remove(critter)
                 self.dead_critters.append(critter)
@@ -108,12 +109,36 @@ class Species:
                     )
                 )
                 critter.FETUS = None
+        return response
 
     def get_critters(self, alive=True):
         if alive:
             return self.critters
         else:
             return self.dead_critters
+        
+    def get_critter_info(self, critter_id):
+        critter = next(
+            (c for c in self.critters if c.id == critter_id), None
+        )
+        if critter:
+            return {
+                "id": critter.id,
+                "species": critter.species,
+                "age": critter.age,
+                "energy": critter.energy,
+                "fitness": critter.fitness,
+                "domain": critter.domain,
+                "defense_mechanism": critter.defense_mechanism,
+                "vision_radius": critter.vision["radius"],
+                "size": critter.size,
+                "color": critter.color,
+                "max_speed": critter.max_speed,
+                "max_energy": critter.max_energy,
+                "max_lifespan": critter.max_lifespan,
+            }
+        return None
+        
 
     def get_critter_count(self):
         count = {"total": 0}

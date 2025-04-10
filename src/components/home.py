@@ -205,33 +205,63 @@ class EnvComponent:
 
 class SidebarComponent:
     def __init__(self, main_surface, context=None):
-        self.context = context
         self.main_surface = main_surface
         self.surface = pygame.Surface((408, 988), pygame.SRCALPHA)
 
         self.DEFAULT = "default"
         self.SHOW_GRAPHS = "show_graphs"
+        self.PROFILE = "profile"
 
         self.sidebar_screens = {
             SurfDesc.CURRENT_SURFACE: self.DEFAULT,
             "update": True,
-            "screens": [self.DEFAULT, self.SHOW_GRAPHS],
+            "screens": [self.DEFAULT, self.SHOW_GRAPHS, self.PROFILE],
             self.DEFAULT: {
                 "function": self.setup_default_sidebar,
-                "bg_image": pygame.image.load(
+                SurfDesc.SURFACE: pygame.image.load(
                     os.path.join(image_assets, "home", "sidebar.png")
                 ),
             },
             self.SHOW_GRAPHS: {
                 "function": self.setup_graph_sidebar,
-                "bg_image": pygame.image.load(
+                SurfDesc.SURFACE: pygame.image.load(
                     os.path.join(image_assets, "graphs", "main.svg")
                 ),
             },
+            self.PROFILE: {
+                "function": self.setup_profile_sidebar,
+                SurfDesc.SURFACE: pygame.image.load(
+                    os.path.join(image_assets, "profile", "main.svg")
+                ),
+            },
+
         }
 
+    def setup_profile_sidebar(self):
+        self.surface.blit(self.sidebar_screens[self.PROFILE][SurfDesc.SURFACE], (0, 0))
+
+        # Back button setup
+        back_button = pygame.image.load(
+            os.path.join(image_assets, "graphs", "back_button.svg")
+        )
+        back_button_clicked = pygame.image.load(
+            os.path.join(image_assets, "graphs", "back_button_clicked.svg")
+        )
+        back_button_rect = back_button.get_rect(center=(50, 50))
+
+        self.sidebar_screens[self.PROFILE].update(
+            {
+                "back_button": {
+                    SurfDesc.CURRENT_SURFACE: back_button,
+                    SurfDesc.SURFACE: back_button,
+                    SurfDesc.CLICKED_SURFACE: back_button_clicked,
+                    SurfDesc.RECT: back_button_rect,
+                },
+            }
+        )
+
     def setup_graph_sidebar(self):
-        self.surface.blit(self.sidebar_screens[self.SHOW_GRAPHS]["bg_image"], (0, 0))
+        self.surface.blit(self.sidebar_screens[self.SHOW_GRAPHS][SurfDesc.SURFACE], (0, 0))
         
         # Back button setup
         back_button = pygame.image.load(
@@ -263,7 +293,7 @@ class SidebarComponent:
         )
 
     def setup_default_sidebar(self):
-        self.surface.blit(self.sidebar_screens[self.DEFAULT]["bg_image"], (0, 0))
+        self.surface.blit(self.sidebar_screens[self.DEFAULT][SurfDesc.SURFACE], (0, 0))
 
         self.sidebar_screens[self.DEFAULT].update(
             {
@@ -346,6 +376,8 @@ class SidebarComponent:
                 return self.handle_default_sidebar_event(event, rel_x, rel_y)
             elif self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.SHOW_GRAPHS:
                 return self.handle_graphs_sidebar_event(event, rel_x, rel_y)
+            elif self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.PROFILE:
+                return self.handle_profile_sidebar_event(event, rel_x, rel_y)
 
     def handle_graphs_sidebar_event(self, event, rel_x, rel_y):
         self.sidebar_screens[self.SHOW_GRAPHS]["back_button"][
@@ -412,7 +444,18 @@ class SidebarComponent:
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
                 webbrowser.open("https://github.com/MZaFaRM/PetriPixel")
-        
+
+    def handle_profile_sidebar_event(self, event, rel_x, rel_y):
+        back_button = self.sidebar_screens[self.PROFILE]["back_button"]
+        back_button[SurfDesc.CURRENT_SURFACE] = back_button[SurfDesc.SURFACE]
+
+        if back_button[SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                back_button[SurfDesc.CURRENT_SURFACE] = back_button[SurfDesc.CLICKED_SURFACE]
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.DEFAULT
+                self.sidebar_screens["update"] = True
+                return MessagePacket(EventType.CRITTER, "unselect_critter")
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))
@@ -433,7 +476,14 @@ class SidebarComponent:
         )
 
     def update(self, context=None):
-        if self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.SHOW_GRAPHS:
+        if context.get("selected_critter", None) is not None:
+            if self.sidebar_screens[SurfDesc.CURRENT_SURFACE] != self.PROFILE:
+                self.sidebar_screens[self.PROFILE]["function"]()
+                self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.PROFILE
+            else:
+                self.update_profile_sidebar(context)
+
+        elif self.sidebar_screens[SurfDesc.CURRENT_SURFACE] == self.SHOW_GRAPHS:
             if self.sidebar_screens["update"]:
                 self.sidebar_screens[self.SHOW_GRAPHS]["function"]()
                 self.sidebar_screens["update"] = False
@@ -533,3 +583,9 @@ class SidebarComponent:
         
         figure.line("Plant Abundance", time_steps, population_values, color=Colors.bg_color)
         figure.draw()
+
+    def update_profile_sidebar(self, context):
+        back_button = self.sidebar_screens[self.PROFILE]["back_button"]
+        self.surface.blit(
+            back_button[SurfDesc.CURRENT_SURFACE], back_button[SurfDesc.RECT]
+        )

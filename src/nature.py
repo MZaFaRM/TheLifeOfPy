@@ -47,6 +47,7 @@ class Nature:
         self.fitness_history = []
         self.plant_history = [(0, 0)]
         self.species_colors = {}
+        self.selected_critter = {"id" : None, "data" : None}
 
     def step(self):
         events = pygame.event.get()
@@ -71,11 +72,28 @@ class Nature:
 
             elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
                 self.ui_handler.initialize_screen(screen="laboratory")
+            elif packet == MessagePacket(EventType.CRITTER, "unselect_critter"):
+                self.selected_critter.update({"id": None, "data": None})
+                self.ui_handler.initialize_screen(screen="home")
+
 
         if self.paused:
             return self.done, self.truncated
 
-        self.species.step(events)
+        species_packet = self.species.step(events)
+        if species_packet:
+            if species_packet == MessagePacket(EventType.CRITTER, "profile"):
+                self.selected_critter["id"] = species_packet.context["id"]
+
+        if self.selected_critter["id"]:
+            self.selected_critter["data"] = self.species.get_critter_info(
+                self.selected_critter["id"]
+            )
+
+            if self.selected_critter["data"] is None:
+                self.selected_critter.update({"id": None, "data": None})
+                self.ui_handler.initialize_screen(screen="home")
+                
 
         self.neuron_manager.update(
             self.species.get_critters(),
@@ -125,5 +143,6 @@ class Nature:
                 "time": self.time_steps,
                 "paused": self.paused,
                 "plants": self.forest.get_plants(),
+                "selected_critter": self.selected_critter["data"],
             }
         )

@@ -51,6 +51,7 @@ class EventType(Enum):
     OTHER = "other"
     GENESIS = "genesis"
     RESTART_SIMULATION = "restart_simulation"
+    CRITTER = "critter"
 
 
 class Shapes(Enum):

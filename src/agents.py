@@ -4,8 +4,9 @@ from uuid import uuid4
 import pygame
 from pygame.sprite import Sprite
 
+from src import config
 import src.helper as helper
-from src.enums import Attributes, Defence, Shapes, MatingState
+from src.enums import Attributes, Defence, EventType, MessagePacket, Shapes, MatingState
 from src.handlers.genetics import Genome
 
 
@@ -154,7 +155,7 @@ class Critter(Sprite):
 
         surface.blit(self.image, self.rect)
 
-    def step(self):
+    def step(self, events):
         if not self.done:
             self.time += 1
             self.age += 1
@@ -170,6 +171,16 @@ class Critter(Sprite):
             outputs = self.genome.forward(obs)
             self.genome.step(outputs, self)
             self.update_rect()
+            return self.handle_events(events)
+
+
+    def handle_events(self, events):
+        if events:
+            for event in events:
+                if event.type == pygame.MOUSEBUTTONUP:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if self.interaction_rect.collidepoint(mouse_pos):
+                        return MessagePacket(EventType.CRITTER, "profile", context={"id" : self.id})
 
     def update_mating_state(self):
         self.current_mating_timeout -= 1
@@ -217,6 +228,9 @@ class Critter(Sprite):
         # Update other rectangles
         self.body_rect.center = self.rect.center
         self.interaction_rect.center = self.rect.center
+
+        self.interaction_rect.centerx = self.interaction_rect.centerx + config.ENV_OFFSET_X
+        self.interaction_rect.centery = self.interaction_rect.centery + config.ENV_OFFSET_Y
 
         # Store updated position
         self.previous_position = self.rect.center
