@@ -25,7 +25,8 @@ class UIHandler:
                 "custom_position": {
                     "center": (
                         self.surface.get_width() // 2,
-                        self.surface.get_height() // 2,             ),
+                        self.surface.get_height() // 2,
+                    ),
                 },
                 "context": {},
             },

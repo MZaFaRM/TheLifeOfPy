@@ -20,6 +20,7 @@ class Colors:
     primary = (74, 227, 181)
     error = (255, 0, 0)
     white = (255, 255, 255)
+    grey = (100, 100, 100)
 
 
 class Fonts:

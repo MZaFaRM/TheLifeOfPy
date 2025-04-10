@@ -215,3 +215,29 @@ def get_random_color(seed=None, saturation=0.7, brightness=0.8):
     hue = (index * golden_angle) % 1.0  # Distribute hues evenly
     r, g, b = colorsys.hsv_to_rgb(hue, saturation, brightness)
     return rgb_to_hex((int(r * 255), int(g * 255), int(b * 255)))
+
+def limit_text_size(text, max_size):
+    """
+    Limits the size of the text to a maximum number of characters.
+    If the text exceeds the limit, it truncates the text and adds ellipsis.
+
+    :param text: The input string to be limited.
+    :param max_size: The maximum number of characters allowed.
+    :return: The limited string with ellipsis if truncated.
+    """
+    if len(text) > max_size:
+        return text[:max_size - 1] + "."
+    return text
+
+def split_word(text, max_size):
+    """
+    Splits a word into smaller parts if it exceeds the maximum size.
+
+    :param text: The input string to be split.
+    :param max_size: The maximum number of characters allowed.
+    :return: A list of strings, each within the specified size limit.
+    """
+    if len(text) <= max_size:
+        return [text]
+
+    return [text[i : i + max_size] for i in range(0, len(text), max_size)]

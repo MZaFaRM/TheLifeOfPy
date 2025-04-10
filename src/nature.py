@@ -76,6 +76,8 @@ class Nature:
                 self.selected_critter.update({"id": None, "data": None})
                 self.ui_handler.initialize_screen(screen="home")
 
+        
+
 
         if self.paused:
             return self.done, self.truncated
@@ -84,15 +86,16 @@ class Nature:
         if species_packet:
             if species_packet == MessagePacket(EventType.CRITTER, "profile"):
                 self.selected_critter["id"] = species_packet.context["id"]
+                self.selected_critter["data"] = self.species.get_critter_info(self.selected_critter["id"])
+
 
         if self.selected_critter["id"]:
-            self.selected_critter["data"] = self.species.get_critter_info(
-                self.selected_critter["id"]
-            )
-
-            if self.selected_critter["data"] is None:
+            data = self.species.get_critter_info(self.selected_critter["id"], all=False)
+            if data is None:
                 self.selected_critter.update({"id": None, "data": None})
                 self.ui_handler.initialize_screen(screen="home")
+            else:
+                self.selected_critter["data"].update(data)
                 
 
         self.neuron_manager.update(

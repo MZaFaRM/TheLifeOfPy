@@ -3,8 +3,9 @@ import sys
 
 import pygame
 
+from src import helper
 from src.config import Colors, Fonts, image_assets
-from src.enums import EventType, MessagePacket, SurfDesc
+from src.enums import Attributes, EventType, MessagePacket, SurfDesc
 from src.handlers.organisms import Counter
 import webbrowser
 import pygame_chart as pyc
@@ -138,7 +139,7 @@ class HomeComponent:
         else:
             self.time_control_buttons["pause_time"]["clicked"] = False
             self.time_control_buttons["play_time"]["clicked"] = True
-            
+
         for component in self.components:
             component["rendered_handler"].update(context=context)
             rect = component["rendered_handler"].surface.get_rect(
@@ -148,7 +149,7 @@ class HomeComponent:
 
         self.surface.blit(self.close_window_button, self.close_window_button_rect)
         self.surface.blit(self.env_title, self.env_title_rect)
-        
+
         for button_data in self.time_control_buttons.values():
             if button_data["clicked"]:
                 self.surface.blit(
@@ -234,10 +235,9 @@ class SidebarComponent:
                     os.path.join(image_assets, "profile", "main.svg")
                 ),
             },
-
         }
 
-    def setup_profile_sidebar(self):
+    def setup_profile_sidebar(self, context=None):
         self.surface.blit(self.sidebar_screens[self.PROFILE][SurfDesc.SURFACE], (0, 0))
 
         # Back button setup
@@ -260,9 +260,100 @@ class SidebarComponent:
             }
         )
 
-    def setup_graph_sidebar(self):
-        self.surface.blit(self.sidebar_screens[self.SHOW_GRAPHS][SurfDesc.SURFACE], (0, 0))
-        
+        critter_data = context.get("selected_critter")
+        self.__setup_critter_head(critter_data)
+
+        dynamic_options = {
+            Attributes.POPULATION: {},
+            Attributes.AGE: {},
+            Attributes.ENERGY: {},
+            Attributes.POSITION: {},
+            Attributes.FITNESS: {},
+        }
+
+        self.__setup_options(critter_data, dynamic_options)
+
+        self.sidebar_screens[self.PROFILE].update(
+            {
+                "critter_id": critter_data.get(Attributes.ID),
+                "dynamic_options": dynamic_options,
+            }
+        )
+
+    def __setup_options(self, critter_data, dynamic_options):
+        y = 430
+        options_x = 35
+        value_x = 35 + 150
+
+        for key in [
+            Attributes.AGE,
+            Attributes.POPULATION,
+            Attributes.ENERGY,
+            Attributes.POSITION,
+            Attributes.FITNESS,
+            Attributes.DOMAIN,
+            Attributes.AGE_OF_MATURITY,
+            Attributes.DEFENSE_MECHANISM,
+            Attributes.VISION_RADIUS,
+            Attributes.SIZE,
+            Attributes.COLOR,
+            Attributes.MAX_SPEED,
+            Attributes.MAX_ENERGY,
+            Attributes.MAX_LIFESPAN,
+        ]:
+            value = critter_data.get(key, None)
+            key_surface = pygame.font.Font(Fonts.PixelifySans, 18).render(
+                helper.limit_text_size(key.value, 14), True, Colors.bg_color
+            )
+            key_rect = key_surface.get_rect(topleft=(options_x, y))
+
+            value_surface = pygame.Surface(
+                (self.surface.get_width() - 225, 30), pygame.SRCALPHA
+            )
+            value_rect = value_surface.get_rect(topleft=(value_x, y - 10))
+            value_surface.fill(Colors.bg_color)
+
+            if key in dynamic_options:
+                dynamic_options[key].update(
+                    {
+                        SurfDesc.SURFACE: value_surface,
+                        SurfDesc.RECT: value_rect,
+                    }
+                )
+
+            value_text_surface = pygame.font.Font(Fonts.PixelifySans, 18).render(
+                str(value), True, Colors.primary
+            )
+            value_surface.blit(value_text_surface, (10, 5))
+
+            self.surface.blit(key_surface, key_rect)
+            self.surface.blit(value_surface, value_rect)
+
+            y += 35
+
+    def __setup_critter_head(self, critter_data):
+        species = critter_data.get(Attributes.SPECIES)
+        species_name_surface = pygame.font.Font(Fonts.PixelifySansBold, 30).render(
+            species, True, Colors.bg_color
+        )
+        species_name_rect = species_name_surface.get_rect(topleft=(35, 320))
+        self.surface.blit(species_name_surface, species_name_rect)
+
+        critter_id = str(critter_data.get(Attributes.ID)).upper()
+        y = 360
+        for text in helper.split_word(critter_id, 30):
+            critter_id_surface = pygame.font.Font(Fonts.PixelifySans, 18).render(
+                text, True, Colors.bg_color
+            )
+            critter_id_rect = critter_id_surface.get_rect(topleft=(35, y))
+            self.surface.blit(critter_id_surface, critter_id_rect)
+            y += 22
+
+    def setup_graph_sidebar(self, context=None):
+        self.surface.blit(
+            self.sidebar_screens[self.SHOW_GRAPHS][SurfDesc.SURFACE], (0, 0)
+        )
+
         # Back button setup
         back_button = pygame.image.load(
             os.path.join(image_assets, "graphs", "back_button.svg")
@@ -273,11 +364,16 @@ class SidebarComponent:
         back_button_rect = back_button.get_rect(center=(50, 50))
 
         # Create Population Graph Figure
-        population_figure = pyc.Figure(self.surface, 15, 120, 380, 200, bg_color=Colors.white)
-        fitness_figure = pyc.Figure(self.surface, 15, 375, 380, 200, bg_color=Colors.white)
-        plant_abundance_figure = pyc.Figure(self.surface, 15, 630, 380, 200, bg_color=Colors.white)
-        
-        
+        population_figure = pyc.Figure(
+            self.surface, 15, 120, 380, 200, bg_color=Colors.white
+        )
+        fitness_figure = pyc.Figure(
+            self.surface, 15, 375, 380, 200, bg_color=Colors.white
+        )
+        plant_abundance_figure = pyc.Figure(
+            self.surface, 15, 630, 380, 200, bg_color=Colors.white
+        )
+
         self.sidebar_screens[self.SHOW_GRAPHS].update(
             {
                 "back_button": {
@@ -288,11 +384,11 @@ class SidebarComponent:
                 },
                 "population_graph": population_figure,
                 "fitness_graph": fitness_figure,
-                "plant_abundance_graph": plant_abundance_figure
+                "plant_abundance_graph": plant_abundance_figure,
             }
         )
 
-    def setup_default_sidebar(self):
+    def setup_default_sidebar(self, context=None):
         self.surface.blit(self.sidebar_screens[self.DEFAULT][SurfDesc.SURFACE], (0, 0))
 
         self.sidebar_screens[self.DEFAULT].update(
@@ -398,7 +494,13 @@ class SidebarComponent:
                 self.sidebar_screens["update"] = True
 
     def handle_default_sidebar_event(self, event, rel_x, rel_y):
-        for name in ["create_organism", "restart_simulation", "show_graphs", "docs", "github"]:
+        for name in [
+            "create_organism",
+            "restart_simulation",
+            "show_graphs",
+            "docs",
+            "github",
+        ]:
             # Reset button to default
             self.buttons[name][SurfDesc.CURRENT_SURFACE] = self.buttons[name][
                 SurfDesc.SURFACE
@@ -414,7 +516,9 @@ class SidebarComponent:
                     EventType.NAVIGATION,
                     "laboratory",
                 )
-        elif self.buttons["restart_simulation"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
+        elif self.buttons["restart_simulation"][SurfDesc.RECT].collidepoint(
+            (rel_x, rel_y)
+        ):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["restart_simulation"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
@@ -431,7 +535,7 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.SHOW_GRAPHS
                 self.sidebar_screens["update"] = True
-        
+
         elif self.buttons["docs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["docs"]
@@ -451,7 +555,9 @@ class SidebarComponent:
 
         if back_button[SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
-                back_button[SurfDesc.CURRENT_SURFACE] = back_button[SurfDesc.CLICKED_SURFACE]
+                back_button[SurfDesc.CURRENT_SURFACE] = back_button[
+                    SurfDesc.CLICKED_SURFACE
+                ]
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.DEFAULT
                 self.sidebar_screens["update"] = True
@@ -478,7 +584,7 @@ class SidebarComponent:
     def update(self, context=None):
         if context.get("selected_critter", None) is not None:
             if self.sidebar_screens[SurfDesc.CURRENT_SURFACE] != self.PROFILE:
-                self.sidebar_screens[self.PROFILE]["function"]()
+                self.sidebar_screens[self.PROFILE]["function"](context=context)
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.PROFILE
             else:
                 self.update_profile_sidebar(context)
@@ -509,7 +615,7 @@ class SidebarComponent:
 
         for button in self.buttons.values():
             self.surface.blit(button[SurfDesc.CURRENT_SURFACE], button[SurfDesc.RECT])
-            
+
     def update_graph_sidebar(self, context):
         back_button = self.sidebar_screens[self.SHOW_GRAPHS]["back_button"]
         self.surface.blit(
@@ -519,7 +625,7 @@ class SidebarComponent:
         self.update_population_graph(context)
         self.update_fitness_graph(context)
         self.update_plant_abundance_graph(context)
-        
+
     def update_population_graph(self, context):
         figure = self.sidebar_screens[self.SHOW_GRAPHS].get("population_graph")
         population_history = context.get("population_history", [])
@@ -532,60 +638,101 @@ class SidebarComponent:
         total_population = [c["total"] for c in critter_counts]
         if sum(total_population) == 0:
             return  # No data, don't attempt to draw
-        
-        species_keys = {species for c in critter_counts for species in c if species != "total"}
+
+        species_keys = {
+            species for c in critter_counts for species in c if species != "total"
+        }
 
         figure.chart_names = []
         figure.charts = []
 
         # Plot total population
-        figure.line("Total Population", time_steps, total_population, color=Colors.bg_color)
+        figure.line(
+            "Total Population", time_steps, total_population, color=Colors.bg_color
+        )
 
         # Plot each species separately
         for species in species_keys:
             species_population = [c.get(species, 0) for c in critter_counts]
-            species_color = species_colors.get(species, (255, 255, 255))  # Default white if not found
-            figure.line(f"Species {species}", time_steps, species_population, color=species_color)
+            species_color = species_colors.get(
+                species, (255, 255, 255)
+            )  # Default white if not found
+            figure.line(
+                f"Species {species}",
+                time_steps,
+                species_population,
+                color=species_color,
+            )
 
         figure.draw()
 
-    
     def update_fitness_graph(self, context):
         figure = self.sidebar_screens[self.SHOW_GRAPHS].get("fitness_graph")
         fitness_history = context.get("fitness_history", [])
         time_steps, fitness_values = zip(*fitness_history)
-        
+
         time_steps = list(time_steps)
         total_fitness = [f["total"] for f in fitness_values]
         if sum(total_fitness) == 0:
             return
-        
-        species_keys = {species for f in fitness_values for species in f if species != "total"}
-        
+
+        species_keys = {
+            species for f in fitness_values for species in f if species != "total"
+        }
+
         figure.chart_names = []
         figure.charts = []
-        
+
         figure.line("Total Fitness", time_steps, total_fitness, color=Colors.bg_color)
-        
+
         for species in species_keys:
             species_fitness = [f.get(species, 0) for f in fitness_values]
-            species_color = context.get("species_colors", {}).get(species, (255, 255, 255))
-            figure.line(f"Species {species}", time_steps, species_fitness, color=species_color)
-            
+            species_color = context.get("species_colors", {}).get(
+                species, (255, 255, 255)
+            )
+            figure.line(
+                f"Species {species}", time_steps, species_fitness, color=species_color
+            )
+
         figure.draw()
-    
+
     def update_plant_abundance_graph(self, context):
         figure = self.sidebar_screens[self.SHOW_GRAPHS].get("plant_abundance_graph")
-        time_steps, population_values = map(list, zip(*context.get("plant_history")))        
-        
+        time_steps, population_values = map(list, zip(*context.get("plant_history")))
+
         figure.chart_names = []
         figure.charts = []
-        
-        figure.line("Plant Abundance", time_steps, population_values, color=Colors.bg_color)
+
+        figure.line(
+            "Plant Abundance", time_steps, population_values, color=Colors.bg_color
+        )
         figure.draw()
 
     def update_profile_sidebar(self, context):
+        # TODO: Clean this
+        critter_data = context.get("selected_critter")
+        if critter_data.get(Attributes.ID) != self.sidebar_screens[self.PROFILE]["critter_id"]:
+            self.setup_profile_sidebar(context)
+            return
+
         back_button = self.sidebar_screens[self.PROFILE]["back_button"]
         self.surface.blit(
             back_button[SurfDesc.CURRENT_SURFACE], back_button[SurfDesc.RECT]
         )
+
+        dynamic_options = self.sidebar_screens[self.PROFILE].get(
+            "dynamic_options"
+        )
+        for key, value in critter_data.items():
+            if key not in dynamic_options:
+                continue
+            value_surface = dynamic_options[key][SurfDesc.SURFACE]
+            value_rect = dynamic_options[key][SurfDesc.RECT]
+            value_surface.fill(Colors.bg_color)
+
+            value_text_surface = pygame.font.Font(Fonts.PixelifySans, 18).render(
+                str(value), True, Colors.primary
+            )
+            value_surface.blit(value_text_surface, (10, 5))
+
+            self.surface.blit(value_surface, value_rect)

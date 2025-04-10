@@ -33,18 +33,23 @@ class SurfDesc(Enum):
 
 
 class Attributes(Enum):
-    BASE_POPULATION = "_base_population"
-    SPECIES = "_species"
-    DEFENSE_MECHANISM = "_defense_mechanism"
-    DOMAIN = "_domain"
-    VISION_RADIUS = "_vision_radius"
-    SIZE = "_size"
-    AGE_OF_MATURITY = "_age_of_maturity"
-    COLOR = "_color"
-    MAX_SPEED = "_max_speed"
-    MAX_ENERGY = "_max_energy"
-    MAX_LIFESPAN = "_max_lifespan"
-
+    BASE_POPULATION = "Base Population"
+    SPECIES = "Species"
+    POPULATION = "Population"
+    ID = "ID"
+    POSITION = "Position"
+    AGE = "Age"
+    ENERGY = "Energy"
+    FITNESS = "Fitness"
+    DEFENSE_MECHANISM = "Defense Mechanism"
+    DOMAIN = "Domain"
+    VISION_RADIUS = "Vision Radius"
+    SIZE = "Size"
+    AGE_OF_MATURITY = "Age Of Maturity"
+    COLOR = "Color"
+    MAX_SPEED = "Max Speed"
+    MAX_ENERGY = "Max Energy"
+    MAX_LIFESPAN = "Max Lifespan"
 
 class EventType(Enum):
     NAVIGATION = "navigation"

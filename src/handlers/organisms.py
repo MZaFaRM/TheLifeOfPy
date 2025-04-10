@@ -5,6 +5,7 @@ import uuid
 import numpy as np
 import pygame
 
+from src import helper
 import src.agents as agents
 from src.config import Colors, Fonts
 from src.enums import Attributes
@@ -117,28 +118,44 @@ class Species:
         else:
             return self.dead_critters
         
-    def get_critter_info(self, critter_id):
+    def get_critter_info(self, critter_id, all=True):
         critter = next(
             (c for c in self.critters if c.id == critter_id), None
         )
         if critter:
-            return {
-                "id": critter.id,
-                "species": critter.species,
-                "age": critter.age,
-                "energy": critter.energy,
-                "fitness": critter.fitness,
-                "domain": critter.domain,
-                "defense_mechanism": critter.defense_mechanism,
-                "vision_radius": critter.vision["radius"],
-                "size": critter.size,
-                "color": critter.color,
-                "max_speed": critter.max_speed,
-                "max_energy": critter.max_energy,
-                "max_lifespan": critter.max_lifespan,
-            }
+            if all:
+                return {
+                    Attributes.ID: critter.id,
+                    Attributes.SPECIES: critter.species,
+                    Attributes.AGE: f"{critter.age:,}",
+                    Attributes.POPULATION: f"{self.get_species_count(critter.species):,}",
+                    Attributes.ENERGY: f"{critter.energy:,}",
+                    Attributes.POSITION: f"{critter.rect.center}",
+                    Attributes.FITNESS: f"{critter.fitness:,}",
+                    Attributes.DOMAIN: critter.domain.value,
+                    Attributes.AGE_OF_MATURITY: f"{critter.age_of_maturity:,}",
+                    Attributes.DEFENSE_MECHANISM: critter.defense_mechanism.value,
+                    Attributes.VISION_RADIUS: f"{critter.vision["radius"]:,}",
+                    Attributes.SIZE: f"{critter.size:,}",
+                    Attributes.COLOR: helper.rgb_to_hex(critter.color),
+                    Attributes.MAX_SPEED: f"{critter.max_speed:,}",
+                    Attributes.MAX_ENERGY: f"{critter.max_energy:,}",
+                    Attributes.MAX_LIFESPAN: f"{critter.max_lifespan:,}",
+                }
+            else:
+                return {
+                    Attributes.ID: critter.id,
+                    Attributes.SPECIES: critter.species,
+                    Attributes.POPULATION: f"{self.get_species_count(critter.species):,}",
+                    Attributes.AGE: f"{critter.age:,}",
+                    Attributes.ENERGY: f"{critter.energy:,}",
+                    Attributes.POSITION: f"{critter.rect.center}",
+                    Attributes.FITNESS: f"{critter.fitness:,}",
+                }
         return None
-        
+    
+    def get_species_count(self, species):
+        return sum(1 for s in self.critters if s.species == species)
 
     def get_critter_count(self):
         count = {"total": 0}
@@ -159,9 +176,6 @@ class Species:
             fitness[species_name] = fitness.get(species_name, 0) + i.fitness
 
         return count, fitness, species_colors
-
-    def crossover(self):
-        pass
 
 
 class Counter:
