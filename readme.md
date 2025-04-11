@@ -6,6 +6,8 @@ Inspired by the works of [@PrimerBlobs](https://www.youtube.com/@PrimerBlobs), [
 
 So, here’s **PetriPixel**—my attempt at creating a digital petri dish where you can create organisms by customizing their **phenotypic and genotypic traits** (like neural networks, size, color, and defense mechanisms) and release them into an environment to see how they interact.
 
+P.S. If you liked the project, a ⭐ would mean a lot.
+
 ## Key Features
 
 ![Laboratory](./docs/images/lab-beautified.png)
