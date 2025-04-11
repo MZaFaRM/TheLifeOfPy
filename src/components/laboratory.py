@@ -392,7 +392,7 @@ class NeuralLab:
             )
 
             for connection in self.neural_frame["connections"]:
-                if helper.is_point_on_line(
+                if helper.is_point_on_line_segment(
                     pos,
                     connection[0][SurfDesc.RECT].center,
                     connection[1][SurfDesc.RECT].center,

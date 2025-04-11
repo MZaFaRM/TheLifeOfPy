@@ -149,19 +149,25 @@ def get_pentagon_points(rect, rotation_degrees=90):
 
     return points
 
+def is_point_on_line_segment(point, line_start, line_end, width):
+    """Check if a point is within a finite line segment of given width."""
+    point = np.array(point)
+    line_start = np.array(line_start)
+    line_end = np.array(line_end)
 
-def is_point_on_line(point, line_start, line_end, width):
-    """Check if a point is within a line of given width."""
-    line_start, line_end, point = (
-        np.array(line_start),
-        np.array(line_end),
-        np.array(point),
-    )
-    distance = np.abs(
-        np.cross(line_end - line_start, line_start - point)
-    ) / np.linalg.norm(line_end - line_start)
+    line_vec = line_end - line_start
+    point_vec = point - line_start
+
+    # Project point onto the line (scalar projection)
+    proj_length = np.dot(point_vec, line_vec) / np.linalg.norm(line_vec)
+
+    # Check if projection is within the segment bounds
+    if proj_length < 0 or proj_length > np.linalg.norm(line_vec):
+        return False
+
+    # Compute perpendicular distance
+    distance = np.abs(np.cross(line_vec, point_vec)) / np.linalg.norm(line_vec)
     return distance <= width
-
 
 def distance_between_points(a, b):
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
