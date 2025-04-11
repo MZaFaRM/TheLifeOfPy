@@ -21,7 +21,6 @@ class Critter(Sprite):
 
         # Retrieve context-based properties
         position = context.get("position", None)
-        parents = context.get("parents", None)
 
         # Genetic & species attributes
         self.genome = Genome(context.get("genome"))
@@ -62,13 +61,14 @@ class Critter(Sprite):
 
         # Mating properties
         self.FETUS = None
-        self.mating_timeout = 300
         self.current_mating_timeout = 0
-        self.mating_state = MatingState.NOT_READY
+        self.mating_state = MatingState.MINOR
         self.age_of_maturity = context.get(Attributes.AGE_OF_MATURITY)
+        self.mating_timeout = self.age_of_maturity * 2
         self.mate = None
         self.incoming_mate_request = None
         self.outgoing_mate_request = None
+        self.children = 0
 
         # Movement properties
         self.td = random.randint(0, 1000)  # for pnoise generation
@@ -79,7 +79,6 @@ class Critter(Sprite):
         # Environment setup
         self.env_surface = surface
         self.seed = random.randint(0, 1000)
-        self.parents = parents
         self.done = False
 
         # Positioning & visual rendering
@@ -105,6 +104,7 @@ class Critter(Sprite):
         )
         self.body_rect.center = self.center
         self.previous_position = self.rect.center
+        self.creation_context["position"] = self.rect.center
 
     def draw(self, surface):
         if not self.alive:
@@ -112,9 +112,11 @@ class Critter(Sprite):
 
         if self.time > 1:
             if self.defense_active:
-                return surface.blit(self.defense_image, self.rect)
+                current_surface = self.defense_image
             else:
-                return surface.blit(self.image, self.rect)
+                current_surface = self.image
+
+            return surface.blit(current_surface, self.rect)
 
         color = self.color
 
@@ -175,17 +177,6 @@ class Critter(Sprite):
             if self.energy > self.max_energy:
                 self.energy = self.max_energy
 
-            return self.handle_events(events)
-
-
-    def handle_events(self, events):
-        if events:
-            for event in events:
-                if event.type == pygame.MOUSEBUTTONUP:
-                    mouse_pos = pygame.mouse.get_pos()
-                    if self.interaction_rect.collidepoint(mouse_pos):
-                        return MessagePacket(EventType.CRITTER, "profile", context={"id" : self.id})
-
     def update_mating_state(self):
         self.current_mating_timeout -= 1
 
@@ -207,7 +198,7 @@ class Critter(Sprite):
         elif self.mating_state == MatingState.WAITING:
             if self.outgoing_mate_request:
                 if self.outgoing_mate_request.mate:
-                    if self.outgoing_mate_request.mate.id == self.id:     
+                    if self.outgoing_mate_request.mate.id == self.id:
                         self.set_mate(self.outgoing_mate_request)
                         self.mate.set_mate(self)
                         self.outgoing_mate_request = None
@@ -222,19 +213,33 @@ class Critter(Sprite):
 
     def update_rect(self):
         # Enforce max movement offset
-        dx = max(-self.max_speed, min(self.max_speed, self.rect.centerx - self.previous_position[0]))
-        dy = max(-self.max_speed, min(self.max_speed, self.rect.centery - self.previous_position[1]))
+        dx = max(
+            -self.max_speed,
+            min(self.max_speed, self.rect.centerx - self.previous_position[0]),
+        )
+        dy = max(
+            -self.max_speed,
+            min(self.max_speed, self.rect.centery - self.previous_position[1]),
+        )
 
         # Apply the constrained movement
-        self.rect.centerx = (self.previous_position[0] + dx) % self.env_surface.get_width()
-        self.rect.centery = (self.previous_position[1] + dy) % self.env_surface.get_height()
+        self.rect.centerx = (
+            self.previous_position[0] + dx
+        ) % self.env_surface.get_width()
+        self.rect.centery = (
+            self.previous_position[1] + dy
+        ) % self.env_surface.get_height()
 
         # Update other rectangles
         self.body_rect.center = self.rect.center
         self.interaction_rect.center = self.rect.center
 
-        self.interaction_rect.centerx = self.interaction_rect.centerx + config.ENV_OFFSET_X
-        self.interaction_rect.centery = self.interaction_rect.centery + config.ENV_OFFSET_Y
+        self.interaction_rect.centerx = (
+            self.interaction_rect.centerx + config.ENV_OFFSET_X
+        )
+        self.interaction_rect.centery = (
+            self.interaction_rect.centery + config.ENV_OFFSET_Y
+        )
 
         # Store updated position
         self.previous_position = self.rect.center
@@ -249,6 +254,11 @@ class Critter(Sprite):
         self.current_mating_timeout = self.mating_timeout
 
     def crossover(self):
+        self.energy -= 300
+        self.mate.energy -= 300
+        self.children += 1
+        self.mate.children += 1
+
         phenotypes = {
             key: random.choice(
                 [self.creation_context[key], self.mate.creation_context[key]]
@@ -257,6 +267,7 @@ class Critter(Sprite):
         }
         genotypes = self.genome.crossover(self.mate)
         phenotypes["genome"] = genotypes
+        phenotypes["position"] = self.rect.center
         self.FETUS = phenotypes
 
     def die(self):

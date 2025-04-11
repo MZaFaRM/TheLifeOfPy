@@ -1,5 +1,7 @@
+from calendar import c
 import math
 import random
+from re import A
 import uuid
 
 import numpy as np
@@ -8,7 +10,7 @@ import pygame
 from src import helper
 import src.agents as agents
 from src.config import Colors, Fonts
-from src.enums import Attributes, SurfDesc
+from src.enums import Attributes, MatingState, SurfDesc
 
 
 class Forest:
@@ -83,7 +85,7 @@ class Species:
             self.critters.append(
                 agents.Critter(
                     surface=self.surface,
-                    context=context,
+                    context=context.copy(),
                 )
             )
 
@@ -102,11 +104,10 @@ class Species:
                 self.dead_critters.append(critter)
 
             if critter.FETUS:
-                critter.FETUS["position"] = critter.rect.center
                 self.critters.append(
                     agents.Critter(
                         surface=self.surface,
-                        context=critter.FETUS,
+                        context=critter.FETUS.copy(),
                     )
                 )
                 critter.FETUS = None
@@ -117,22 +118,23 @@ class Species:
             return self.critters
         else:
             return self.dead_critters
-        
+
     def get_critter_info(self, critter_id, all=True):
-        critter = next(
-            (c for c in self.critters if c.id == critter_id), None
-        )
+        critter = next((c for c in self.critters if c.id == critter_id), None)
         if critter:
             if all:
                 return {
                     Attributes.ID: critter.id,
                     Attributes.SPECIES: critter.species,
                     Attributes.AGE: f"{critter.age:,}",
+                    SurfDesc.SURFACE: critter.image,
                     Attributes.POPULATION: f"{self.get_species_count(critter.species):,}",
                     Attributes.ENERGY: f"{critter.energy:,}",
                     Attributes.POSITION: f"{critter.rect.center}",
                     Attributes.FITNESS: f"{critter.fitness:,}",
                     Attributes.DOMAIN: critter.domain.value,
+                    Attributes.MATING_STATE: critter.mating_state.value,
+                    Attributes.CHILDREN: f"{critter.children:,}",
                     Attributes.AGE_OF_MATURITY: f"{critter.age_of_maturity:,}",
                     Attributes.DEFENSE_MECHANISM: critter.defense_mechanism.value,
                     Attributes.VISION_RADIUS: f"{critter.vision["radius"]:,}",
@@ -147,15 +149,15 @@ class Species:
                     Attributes.ID: critter.id,
                     Attributes.SPECIES: critter.species,
                     Attributes.POPULATION: f"{self.get_species_count(critter.species):,}",
+                    Attributes.MATING_STATE: critter.mating_state.value,
+                    Attributes.CHILDREN: f"{critter.children:,}",
                     Attributes.AGE: f"{critter.age:,}",
                     Attributes.ENERGY: f"{critter.energy:,}",
                     Attributes.POSITION: f"{critter.rect.center}",
                     Attributes.FITNESS: f"{critter.fitness:,}",
-                    SurfDesc.SURFACE: critter.image,
-
                 }
-        return None
-    
+        return None     
+
     def get_species_count(self, species):
         return sum(1 for s in self.critters if s.species == species)
 

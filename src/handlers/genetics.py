@@ -247,21 +247,10 @@ class Genome:
             )
 
     def crossover(self, other_parent):
-        """Performs crossover between this genome and another parent's genome, returning genome data."""
+        """Clones one parent's genome directly for the child, reassigning new node IDs."""
+        # We'll use self as the genome source
+        source_genome = self
 
-        other_parent_genome = other_parent.genome
-        # Determine fitter parent
-        if self.fitness > other_parent_genome.fitness:
-            fitter, weaker = self, other_parent_genome
-        elif self.fitness < other_parent_genome.fitness:
-            fitter, weaker = other_parent_genome, self
-        else:
-            if np.random.rand() < 0.5:
-                fitter, weaker = self, other_parent_genome
-            else:
-                fitter, weaker = other_parent_genome, self
-
-        # Create new genome structure
         child_genome_data = {
             NeuronType.SENSOR: [],
             NeuronType.ACTUATOR: [],
@@ -271,59 +260,36 @@ class Genome:
             "neuron_manager": self.neuron_manager,
         }
 
-        # Inherit node genes (union of both parents' nodes)
-        all_nodes = {node._id: node for node in fitter.node_genes}
-        for node in weaker.node_genes:
-            if node._id not in all_nodes:
-                all_nodes[node._id] = node
+        # Create a mapping from old node IDs to new ones
+        node_id_map = {}
 
-        # Add node genes to the child genome
-        for node in all_nodes.values():
-            child_genome_data[node.type].append((node._id, node.name, node.type))
+        for node_id, node in source_genome.node_genes.items():
+            new_id = uuid.uuid4()
+            node_id_map[node_id] = new_id
+            child_genome_data[node.type].append((new_id, node.name, node.type))
 
-        # Inherit connection genes
-        connection_map = {}
+        for key, conn in source_genome.connection_genes.items():
+            if not conn.enabled and np.random.rand() >= 0.75:
+                continue  # 25% chance to drop disabled connections
 
-        # Collect all connection innovations from both parents
-        for conn in fitter.connection_genes:
-            connection_map[conn.innovation] = (conn, None)
-        for conn in weaker.connection_genes:
-            if conn.innovation in connection_map:
-                connection_map[conn.innovation] = (
-                    connection_map[conn.innovation][0],
-                    conn,
-                )
-            else:
-                connection_map[conn.innovation] = (None, conn)
+            in_node = conn.in_node
+            out_node = conn.out_node
 
-        # Select connections for the child
-        for innovation, (fit_conn, weak_conn) in connection_map.items():
-            if fit_conn and weak_conn:
-                inherited_conn = (
-                    fit_conn if np.random.rand() < 0.5 else weak_conn
-                )  # Pick randomly
-            else:
-                inherited_conn = fit_conn or weak_conn  # Take from fitter parent
-
-            # Add to child genome
-            if (
-                inherited_conn.enabled or np.random.rand() < 0.75
-            ):  # 75% chance to inherit disabled genes
-                child_genome_data["connections"].append(
+            child_genome_data["connections"].append(
+                (
                     (
-                        (
-                            inherited_conn.in_node._id,
-                            inherited_conn.in_node.name,
-                            inherited_conn.in_node.type,
-                            inherited_conn.weight,
-                        ),
-                        (
-                            inherited_conn.out_node._id,
-                            inherited_conn.out_node.name,
-                            inherited_conn.out_node.type,
-                        ),
-                    )
+                        node_id_map[in_node._id],
+                        in_node.name,
+                        in_node.type,
+                        conn.weight,
+                    ),
+                    (
+                        node_id_map[out_node._id],
+                        out_node.name,
+                        out_node.type,
+                    ),
                 )
+            )
 
         return child_genome_data
 
@@ -348,9 +314,9 @@ class NeuronManager:
     sensors = {
         "RNs": {"desc": "Generates random noise; Output range [-1 1]"},
         "FDi": {"desc": "Proximity to the nearest visible plant shrubs; -1 (on it) => 1 (farthest)"},
-        "ADi": {"desc": "Proximity to nearest visible same-species critter: -1 (on it) => 1 (farthest)"},
+        "SDi": {"desc": "Proximity to nearest visible same-species critter: -1 (on it) => 1 (farthest)"},
         "ODi": {"desc": "Proximity to nearest visible other-species critter: -1 (on it) => 1 (farthest)"},
-        "CDi": {"desc": "Proximity to nearest visible any-species critter: -1 (on it) => 1 (farthest)"},
+        "ADi": {"desc": "Proximity to nearest visible any-species critter: -1 (on it) => 1 (farthest)"},
         "MsD": {"desc": "Proximity to mouse pointer, if in visibility: -1 (on it) => 1 (farthest)"},
         "FAm": {"desc": "Density of plant shrubs in proximity: -1 (None) => 1 (More than 10)"},
         "AAm": {"desc": "Density of same-species critters in proximity: -1 (None) => 1 (More than 10)"},
@@ -409,7 +375,7 @@ class NeuronManager:
             context_key="closest_food",
         )
 
-    def obs_ADi(self, critter):
+    def obs_SDi(self, critter):
         """Returns normalized distance to the nearest critter of the same species."""
         return self._get_normalized_nearest_distance(
             critter=critter,
@@ -433,7 +399,7 @@ class NeuronManager:
             ),
         )
 
-    def obs_CDi(self, critter):
+    def obs_ADi(self, critter):
         """Returns normalized distance to the nearest critter of any species."""
         return self._get_normalized_nearest_distance(
             critter=critter,

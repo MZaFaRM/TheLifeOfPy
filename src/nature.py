@@ -62,6 +62,7 @@ class Nature:
                 self.paused = False
             elif packet == MessagePacket(EventType.NAVIGATION, "home"):
                 self.ui_handler.initialize_screen(screen="home")
+                self.selected_critter.update({"id": None, "data": None})
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
                     self.critters = self.species.create_species(
@@ -69,25 +70,11 @@ class Nature:
                     )
                 elif EventType.RESTART_SIMULATION in packet.context:
                     self.reset()
-
+            elif packet == MessagePacket(EventType.NAVIGATION, "profile"):
+                    self.selected_critter["id"] = packet.context["id"]
+                    self.selected_critter["data"] = self.species.get_critter_info(self.selected_critter["id"])
             elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
                 self.ui_handler.initialize_screen(screen="laboratory")
-            elif packet == MessagePacket(EventType.CRITTER, "unselect_critter"):
-                self.selected_critter.update({"id": None, "data": None})
-                self.ui_handler.initialize_screen(screen="home")
-
-        
-
-
-        if self.paused:
-            return self.done, self.truncated
-
-        species_packet = self.species.step(events)
-        if species_packet:
-            if species_packet == MessagePacket(EventType.CRITTER, "profile"):
-                self.selected_critter["id"] = species_packet.context["id"]
-                self.selected_critter["data"] = self.species.get_critter_info(self.selected_critter["id"])
-
 
         if self.selected_critter["id"]:
             data = self.species.get_critter_info(self.selected_critter["id"], all=False)
@@ -97,7 +84,10 @@ class Nature:
             else:
                 self.selected_critter["data"].update(data)
                 
+        if self.paused:
+            return self.done, self.truncated
 
+        self.species.step(events)
         self.neuron_manager.update(
             self.species.get_critters(),
             self.forest.get_plants(),

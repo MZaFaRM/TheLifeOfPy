@@ -182,13 +182,12 @@ class EnvComponent:
 
     def event_handler(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
-            pos = (event.pos[0] - 50, event.pos[1] - 100)
             for critter in self.critters:
-                if critter.interaction_rect.collidepoint(pos):
+                if critter.interaction_rect.collidepoint(event.pos):
                     return MessagePacket(
                         EventType.NAVIGATION,
                         "profile",
-                        context={"critter": critter},
+                        context={"id": critter.id},
                     )
 
     def update(self, context=None):
@@ -268,6 +267,8 @@ class SidebarComponent:
             Attributes.POPULATION: {},
             Attributes.AGE: {},
             Attributes.ENERGY: {},
+            Attributes.MATING_STATE: {},
+            Attributes.CHILDREN: {},
             Attributes.POSITION: {},
             Attributes.FITNESS: {},
         }
@@ -282,7 +283,7 @@ class SidebarComponent:
         )
 
     def __setup_options(self, critter_data, dynamic_options):
-        y = 430
+        y = 410
         options_x = 35
         value_x = 35 + 150
 
@@ -294,6 +295,8 @@ class SidebarComponent:
             Attributes.FITNESS,
             Attributes.DOMAIN,
             Attributes.AGE_OF_MATURITY,
+            Attributes.MATING_STATE,
+            Attributes.CHILDREN,
             Attributes.DEFENSE_MECHANISM,
             Attributes.VISION_RADIUS,
             Attributes.SIZE,
@@ -356,11 +359,11 @@ class SidebarComponent:
         species_name_surface = pygame.font.Font(Fonts.PixelifySansBold, 30).render(
             species, True, Colors.bg_color
         )
-        species_name_rect = species_name_surface.get_rect(topleft=(35, 320))
+        species_name_rect = species_name_surface.get_rect(topleft=(35, 310))
         self.surface.blit(species_name_surface, species_name_rect)
 
         critter_id = str(critter_data.get(Attributes.ID)).upper()
-        y = 360
+        y = 350
         for text in helper.split_word(critter_id, 30):
             critter_id_surface = pygame.font.Font(Fonts.PixelifySans, 18).render(
                 text, True, Colors.bg_color
@@ -581,7 +584,7 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.DEFAULT
                 self.sidebar_screens["update"] = True
-                return MessagePacket(EventType.CRITTER, "unselect_critter")
+                return MessagePacket(EventType.NAVIGATION, "home")
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))

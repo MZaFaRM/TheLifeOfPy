@@ -10,6 +10,7 @@ class NeuronType(Enum):
     # Other
     CONN = "connection"
 
+
 class Defence(Enum):
     NONE = "None"
     SHIELDLING = "Shieldling"
@@ -18,11 +19,12 @@ class Defence(Enum):
 
 
 class MatingState(Enum):
-    MINOR = -1
-    NOT_READY = 0
-    READY = 1
-    MATING = 2
-    WAITING = 3
+    MINOR = "Minor"
+    NOT_READY = "Not Ready"
+    READY = "Ready"
+    MATING = "Mating"
+    WAITING = "Waiting"
+
 
 class SurfDesc(Enum):
     SURFACE = "surface"
@@ -43,6 +45,8 @@ class Attributes(Enum):
     FITNESS = "Fitness"
     DEFENSE_MECHANISM = "Defense Mechanism"
     DOMAIN = "Domain"
+    MATING_STATE = "Mating State"
+    CHILDREN = "Children"
     VISION_RADIUS = "Vision Radius"
     SIZE = "Size"
     AGE_OF_MATURITY = "Age Of Maturity"
@@ -51,12 +55,12 @@ class Attributes(Enum):
     MAX_ENERGY = "Max Energy"
     MAX_LIFESPAN = "Max Lifespan"
 
+
 class EventType(Enum):
     NAVIGATION = "navigation"
     OTHER = "other"
     GENESIS = "genesis"
     RESTART_SIMULATION = "restart_simulation"
-    CRITTER = "critter"
 
 
 class Shapes(Enum):
@@ -88,39 +92,3 @@ class MessagePacket:
 
     def __repr__(self):
         return f"Packet(type={self.msg_type.name}, value={self.value}, context={self.context})"
-
-
-# class MessagePackets:
-#     def __init__(self, *packets: MessagePacket):
-#         self.packets = list(packets)
-
-#     def __contains__(self, packet):
-#         if not isinstance(packet, MessagePacket):
-#             return False
-#         return any(
-#             existing_packet.msg_type == packet.msg_type
-#             and existing_packet.value == packet.value
-#             for existing_packet in self.packets
-#         )
-
-#     def index(self, packet):
-#         if not isinstance(packet, MessagePacket):
-#             raise TypeError("Argument must be an instance of MessagePacket.")
-#         for i, existing_packet in enumerate(self.packets):
-#             if existing_packet == packet:
-#                 return i
-#         raise ValueError("Packet not found in MessagePackets.")
-
-#     def pop(self, index):
-#         return self.packets.pop(index)
-
-#     def __getitem__(self, index):
-#         return self.packets[index]
-
-#     def __setitem__(self, index, value):
-#         if not isinstance(value, MessagePacket):
-#             raise TypeError("Value must be an instance of MessagePacket.")
-#         self.packets[index] = value
-
-#     def __repr__(self):
-#         return " ".join(repr(packet) for packet in self.packets)

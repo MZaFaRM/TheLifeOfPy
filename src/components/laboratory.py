@@ -1130,7 +1130,7 @@ class AttributesLab:
                 },
                 self.AGE_OF_MATURITY: {
                     "type": "user_input_int",
-                    "data": "200",
+                    "data": "500",
                 },
                 self.SIZE: {
                     "type": "user_input_int",
