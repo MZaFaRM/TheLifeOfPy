@@ -220,7 +220,7 @@ class SidebarComponent:
             self.DEFAULT: {
                 "function": self.setup_default_sidebar,
                 SurfDesc.SURFACE: pygame.image.load(
-                    os.path.join(image_assets, "home", "sidebar.png")
+                    os.path.join(image_assets, "home", "sidebar.svg")
                 ),
             },
             self.SHOW_GRAPHS: {
