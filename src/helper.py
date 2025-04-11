@@ -216,6 +216,7 @@ def get_random_color(seed=None, saturation=0.7, brightness=0.8):
     r, g, b = colorsys.hsv_to_rgb(hue, saturation, brightness)
     return rgb_to_hex((int(r * 255), int(g * 255), int(b * 255)))
 
+
 def limit_text_size(text, max_size):
     """
     Limits the size of the text to a maximum number of characters.
@@ -226,8 +227,9 @@ def limit_text_size(text, max_size):
     :return: The limited string with ellipsis if truncated.
     """
     if len(text) > max_size:
-        return text[:max_size - 1] + "."
+        return text[: max_size - 1] + "."
     return text
+
 
 def split_word(text, max_size):
     """
@@ -241,3 +243,22 @@ def split_word(text, max_size):
         return [text]
 
     return [text[i : i + max_size] for i in range(0, len(text), max_size)]
+
+
+def dfs(graph, node=None, visited: list = None, group: list = None):
+    if visited is None:
+        visited = []
+
+    if node is not None:
+        visited.append(node)
+        if group is not None:
+            group.append(node)
+        for neighbor in graph.get(node, set()):
+            if neighbor not in visited:
+                dfs(graph, neighbor, visited, group)
+    else:
+        for node in graph:
+            if node not in visited:
+                dfs(graph, node, visited, group)
+
+    return visited

@@ -1,5 +1,6 @@
 import math
 import random
+from tkinter import N
 import uuid
 import noise
 import numpy as np
@@ -26,8 +27,8 @@ class NodeGene:
         self.name = node_name
         self.type = node_type
 
-    def __eq__(self, value):
-        return self._id == value.node_id and self.type == value.node_type
+    def __eq__(self, other):
+        return self._id == other._id and self.type == other.type
 
     def __hash__(self):
         return hash((self._id, self.type))
@@ -35,15 +36,18 @@ class NodeGene:
 
 class Genome:
     def __init__(self, genome_data):
-        self.node_genes = set()
-        self.connection_genes = []
+        self.node_genes = {}
+        self.connection_genes = {}
         self.fitness = 0
         self.adjusted_fitness = 0
         self.species = None
         self.id = uuid.uuid4()
         self.innovation_history = InnovationHistory()
-        self.nodes = {}
         self.neuron_manager = genome_data.get("neuron_manager")
+        self.sensors = []
+        self.actuators = []
+        self.bias = []
+        self.hidden = []
 
         if genome_data:
             for node_id, node_name, node_type in (
@@ -52,17 +56,50 @@ class Genome:
                 + genome_data[NeuronType.HIDDEN]
                 + genome_data[NeuronType.BIAS]
             ):
-                node = self.add_node_gene(node_id, node_name, node_type)
-                self.nodes[node._id] = node
+                self.add_node_gene(node_id, node_name, node_type)
 
             for node_1, node_2 in genome_data["connections"]:
                 self.add_connection_gene(
-                    self.nodes[node_1[0]], self.nodes[node_2[0]], node_1[3]
+                    self.node_genes[node_1[0]], self.node_genes[node_2[0]], node_1[3]
                 )
+
+            self.node_inputs, _, self.sorted_nodes, self.node_groups = (
+                self._resolve_nodes(genome_data)
+            )
+
+    def _resolve_nodes(self, genome_data):
+        output_map = {node._id: set() for node in self.node_genes.values()}
+        input_map = {node._id: set() for node in self.node_genes.values()}
+        undirected_map = {node._id: set() for node in self.node_genes.values()}
+
+        for node_1, node_2 in genome_data["connections"]:
+            node_1 = node_1[0]
+            node_2 = node_2[0]
+
+            input_map[node_2].add(node_1)
+            output_map[node_1].add(node_2)
+            undirected_map[node_1].add(node_2)
+            undirected_map[node_2].add(node_1)
+
+        node_groups = self.find_connected_nodes(undirected_map)
+        sorted_nodes = [self.node_genes[node_id] for node_id in helper.dfs(output_map)]
+        return input_map, output_map, sorted_nodes, node_groups
+
+    def find_connected_nodes(self, undirected_graph):
+        visited = []
+        components = []
+
+        for node in undirected_graph:
+            if node not in visited:
+                group = []
+                helper.dfs(undirected_graph, node, visited, group)
+                components.append(group)
+
+        return components
 
     def observe(self, critter):
         observations = []
-        for neuron in self.nodes.values():
+        for neuron in self.node_genes.values():
             if neuron.type == NeuronType.SENSOR:
                 if neuron.name in self.neuron_manager.sensors:
                     sensor_method = getattr(self.neuron_manager, f"obs_{neuron.name}")
@@ -72,92 +109,67 @@ class Genome:
         return observations
 
     def forward(self, inputs):
-        activations = {}
-
-        # Step 1: Initialize sensor nodes with input values
-        sensor_nodes = [
-            node for node in self.node_genes if node.type == NeuronType.SENSOR
-        ]
-        if len(inputs) != len(sensor_nodes):
+        if len(inputs) != len(self.sensors):
             raise ValueError(
-                f"Expected {len(sensor_nodes)} inputs, but got {len(inputs)}."
+                f"Expected {len(self.sensors)} inputs, but got {len(inputs)}."
             )
 
-        for node, value in zip(sensor_nodes, inputs):
-            activations[node._id] = value
+        # Initialize sensor nodes with input values
+        activations = {node._id: value for node, value in zip(self.sensors, inputs)}
 
-        # Step 2: Initialize other nodes to zero
-        for node in self.node_genes:
-            if node.type != NeuronType.SENSOR:
+        for node in self.node_genes.values():
+            # Initialize bias nodes to 1
+            if node.type == NeuronType.BIAS:
+                activations[node._id] = 1
+            # Initialize other nodes to 0
+            elif node.type != NeuronType.SENSOR:
                 activations[node._id] = 0
 
-        # Step 3: Initialize bias nodes
-        for node in self.node_genes:
-            if node.type == NeuronType.BIAS:
-                activations[node._id] = 1  # Bias nodes always have activation 1
+        for node in self.sorted_nodes:
+            if node.type in [NeuronType.SENSOR, NeuronType.BIAS]:
+                continue
 
-        # Step 4: Identify tree roots (nodes that are not targeted by any connection)
-        child_nodes = {
-            conn.out_node._id for conn in self.connection_genes if conn.enabled
-        }
-        root_nodes = {
-            node._id for node in self.node_genes if node._id not in child_nodes
-        }
+            value = 0
+            for input_node in self.node_inputs.get(node._id, set()):
+                if conn := self.connection_genes.get((input_node, node._id), None):
+                    if conn.enabled:
+                        value += activations[input_node] * conn.weight
+            activations[node._id] = value
 
-        # Step 5: Group connections by their respective trees
-        tree_connections = defaultdict(list)
-        for connection in self.connection_genes:
-            if connection.enabled:
-                tree_connections[connection.out_node._id].append(connection)
+        self.apply_activation(activations)
 
-        # Step 6: Process each tree independently
-        def propagate_tree(root_id):
-            queue = [root_id]
-            visited = set()
+        return list(filter(lambda node: activations[node._id] == 1, self.actuators))
 
-            while queue:
-                node_id = queue.pop(0)
-                visited.add(node_id)
+    def apply_activation(self, activations):
+        """Applies the activation function to the value."""
+        # Uses a winner-takes-all activation function for the output layer
+        for group in self.node_groups:
+            actuators = self._get_nodes_from_id(group, NeuronType.ACTUATOR)
+            if not actuators:
+                continue
 
-                for connection in tree_connections[node_id]:
-                    if connection.in_node._id in visited:
-                        activations[connection.out_node._id] += (
-                            activations[connection.in_node._id] * connection.weight
-                        )
-                        queue.append(connection.out_node._id)
+            max_value = max(activations[node._id] for node in actuators)
+            if max_value < 0:
+                for node in actuators:
+                    activations[node._id] = 0.0
+            else:
+                for node in actuators:
+                    if activations[node._id] == max_value:
+                        activations[node._id] = 1.0
+                    else:
+                        activations[node._id] = 0.0
 
-        for root_id in root_nodes:
-            propagate_tree(root_id)
-
-        # Step 7: Apply activation function to non-sensor nodes
-        def activation_function(x):
-            return x  # Replace with a non-linear activation if needed
-
-        for node in self.node_genes:
-            if node.type != NeuronType.SENSOR:
-                activations[node._id] = activation_function(activations[node._id])
-
-        # Step 8: Find the best action per tree
-        output_nodes = [
-            node for node in self.node_genes if node.type == NeuronType.ACTUATOR
-        ]
-        tree_best_actions = defaultdict(list)
-
-        for node in output_nodes:
-            tree_id = next(
-                (root for root in root_nodes if node._id in tree_connections), node._id
-            )
-            tree_best_actions[tree_id].append((node, activations[node._id]))
-
-        # Step 9: Return the best actuator(s) from each tree
-        result = []
-        for tree_id, actions in tree_best_actions.items():
-            max_activation = max(actions, key=lambda x: x[1])[1]
-            result.extend(
-                node for node, activation in actions if activation == max_activation
-            )
-
-        return result
+    def _get_nodes_from_id(self, node_ids, node_type=None):
+        """Returns a list of nodes from the node_ids."""
+        nodes = []
+        for node_id in node_ids:
+            if node_id in self.node_genes:
+                node = self.node_genes[node_id]
+                if node_type is None or node.type == node_type:
+                    nodes.append(node)
+            else:
+                raise ValueError(f"Node ID {node_id} not found in genome.")
+        return nodes
 
     def step(self, output_nodes, critter):
         if output_nodes:
@@ -174,12 +186,23 @@ class Genome:
     def add_connection_gene(self, in_node, out_node, weight):
         innovation = self.innovation_history.get_innovation(in_node._id, out_node._id)
         connection = ConnectionGene(in_node, out_node, weight, True, innovation)
-        self.connection_genes.append(connection)
+        self.connection_genes[(in_node._id, out_node._id)] = connection
 
     def add_node_gene(self, node_id, node_name, node_type):
         node = NodeGene(node_id, node_name, node_type)
-        self.node_genes.add(node)
+        self.node_genes[node_id] = node
+        self.save_node(node_type, node)
         return node
+
+    def save_node(self, node_type, node):
+        if node_type == NeuronType.BIAS:
+            self.bias.append(node)
+        elif node_type == NeuronType.SENSOR:
+            self.sensors.append(node)
+        elif node_type == NeuronType.ACTUATOR:
+            self.actuators.append(node)
+        elif node_type == NeuronType.HIDDEN:
+            self.hidden.append(node)
 
     def mutate(self):
         # Mutate connection weights with a probability of 80%
@@ -190,8 +213,8 @@ class Genome:
 
         # Mutate add connection with a probability of 10%
         if np.random.rand() < 0.1:
-            in_node = np.random.choice(self.node_genes)
-            out_node = np.random.choice(self.node_genes)
+            in_node = np.random.choice(self.node_genes.values())
+            out_node = np.random.choice(self.node_genes.values())
             if in_node._id != out_node._id:
                 self.add_connection_gene(in_node, out_node, np.random.uniform(-1, 1))
 
@@ -199,7 +222,7 @@ class Genome:
             out_node = np.random.choice(
                 [
                     n
-                    for n in self.node_genes
+                    for n in self.node_genes.values()
                     if n.node_type in {NeuronType.HIDDEN, NeuronType.ACTUATOR}
                 ]
             )
@@ -590,7 +613,7 @@ class NeuronManager:
 
     def act_ADe(self, critter):
         """Activates defense mechanism when triggered, deactivates otherwise."""
-        setattr(critter, "defense_active", True)
+        critter.defense_active = True
         if critter.defense_mechanism == Defence.SWORDLING:
             collision_indices = critter.interaction_rect.collidelistall(
                 [other.interaction_rect for other in self.critters]
@@ -614,7 +637,7 @@ class NeuronManager:
 
     def act_DDe(self, critter):
         """Deactivates defense mechanism when triggered."""
-        setattr(critter, "defense_active", False)
+        critter.defense_active = False
 
     def act_AvS(self, critter):
         """Move away from the nearest same-species critter, if found."""
