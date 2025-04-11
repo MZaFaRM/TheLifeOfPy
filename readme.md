@@ -24,6 +24,14 @@ P.S. If you liked the project, a ⭐ would mean a lot.
 -   **Watch Them Evolve**
     -   Over generations, successful traits persist while others disappear, shaping the next wave of creatures.
 
+## Requirements
+
+- Display: 1920×1080 resolution
+- Python: 3.x
+- Operating System: Tested on Windows and Linux
+- Dependencies (if running from source): See requirements.txt (also requires Visual C++ Build Tools on Windows)
+- RAM: Minimum 4 GB (8 GB recommended)
+
 ## Installation & Setup
 
 ### 📥 **Get the Latest Release (Recommended)**
