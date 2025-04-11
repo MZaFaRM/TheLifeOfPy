@@ -83,6 +83,10 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## Guides & Wiki
+
+Check out the project [wiki](https://github.com/MZaFaRM/PetriPixel/wiki).
+
 ## Video
 
 <p align="center">
