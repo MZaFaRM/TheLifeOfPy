@@ -10,7 +10,7 @@ So, here’s **PetriPixel**—my attempt at creating a digital petri dish where 
 
 ![Laboratory](./docs/images/lab-beautified.png)
 
--   **Create Various Creatures**
+-   **Create Various Creatures** 
 
     -   Define their physical traits—size, shape, and defensive features.
     -   Set their behavioral traits—how they respond to food, threats, and each other.
@@ -73,7 +73,15 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### References
+## Video
+
+<p align="center">
+  <a href="https://youtu.be/h_OTqW3HPX8">
+    <img src="./docs/images/home.png" alt="Watch the demo" />
+  </a>
+</p>
+
+## References
 
 >   **"Simulating Natural Selection"** – _Primer Blobs_ ([YouTube](https://youtu.be/0ZGbIKd0XrM))  
 
