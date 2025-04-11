@@ -166,3 +166,5 @@ models/
 .conda/
 
 output/
+
+docs/videos/

@@ -1,6 +1,6 @@
 # PetriPixel
 
-![Home Screen](./assets/images/docs/home-beautified.png)
+![Home Screen](./docs/images/home-beautified.png)
 
 Inspired by the works of [@PrimerBlobs](https://www.youtube.com/@PrimerBlobs), [@davidrandallmiller](https://www.youtube.com/@davidrandallmiller), and [@3Blue1Brown](https://www.youtube.com/@3Blue1Brown), I’ve wanted to build something like this for a long time My BTech final project felt like the perfect excuse to finally do it.
 
@@ -8,7 +8,7 @@ So, here’s **PetriPixel**—my attempt at creating a digital petri dish where 
 
 ## Key Features
 
-![Laboratory](./assets/images/docs/lab-beautified.png)
+![Laboratory](./docs/images/lab-beautified.png)
 
 -   **Create Various Creatures**
 
