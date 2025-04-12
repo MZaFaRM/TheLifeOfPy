@@ -61,6 +61,11 @@ class EventType(Enum):
     OTHER = "other"
     GENESIS = "genesis"
     RESTART_SIMULATION = "restart_simulation"
+    
+class Pages(Enum):
+    HOME = "home"
+    LABORATORY = "laboratory"
+    PROFILE = "profile"
 
 
 class Shapes(Enum):

@@ -72,7 +72,7 @@ class LaboratoryComponent:
                     ]
                 else:
                     # If not in "neural_lab", navigate to home
-                    return MessagePacket(EventType.NAVIGATION, "home")
+                    return MessagePacket(EventType.NAVIGATION, Pages.HOME)
             else:
                 self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
                     SurfDesc.SURFACE
@@ -88,7 +88,7 @@ class LaboratoryComponent:
                 self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
                 self.curr_sub_comp = "neural_lab"
 
-            elif packet == MessagePacket(EventType.NAVIGATION, "home"):
+            elif packet == MessagePacket(EventType.NAVIGATION, Pages.HOME):
                 user_input = {
                     **self.user_inputs,
                     "genome": packet.context.get(EventType.GENESIS, {}),
@@ -96,7 +96,7 @@ class LaboratoryComponent:
 
                 return MessagePacket(
                     EventType.NAVIGATION,
-                    "home",
+                    Pages.HOME,
                     context={EventType.GENESIS: user_input},
                 )
             else:

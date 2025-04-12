@@ -6,7 +6,7 @@ import pygame
 
 from src import helper
 from src.config import Colors, Fonts, image_assets
-from src.enums import Attributes, EventType, MessagePacket, SurfDesc
+from src.enums import Attributes, EventType, MessagePacket, Pages, SurfDesc
 from src.handlers.organisms import Counter
 import webbrowser
 import pygame_chart as pyc
@@ -186,7 +186,7 @@ class EnvComponent:
                 if critter.interaction_rect.collidepoint(event.pos):
                     return MessagePacket(
                         EventType.NAVIGATION,
-                        "profile",
+                        Pages.PROFILE,
                         context={"id": critter.id},
                     )
 
@@ -211,7 +211,8 @@ class SidebarComponent:
 
         self.DEFAULT = "default"
         self.SHOW_GRAPHS = "show_graphs"
-        self.PROFILE = "profile"
+        # Used by external classes, hence enums
+        self.PROFILE = Pages.PROFILE
 
         self.sidebar_screens = {
             SurfDesc.CURRENT_SURFACE: self.DEFAULT,
@@ -517,13 +518,7 @@ class SidebarComponent:
                 self.sidebar_screens["update"] = True
 
     def handle_default_sidebar_event(self, event, rel_x, rel_y):
-        for name in [
-            "create_organism",
-            "restart_simulation",
-            "show_graphs",
-            "docs",
-            "github",
-        ]:
+        for name in self.buttons.keys():
             # Reset button to default
             self.buttons[name][SurfDesc.CURRENT_SURFACE] = self.buttons[name][
                 SurfDesc.SURFACE
@@ -537,7 +532,7 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 return MessagePacket(
                     EventType.NAVIGATION,
-                    "laboratory",
+                    Pages.LABORATORY,
                 )
         elif self.buttons["restart_simulation"][SurfDesc.RECT].collidepoint(
             (rel_x, rel_y)
@@ -548,7 +543,7 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 return MessagePacket(
                     EventType.NAVIGATION,
-                    "home",
+                    Pages.HOME,
                     context={EventType.RESTART_SIMULATION: True},
                 )
         elif self.buttons["show_graphs"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
@@ -584,7 +579,7 @@ class SidebarComponent:
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.sidebar_screens[SurfDesc.CURRENT_SURFACE] = self.DEFAULT
                 self.sidebar_screens["update"] = True
-                return MessagePacket(EventType.NAVIGATION, "home")
+                return MessagePacket(EventType.NAVIGATION, Pages.HOME)
 
     def load_and_store_button(self, name, image, clicked_image, position):
         button_image = pygame.image.load(os.path.join(image_assets, image))

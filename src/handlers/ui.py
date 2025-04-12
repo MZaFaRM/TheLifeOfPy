@@ -1,5 +1,6 @@
 import sys
 import pygame
+from enums import Pages
 from src.components.home import HomeComponent
 from src.components.laboratory import LaboratoryComponent
 
@@ -11,16 +12,16 @@ class UIHandler:
         pygame.display.set_caption("PetriPixel")
 
         self.screen_states = {
-            "current_screen": "home",
-            "screens": ["home", "laboratory", "graphs"],
-            "home": {
+            "current_screen": Pages.HOME,
+            "screens": [Pages.HOME, Pages.LABORATORY],
+            Pages.HOME: {
                 "handler": HomeComponent,
                 "custom_position": {
                     "topleft": (0, 0),
                 },
                 "context": {},
             },
-            "laboratory": {
+            Pages.LABORATORY: {
                 "handler": LaboratoryComponent,
                 "custom_position": {
                     "center": (
@@ -30,13 +31,11 @@ class UIHandler:
                 },
                 "context": {},
             },
-            "graphs": {
-                "components": {},
-                "context": {},
-            },
         }
 
-    def initialize_screen(self, screen="home"):
+    def initialize_screen(self, screen=Pages.HOME):
+        if screen not in self.screen_states["screens"]:
+            raise ValueError(f"Invalid screen: {screen}")
         self.screen_states["current_screen"] = screen
         self.screen_states["rendered_components"] = {}
 

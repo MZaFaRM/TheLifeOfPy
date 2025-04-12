@@ -2,18 +2,19 @@ import os
 import sys
 import pygame
 
-from src.enums import Attributes, EventType, MessagePacket
+from src.enums import Attributes, EventType, MessagePacket, Pages
 from src.handlers import genetics
 import src.handlers.organisms as organisms
 from src.handlers.ui import UIHandler
 from src.config import image_assets
+
 
 class Nature:
     def __init__(self):
         icon = pygame.image.load(os.path.join(image_assets, "icons", "256x256.png"))
         icon = pygame.transform.scale(icon, (32, 32))
         pygame.display.set_icon(icon)
-        
+
         pygame.font.init()
         self.clock = pygame.time.Clock()
         self.ui_handler = UIHandler()
@@ -25,7 +26,7 @@ class Nature:
         self.truncated = False
         self.paused = False
 
-        self.ui_handler.initialize_screen(screen="home")
+        self.ui_handler.initialize_screen(screen=Pages.HOME)
         env_surface = self.ui_handler.get_component(name="EnvComponent").surface
         self.neuron_manager = genetics.NeuronManager()
 
@@ -47,7 +48,7 @@ class Nature:
         self.fitness_history = []
         self.plant_history = [(0, 0)]
         self.species_colors = {}
-        self.selected_critter = {"id" : None, "data" : None}
+        self.selected_critter = {"id": None, "data": None}
 
     def step(self):
         events = pygame.event.get()
@@ -60,8 +61,8 @@ class Nature:
                 self.paused = True
             elif packet == "play_time":
                 self.paused = False
-            elif packet == MessagePacket(EventType.NAVIGATION, "home"):
-                self.ui_handler.initialize_screen(screen="home")
+            elif packet == MessagePacket(EventType.NAVIGATION, Pages.HOME):
+                self.ui_handler.initialize_screen(screen=Pages.HOME)
                 self.selected_critter.update({"id": None, "data": None})
                 if EventType.GENESIS in packet.context:
                     data = packet.context[EventType.GENESIS]
@@ -70,20 +71,22 @@ class Nature:
                     )
                 elif EventType.RESTART_SIMULATION in packet.context:
                     self.reset()
-            elif packet == MessagePacket(EventType.NAVIGATION, "profile"):
-                    self.selected_critter["id"] = packet.context["id"]
-                    self.selected_critter["data"] = self.species.get_critter_info(self.selected_critter["id"])
-            elif packet == MessagePacket(EventType.NAVIGATION, "laboratory"):
-                self.ui_handler.initialize_screen(screen="laboratory")
+            elif packet == MessagePacket(EventType.NAVIGATION, Pages.PROFILE):
+                self.selected_critter["id"] = packet.context["id"]
+                self.selected_critter["data"] = self.species.get_critter_info(
+                    self.selected_critter["id"]
+                )
+            elif packet == MessagePacket(EventType.NAVIGATION, Pages.LABORATORY):
+                self.ui_handler.initialize_screen(screen=Pages.LABORATORY)
 
         if self.selected_critter["id"]:
             data = self.species.get_critter_info(self.selected_critter["id"], all=False)
             if data is None:
                 self.selected_critter.update({"id": None, "data": None})
-                self.ui_handler.initialize_screen(screen="home")
+                self.ui_handler.initialize_screen(screen=Pages.HOME)
             else:
                 self.selected_critter["data"].update(data)
-                
+
         if self.paused:
             return self.done, self.truncated
 
@@ -111,7 +114,7 @@ class Nature:
 
         self.time_steps += 1
         return self.done, self.truncated
-    
+
     def run(self):
         try:
             self.render()
