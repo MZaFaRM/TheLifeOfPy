@@ -1,7 +1,6 @@
-import enum
+from enum import Enum
 import os
 import re
-import time
 import uuid
 
 import numpy as np
@@ -9,9 +8,22 @@ import pygame
 import pygame.gfxdraw
 
 from src.config import Colors, Fonts, InvalidConnection, image_assets
-from src.enums import Attributes, Defence, EventType, MessagePacket, NeuronType, SurfDesc, Shapes
+from src.enums import (
+    Attributes,
+    Defence,
+    EventType,
+    MessagePacket,
+    NeuronType,
+    Pages,
+    SurfDesc,
+    Shapes,
+)
 from src.handlers.genetics import NeuronManager
 import src.helper as helper
+
+class Components(Enum):
+    NEURAL_LAB = "neural_lab"
+    ATTRS_LAB = "attrs_lab"
 
 
 class LaboratoryComponent:
@@ -38,10 +50,10 @@ class LaboratoryComponent:
 
         self.__create_back_button()
 
-        self.curr_sub_comp = "attrs_lab"
+        self.curr_sub_comp = Components.ATTRS_LAB
         self.sub_comp_states = {
-            "attrs_lab": AttributesLab(main_surface, context),
-            "neural_lab": NeuralLab(main_surface, context),
+            Components.ATTRS_LAB: AttributesLab(main_surface, context),
+            Components.NEURAL_LAB: NeuralLab(main_surface, context),
         }
 
     def update(self, context=None):
@@ -64,14 +76,14 @@ class LaboratoryComponent:
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if self.back_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
-                if self.curr_sub_comp == "neural_lab":
-                    # If in the "neural_lab", go back to "attrs_lab"
-                    self.curr_sub_comp = "attrs_lab"
+                if self.curr_sub_comp == Components.NEURAL_LAB:
+                    # If in the Components.NEURAL_LAB, go back to Components.ATTRS_LAB
+                    self.curr_sub_comp = Components.ATTRS_LAB
                     self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
                         SurfDesc.SURFACE
                     ]
                 else:
-                    # If not in "neural_lab", navigate to home
+                    # If not in Components.NEURAL_LAB, navigate to home
                     return MessagePacket(EventType.NAVIGATION, Pages.HOME)
             else:
                 self.back_button[SurfDesc.CURRENT_SURFACE] = self.back_button[
@@ -83,10 +95,10 @@ class LaboratoryComponent:
         if packet := self.sub_comp_states.get(
             self.curr_sub_comp,
         ).event_handler(event):
-            if packet == MessagePacket(EventType.NAVIGATION, "neural_lab"):
-                # Navigate to "neural_lab" sub-component and store its context
+            if packet == MessagePacket(EventType.NAVIGATION, Components.NEURAL_LAB):
+                # Navigate to Components.NEURAL_LAB sub-component and store its context
                 self.user_inputs.update(packet.context.get(EventType.GENESIS, {}))
-                self.curr_sub_comp = "neural_lab"
+                self.curr_sub_comp = Components.NEURAL_LAB
 
             elif packet == MessagePacket(EventType.NAVIGATION, Pages.HOME):
                 user_input = {
@@ -593,7 +605,7 @@ class NeuralLab:
         if self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(event.pos):
             return MessagePacket(
                 EventType.NAVIGATION,
-                "home",
+                Pages.HOME,
                 context={EventType.GENESIS: self.__get_user_input()},
             )
         elif not self.unleash_organism_button[SurfDesc.ABSOLUTE_RECT].collidepoint(
@@ -967,12 +979,12 @@ class AttributesLab:
         self.surface_x_offset = context.get("surface_x_offset", 0)
         self.surface_y_offset = context.get("surface_y_offset", 0)
 
-        self.attrs_lab_text = pygame.image.load(
+        Components.ATTRS_LAB_text = pygame.image.load(
             os.path.join(image_assets, "laboratory", "attrs_lab", "lab_intro_text.svg")
         )
         self.surface.blit(
-            self.attrs_lab_text,
-            self.attrs_lab_text.get_rect(topleft=(75, 225)),
+            Components.ATTRS_LAB_text,
+            Components.ATTRS_LAB_text.get_rect(topleft=(75, 225)),
         )
 
         self.__create_dp_circle()
@@ -1099,7 +1111,7 @@ class AttributesLab:
                 self.INITIAL_POPULATION: {
                     "type": "user_input_int",
                     "data": "10",
-                    "max" : 1000,
+                    "max": 1000,
                 },
                 self.SPECIES: {
                     "type": "user_input_str",
@@ -1126,7 +1138,7 @@ class AttributesLab:
                 self.VISION_RADIUS: {
                     "type": "user_input_int",
                     "data": "40",
-                    "max" : 100,
+                    "max": 100,
                 },
                 self.AGE_OF_MATURITY: {
                     "type": "user_input_int",
@@ -1135,7 +1147,7 @@ class AttributesLab:
                 self.SIZE: {
                     "type": "user_input_int",
                     "data": "10",
-                    "max" : 100,
+                    "max": 100,
                 },
                 self.COLOR: {
                     "type": "user_input_color",
@@ -1271,7 +1283,7 @@ class AttributesLab:
                 choice_surface.fill(color)
                 choice_surface.blit(text, (5, 0))
                 choice[state] = choice_surface
-            
+
             rect_x = x + 50 + choice_x
             rect_y = y
             choice[SurfDesc.RECT] = choice[SurfDesc.SURFACE].get_rect(
@@ -1422,7 +1434,7 @@ class AttributesLab:
         """Return the navigation message for neural lab."""
         return MessagePacket(
             EventType.NAVIGATION,
-            "neural_lab",
+            Components.NEURAL_LAB,
             context={EventType.GENESIS: self.__get_user_input()},
         )
 
@@ -1532,7 +1544,13 @@ class AttributesLab:
         if self.traits_schema["options"][selected_option].get("max"):
             # Ensure the input does not exceed the maximum value
             max_value = self.traits_schema["options"][selected_option]["max"]
-            if int(self.traits_schema["options"][selected_option]["data"] + event.unicode) > max_value:
+            if (
+                int(
+                    self.traits_schema["options"][selected_option]["data"]
+                    + event.unicode
+                )
+                > max_value
+            ):
                 return
 
         self.traits_schema["options"][selected_option]["data"] += (

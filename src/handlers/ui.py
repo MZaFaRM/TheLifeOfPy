@@ -1,6 +1,6 @@
 import sys
 import pygame
-from enums import Pages
+from src.enums import Pages
 from src.components.home import HomeComponent
 from src.components.laboratory import LaboratoryComponent
 
