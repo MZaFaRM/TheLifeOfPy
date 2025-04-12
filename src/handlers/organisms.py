@@ -137,7 +137,7 @@ class Species:
                     Attributes.CHILDREN: f"{critter.children:,}",
                     Attributes.AGE_OF_MATURITY: f"{critter.age_of_maturity:,}",
                     Attributes.DEFENSE_MECHANISM: critter.defense_mechanism.value,
-                    Attributes.VISION_RADIUS: f"{critter.vision["radius"]:,}",
+                    Attributes.VISION_RADIUS: f"{critter.vision['radius']:,}",
                     Attributes.SIZE: f"{critter.size:,}",
                     Attributes.COLOR: helper.rgb_to_hex(critter.color),
                     Attributes.MAX_SPEED: f"{critter.max_speed:,}",
@@ -156,7 +156,7 @@ class Species:
                     Attributes.POSITION: f"{critter.rect.center}",
                     Attributes.FITNESS: f"{critter.fitness:,}",
                 }
-        return None     
+        return None
 
     def get_species_count(self, species):
         return sum(1 for s in self.critters if s.species == species)
