@@ -559,13 +559,13 @@ class SidebarComponent:
                 button = self.buttons["docs"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
-                webbrowser.open("https://github.com/MZaFaRM/PetriPixel/wiki")
+                webbrowser.open("https://github.com/MZaFaRM/TheLifeOfPy/wiki")
         elif self.buttons["github"][SurfDesc.RECT].collidepoint((rel_x, rel_y)):
             if event.type == pygame.MOUSEBUTTONDOWN:
                 button = self.buttons["github"]
                 button[SurfDesc.CURRENT_SURFACE] = button[SurfDesc.CLICKED_SURFACE]
             elif event.type == pygame.MOUSEBUTTONUP:
-                webbrowser.open("https://github.com/MZaFaRM/PetriPixel")
+                webbrowser.open("https://github.com/MZaFaRM/TheLifeOfPy")
 
     def handle_profile_sidebar_event(self, event, rel_x, rel_y):
         back_button = self.sidebar_screens[self.PROFILE]["back_button"]

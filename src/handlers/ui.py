@@ -9,7 +9,7 @@ class UIHandler:
     def __init__(self):
         self.surface = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.surface.fill((26, 26, 26))
-        pygame.display.set_caption("PetriPixel")
+        pygame.display.set_caption("TheLifeOfPy")
 
         self.screen_states = {
             "current_screen": Pages.HOME,
